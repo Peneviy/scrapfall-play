@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<script>window.onPkbLoad=function(ok){window.PKB_LOADED=ok!==false;if(window.PF&&PF.onPkbLoad)PF.onPkbLoad(window.PKB_LOADED);};</script><script async src="https://games.pikabu.ru/sdk/sdk.js" onload="onPkbLoad(true)" onerror="onPkbLoad(false)"></script>
+<title>SCRAPFALL</title>
+<!-- иконка прямо в data-url: внешние запросы площадкам не нравятся -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230a1216'/%3E%3Ccircle cx='16' cy='16' r='9' fill='%23f0a24a'/%3E%3Ccircle cx='16' cy='16' r='4' fill='%230a1216'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<canvas id="game3d"></canvas>
+<canvas id="game"></canvas>
+
+<!-- HUD поверх канваса -->
+<div id="hud" class="hidden">
+  <div class="hud-top">
+    <div class="xp-wrap">
+      <div class="xp-bar"><i id="xpFill"></i></div>
+      <span id="lvlText">1</span>
+    </div>
+    <div class="hud-row">
+      <div id="timeText" class="chip">0:00</div>
+      <div id="coinText" class="chip coin">0</div>
+      <div id="killText" class="chip kill">0</div>
+      <div id="scoreText" class="chip score">0</div>
+      <button id="btnPause" class="icon-btn">||</button>
+    </div>
+  </div>
+  <div id="bossBar" class="boss-bar hidden">
+    <div class="bb-name"><span id="bossName"></span><b id="bossHpText"></b></div>
+    <div class="bb-track"><i id="bossFill"></i></div>
+  </div>
+  <div class="hud-bottom">
+    <div class="hp-wrap"><div class="hp-bar"><i id="hpFill"></i></div><span id="hpText"></span></div>
+    <div id="buffStrip" class="buff-strip"></div>
+    <div id="skillStrip"></div>
+    <div id="abilityBar" class="ability-bar">
+      <div class="ab" id="abDash"><i>SPACE</i><span data-i18n="keyDash">Рывок</span><u id="abDashCd"></u></div>
+      <button class="ab act" id="abAim"><i>TAB</i><span id="abAimText">Прицел: авто</span></button>
+      <div class="ab dim"><i>P</i><span data-i18n="keyPause">Пауза</span></div>
+    </div>
+  </div>
+  <div id="dashBtn" class="touch-btn hidden">DASH</div>
+  <!-- подсказка управления в первом забеге, гаснет, как только поехал -->
+  <div id="ctrlHint" class="ctrl-hint hidden">
+    <div class="ch pc"><b><i>W</i><i>A</i><i>S</i><i>D</i></b><span data-i18n="hintMove">ехать</span><b><i>SPACE</i></b><span data-i18n="keyDash">Рывок</span></div>
+    <div class="ch touch"><b class="swipe"></b><span data-i18n="hintDrag">тяни по экрану, чтобы ехать</span></div>
+    <div class="ch"><span data-i18n="hintAuto">стреляет сама, целится в ближнего</span></div>
+  </div>
+</div>
+
+<!-- Загрузка -->
+<div id="scrLoading" class="screen">
+  <div class="logo">SCRAP<span>FALL</span></div>
+  <div class="loading-bar"><i id="loadFill"></i></div>
+</div>
+
+<!-- Главное меню -->
+<div id="scrMenu" class="screen hidden">
+  <div class="logo small">SCRAP<span>FALL</span></div>
+  <div class="menu-mid">
+    <div id="menuHero" class="hero-card">
+      <canvas id="heroPreview" width="220" height="220"></canvas>
+      <div class="hero-info">
+        <div id="heroName" class="hero-name">SCAV</div>
+        <div id="heroWeapon" class="hero-weapon">-</div>
+        <div id="heroPerk" class="hero-perk"></div>
+      </div>
+    </div>
+    <div class="menu-stats">
+      <div><span data-i18n="best">Рекорд</span><b id="menuBest">0</b></div>
+      <div><span data-i18n="prestige">Престиж</span><b id="menuPrestige">0</b></div>
+      <div><span data-i18n="coins">Лом</span><b id="menuCoins">0</b></div>
+      <div><span data-i18n="bossesStat">Боссы</span><b id="menuBosses">0</b></div>
+    </div>
+  </div>
+  <div class="menu-btns">
+    <button id="btnPlay" class="big-btn" data-i18n="play">В РЕЙД</button>
+    <div class="btn-row">
+      <button id="btnShop" class="btn" data-icon="hangar"><span data-i18n="shop">Ангар</span></button>
+      <button id="btnModules" class="btn with-ic"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.6"/><circle cx="18" cy="20" r="1.6"/><path d="M2 3h3l3 12h11l2-8H7"/></svg><span data-i18n="modules">Магазин</span></button>
+      <button id="btnBoard" class="btn" data-icon="board"><span data-i18n="board">Рейтинг</span></button>
+      <button id="btnSettings" class="btn icon with-ic" title="settings"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+    </div>
+    <button id="btnFreeCoins" class="btn ad-btn" data-icon="crate"><i class="ad-tag">AD</i> <span data-i18n="freeCoins">Ящик с ломом</span></button>
+  </div>
+</div>
+
+<!-- Ангар: персонажи, оружие, скины, апгрейды -->
+<div id="scrShop" class="screen hidden">
+  <div class="top-bar">
+    <button class="back-btn" data-back="1"><span>&#8592;</span><span data-i18n="back">Вернуться</span></button>
+    <div class="tabs">
+      <button class="tab active" data-tab="chars" data-icon="car"><span data-i18n="tabChars">Машины</span></button>
+      <button class="tab" data-tab="weapons" data-icon="gun"><span data-i18n="tabWeapons">Оружие</span></button>
+      <button class="tab" data-tab="skins" data-icon="paint"><span data-i18n="tabSkins">Окрас</span></button>
+      <button class="tab" data-tab="upgrades" data-icon="module"><span data-i18n="tabUp">Модули</span></button>
+      <button class="tab" data-tab="trophies" data-icon="skull"><span data-i18n="tabTrophies">Трофеи</span></button>
+    </div>
+    <div class="coin-counter"><b id="shopCoins">0</b></div>
+  </div>
+  <div id="shopList" class="grid-list"></div>
+  <div id="prestigeBox" class="prestige-box hidden">
+    <div class="pb-text">
+      <b data-i18n="prestigeTitle">Сброс прогресса</b>
+      <span id="prestigeDesc"></span>
+    </div>
+    <button id="btnPrestige" class="btn danger" data-i18n="prestigeDo">Сбросить</button>
+  </div>
+</div>
+
+<!-- Рейтинг -->
+<div id="scrBoard" class="screen hidden">
+  <div class="top-bar">
+    <button class="back-btn" data-back="1"><span>&#8592;</span><span data-i18n="back">Вернуться</span></button>
+    <div class="scr-title" data-i18n="board">Рейтинг</div>
+    <div></div>
+  </div>
+  <div id="boardList" class="board-list"></div>
+  <button id="btnAuth" class="btn hidden" data-i18n="auth">Войти, чтобы попасть в рейтинг</button>
+</div>
+
+<!-- Настройки -->
+<div id="scrSettings" class="screen hidden">
+  <div class="top-bar">
+    <button class="back-btn" data-back="1"><span>&#8592;</span><span data-i18n="back">Вернуться</span></button>
+    <div class="scr-title" data-i18n="settings">Настройки</div>
+    <div></div>
+  </div>
+  <div class="settings-list">
+    <label class="sw"><span data-i18n="sfx">Звук</span><input type="checkbox" id="setSfx" checked></label>
+    <label class="sw"><span data-i18n="music">Музыка</span><input type="checkbox" id="setMusic" checked></label>
+    <label class="sw"><span data-i18n="shake">Тряска камеры</span><input type="checkbox" id="setShake" checked></label>
+    <label class="sw"><span data-i18n="lowfx">Меньше эффектов</span><input type="checkbox" id="setLow"></label>
+    <div class="lang-row"></div>
+    <div class="ver">v<span id="verText"></span></div>
+  </div>
+</div>
+
+<!-- Выбор скилла -->
+<div id="scrLevel" class="screen overlay hidden">
+  <div class="lvl-title"><span data-i18n="lvlUp">Уровень</span> <b id="lvlNum">2</b></div>
+  <div id="cardRow" class="card-row"></div>
+  <button id="btnReroll" class="btn ad-btn"><i class="ad-tag">AD</i> <span data-i18n="reroll">Другие карты</span></button>
+</div>
+
+<!-- Пауза -->
+<div id="scrPause" class="screen overlay hidden">
+  <div class="scr-title" data-i18n="pause">Пауза</div>
+  <!-- что взял за рейд: карта, уровень, что дает сейчас -->
+  <div id="pauseSkills" class="pause-skills"></div>
+  <div class="menu-btns">
+    <button id="btnResume" class="big-btn" data-i18n="resume">Продолжить</button>
+    <button id="btnAimMode" class="btn">Прицел: авто</button>
+    <button id="btnQuit" class="btn" data-i18n="quit">Бросить рейд</button>
+  </div>
+</div>
+
+<!-- Итоги -->
+<div id="scrOver" class="screen overlay hidden">
+  <div class="over-title" data-i18n="over">Рейд провален</div>
+  <div class="over-stats">
+    <div><span data-i18n="score">Очки</span><b id="ovScore">0</b></div>
+    <div><span data-i18n="survived">Продержался</span><b id="ovTime">0:00</b></div>
+    <div><span data-i18n="killed">Убито</span><b id="ovKills">0</b></div>
+    <div class="coin-line"><span data-i18n="loot">Лом за рейд</span><b id="ovCoins">0</b></div>
+  </div>
+  <div id="ovBreak" class="score-break"></div>
+  <div id="ovNewBest" class="new-best hidden" data-i18n="newBest">Новый рекорд!</div>
+  <div class="menu-btns">
+    <button id="btnRevive" class="big-btn ad-btn"><i class="ad-tag">AD</i> <span data-i18n="revive">Вторая жизнь</span></button>
+    <button id="btnDouble" class="btn ad-btn"><i class="ad-tag">AD</i> <span data-i18n="double">Удвоить лом</span></button>
+    <button id="btnAgain" class="btn" data-i18n="again">Ещё рейд</button>
+    <button id="btnToMenu" class="btn ghost" data-i18n="toMenu">В меню</button>
+  </div>
+</div>
+
+<div id="bossBanner" class="boss-banner hidden"><b id="bannerKind"></b><span id="bannerName"></span></div>
+<div id="toast" class="toast hidden"></div>
+<div id="adCover" class="ad-cover hidden"><div class="ad-spin"></div></div>
+
+<script src="js/lib/three.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/util.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/lang/tr.js"></script>
+<script src="js/lang/de.js"></script>
+<script src="js/lang/es.js"></script>
+<script src="js/lang/pt.js"></script>
+<script src="js/icons.js"></script>
+<script src="js/platform.js"></script>
+<script src="js/save.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/input.js"></script>
+<script src="js/fx.js"></script>
+<script src="js/world.js"></script>
+<script src="js/content.js"></script>
+<script src="js/bosses.js"></script>
+<script src="js/skills.js"></script>
+<script src="js/enemies.js"></script>
+<script src="js/player.js"></script>
+<script src="js/3d/models.js"></script>
+<script src="js/3d/view.js"></script>
+<script src="js/game.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

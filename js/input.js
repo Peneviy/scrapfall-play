@@ -1,0 +1,197 @@
+// Управление: клавиатура, тач-стик, геймпад. Наружу отдаем только move/dash.
+var Input = {
+  keys: {},
+  move: { x: 0, y: 0 },
+  dashWanted: false,
+  touch: false,
+  stick: { active: false, id: -1, ox: 0, oy: 0, x: 0, y: 0, max: 62 },
+  mouse: { x: 0, y: 0, down: false },
+
+  // Раскладка не важна: у кириллицы те же e.code. Но если code пустой,
+  // пробуем вытащить клавишу из e.key.
+  codeOf: function (e) {
+    if (e.code) return e.code;
+    var k = (e.key || '').toLowerCase();
+    var map = {
+      w: 'KeyW', a: 'KeyA', s: 'KeyS', d: 'KeyD', p: 'KeyP',
+      'ц': 'KeyW', 'ф': 'KeyA', 'ы': 'KeyS', 'в': 'KeyD', 'з': 'KeyP',
+      arrowup: 'ArrowUp', arrowdown: 'ArrowDown', arrowleft: 'ArrowLeft', arrowright: 'ArrowRight',
+      ' ': 'Space', escape: 'Escape', shift: 'ShiftLeft',
+      '1': 'Digit1', '2': 'Digit2', '3': 'Digit3'
+    };
+    return map[k] || '';
+  },
+
+  clear: function () {
+    this.keys = {};
+    this.move.x = this.move.y = 0;
+    this.stick.active = false;
+    this.stick.id = -1;
+  },
+
+  init: function (canvas) {
+    var self = this;
+
+    window.addEventListener('keydown', function (e) {
+      var code = self.codeOf(e);
+      if (!code) return;
+      self.keys[code] = true;
+      if (code === 'Space' || code === 'ShiftLeft') self.dashWanted = true;
+      if (code === 'Escape' || code === 'KeyP') UI.togglePause();
+      if (code === 'Tab') { e.preventDefault(); UI.toggleAim(); }
+      // карта на уровне берется цифрой верхнего ряда, просьба с тестов
+      if (code === 'Digit1' || code === 'Digit2' || code === 'Digit3') UI.pickByKey(+code.charAt(5) - 1);
+      // стрелки и пробел скроллят страницу в iframe, площадки на это ругаются
+      if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].indexOf(code) >= 0) e.preventDefault();
+    });
+
+    // Если keyup пришел без внятного кода (бывает при переключении раскладки,
+    // горячих клавишах системы и в эмуляторах), сбрасываем все: иначе клавиша
+    // залипает и корабль улетает в одну сторону навсегда.
+    window.addEventListener('keyup', function (e) {
+      var code = self.codeOf(e);
+      if (!code) { self.clear(); return; }
+      self.keys[code] = false;
+    });
+
+    // Колесо внутри iframe площадки прокручивает страницу под игрой, поэтому
+    // гасим всегда, а в забеге оно еще и двигает камеру
+    window.addEventListener('wheel', function (e) {
+      e.preventDefault();
+      if (Game.running && e.deltaY) Game.zoomBy(e.deltaY);
+    }, { passive: false });
+
+    // Вернулись в окно - начинаем с чистого листа
+    window.addEventListener('focus', function () { self.clear(); });
+    // Пауза по потере фокуса убрана: в iframe площадки клик вне игры тоже
+    // снимает фокус, GamePix это прямо запрещает. Пауза остается по уходу
+    // вкладки (visibilitychange в game.js) и по сигналу площадки.
+    window.addEventListener('blur', function () { self.clear(); });
+
+    canvas.addEventListener('mousemove', function (e) { self.mouse.x = e.clientX; self.mouse.y = e.clientY; });
+    canvas.addEventListener('mousedown', function () { self.mouse.down = true; });
+    window.addEventListener('mouseup', function () { self.mouse.down = false; });
+
+    canvas.addEventListener('touchstart', function (e) { self.onTouchStart(e); }, { passive: false });
+    canvas.addEventListener('touchmove', function (e) { self.onTouchMove(e); }, { passive: false });
+    canvas.addEventListener('touchend', function (e) { self.onTouchEnd(e); }, { passive: false });
+    canvas.addEventListener('touchcancel', function (e) { self.onTouchEnd(e); }, { passive: false });
+
+    var dash = document.getElementById('dashBtn');
+    dash.addEventListener('touchstart', function (e) { e.preventDefault(); self.dashWanted = true; }, { passive: false });
+    dash.addEventListener('mousedown', function (e) { e.preventDefault(); self.dashWanted = true; });
+  },
+
+  onTouchStart: function (e) {
+    this.touch = true;
+    document.getElementById('dashBtn').classList.remove('hidden');
+    if (!Game.running || Game.paused) return;
+    e.preventDefault();
+    for (var i = 0; i < e.changedTouches.length; i++) {
+      var t = e.changedTouches[i];
+      if (this.stick.active) continue;
+      this.stick.active = true;
+      this.stick.id = t.identifier;
+      this.stick.ox = t.clientX;
+      this.stick.oy = t.clientY;
+      this.stick.x = t.clientX;
+      this.stick.y = t.clientY;
+    }
+  },
+
+  onTouchMove: function (e) {
+    if (!this.stick.active) return;
+    e.preventDefault();
+    for (var i = 0; i < e.changedTouches.length; i++) {
+      var t = e.changedTouches[i];
+      if (t.identifier !== this.stick.id) continue;
+      this.stick.x = t.clientX;
+      this.stick.y = t.clientY;
+    }
+  },
+
+  onTouchEnd: function (e) {
+    for (var i = 0; i < e.changedTouches.length; i++) {
+      if (e.changedTouches[i].identifier === this.stick.id) {
+        this.stick.active = false;
+        this.stick.id = -1;
+      }
+    }
+  },
+
+  gamepad: function () {
+    if (!navigator.getGamepads) return null;
+    var pads = navigator.getGamepads();
+    for (var i = 0; i < pads.length; i++) {
+      if (pads[i] && pads[i].connected) return pads[i];
+    }
+    return null;
+  },
+
+  update: function () {
+    var mx = 0, my = 0;
+    if (this.keys['KeyW'] || this.keys['ArrowUp']) my -= 1;
+    if (this.keys['KeyS'] || this.keys['ArrowDown']) my += 1;
+    if (this.keys['KeyA'] || this.keys['ArrowLeft']) mx -= 1;
+    if (this.keys['KeyD'] || this.keys['ArrowRight']) mx += 1;
+
+    if (this.stick.active) {
+      var dx = this.stick.x - this.stick.ox, dy = this.stick.y - this.stick.oy;
+      var len = Math.sqrt(dx * dx + dy * dy);
+      if (len > 8) {
+        var k = Math.min(1, len / this.stick.max) / len;
+        mx = dx * k;
+        my = dy * k;
+      }
+    }
+
+    var gp = this.gamepad();
+    if (gp && !this.stick.active) {
+      var ax = gp.axes[0] || 0, ay = gp.axes[1] || 0;
+      if (Math.abs(ax) > 0.18 || Math.abs(ay) > 0.18) { mx = ax; my = ay; }
+      if (gp.buttons[0] && gp.buttons[0].pressed) this.dashWanted = true;
+    }
+
+    var l = Math.sqrt(mx * mx + my * my);
+    if (l > 1) { mx /= l; my /= l; }
+    this.move.x = mx;
+    this.move.y = my;
+  },
+
+  // курсор в мировых координатах: нужен ручному прицелу
+  worldMouse: function () {
+    if (View3D.on) return View3D.toGround(this.mouse.x, this.mouse.y);
+    return {
+      x: (this.mouse.x - Game.w / 2) / Game.scale + Game.cam.x,
+      y: (this.mouse.y - Game.h / 2) / Game.scale + Game.cam.y
+    };
+  },
+
+  takeDash: function () {
+    var d = this.dashWanted;
+    this.dashWanted = false;
+    return d;
+  },
+
+  // стик рисуем поверх мира, в экранных координатах
+  draw: function (ctx) {
+    if (!this.stick.active) return;
+    var s = this.stick;
+    var dx = s.x - s.ox, dy = s.y - s.oy;
+    var len = Math.sqrt(dx * dx + dy * dy) || 1;
+    var k = Math.min(1, s.max / len);
+    ctx.save();
+    ctx.globalAlpha = 0.25;
+    ctx.strokeStyle = '#8fd3c8';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(s.ox, s.oy, s.max, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.globalAlpha = 0.4;
+    ctx.fillStyle = '#8fd3c8';
+    ctx.beginPath();
+    ctx.arc(s.ox + dx * k, s.oy + dy * k, 22, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+};

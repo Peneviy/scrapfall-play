@@ -1,7 +1,7 @@
 // Все числа по балансу держу тут, чтобы не лазить по коду.
 // PLATFORM подменяет сборщик (tools/pack.ps1), в дев-режиме остается local.
 var CFG = {
-  version: '0.20.12',
+  version: '0.20.13',
   platform: 'pikabu',      // local | yandex | crazygames | gamepix | gamepush | pikabu | friend
   debug: false,
 

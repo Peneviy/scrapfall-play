@@ -6,7 +6,6 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <script>window.onPkbLoad=function(ok){window.PKB_LOADED=ok!==false;if(window.PF&&PF.onPkbLoad)PF.onPkbLoad(window.PKB_LOADED);};</script><script async src="https://games.pikabu.ru/sdk/sdk.js" onload="onPkbLoad(true)" onerror="onPkbLoad(false)"></script>
 <title>SCRAPFALL</title>
-<!-- иконка прямо в data-url: внешние запросы площадкам не нравятся -->
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230a1216'/%3E%3Ccircle cx='16' cy='16' r='9' fill='%23f0a24a'/%3E%3Ccircle cx='16' cy='16' r='4' fill='%230a1216'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="css/style.css">
 </head>
@@ -15,7 +14,6 @@
 <canvas id="game3d"></canvas>
 <canvas id="game"></canvas>
 
-<!-- HUD поверх канваса -->
 <div id="hud" class="hidden">
   <div class="hud-top">
     <div class="xp-wrap">
@@ -45,7 +43,6 @@
     </div>
   </div>
   <div id="dashBtn" class="touch-btn hidden">DASH</div>
-  <!-- подсказка управления в первом забеге, гаснет, как только поехал -->
   <div id="ctrlHint" class="ctrl-hint hidden">
     <div class="ch pc"><b><i>W</i><i>A</i><i>S</i><i>D</i></b><span data-i18n="hintMove">ехать</span><b><i>SPACE</i></b><span data-i18n="keyDash">Рывок</span></div>
     <div class="ch touch"><b class="swipe"></b><span data-i18n="hintDrag">тяни по экрану, чтобы ехать</span></div>
@@ -53,13 +50,11 @@
   </div>
 </div>
 
-<!-- Загрузка -->
 <div id="scrLoading" class="screen">
   <div class="logo">SCRAP<span>FALL</span></div>
   <div class="loading-bar"><i id="loadFill"></i></div>
 </div>
 
-<!-- Главное меню -->
 <div id="scrMenu" class="screen hidden">
   <div class="logo small">SCRAP<span>FALL</span></div>
   <div class="menu-mid">
@@ -90,7 +85,6 @@
   </div>
 </div>
 
-<!-- Ангар: персонажи, оружие, скины, апгрейды -->
 <div id="scrShop" class="screen hidden">
   <div class="top-bar">
     <button class="back-btn" data-back="1"><span>&#8592;</span><span data-i18n="back">Вернуться</span></button>
@@ -113,7 +107,6 @@
   </div>
 </div>
 
-<!-- Рейтинг -->
 <div id="scrBoard" class="screen hidden">
   <div class="top-bar">
     <button class="back-btn" data-back="1"><span>&#8592;</span><span data-i18n="back">Вернуться</span></button>
@@ -124,7 +117,6 @@
   <button id="btnAuth" class="btn hidden" data-i18n="auth">Войти, чтобы попасть в рейтинг</button>
 </div>
 
-<!-- Настройки -->
 <div id="scrSettings" class="screen hidden">
   <div class="top-bar">
     <button class="back-btn" data-back="1"><span>&#8592;</span><span data-i18n="back">Вернуться</span></button>
@@ -141,17 +133,14 @@
   </div>
 </div>
 
-<!-- Выбор скилла -->
 <div id="scrLevel" class="screen overlay hidden">
   <div class="lvl-title"><span data-i18n="lvlUp">Уровень</span> <b id="lvlNum">2</b></div>
   <div id="cardRow" class="card-row"></div>
   <button id="btnReroll" class="btn ad-btn"><i class="ad-tag">AD</i> <span data-i18n="reroll">Другие карты</span></button>
 </div>
 
-<!-- Пауза -->
 <div id="scrPause" class="screen overlay hidden">
   <div class="scr-title" data-i18n="pause">Пауза</div>
-  <!-- что взял за рейд: карта, уровень, что дает сейчас -->
   <div id="pauseSkills" class="pause-skills"></div>
   <div class="menu-btns">
     <button id="btnResume" class="big-btn" data-i18n="resume">Продолжить</button>
@@ -160,7 +149,6 @@
   </div>
 </div>
 
-<!-- Итоги -->
 <div id="scrOver" class="screen overlay hidden">
   <div class="over-title" data-i18n="over">Рейд провален</div>
   <div class="over-stats">

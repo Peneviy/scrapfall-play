@@ -1,4 +1,3 @@
-// Мелкая математика и хелперы. Ничего умного.
 var U = {
   clamp: function (v, a, b) { return v < a ? a : (v > b ? b : v); },
   lerp: function (a, b, t) { return a + (b - a) * t; },
@@ -10,7 +9,6 @@ var U = {
   dist: function (ax, ay, bx, by) { return Math.sqrt(U.dist2(ax, ay, bx, by)); },
   angleTo: function (ax, ay, bx, by) { return Math.atan2(by - ay, bx - ax); },
 
-  // угол к цели с плавным доворотом
   turn: function (cur, want, maxStep) {
     var d = want - cur;
     while (d > Math.PI) d -= Math.PI * 2;
@@ -24,7 +22,6 @@ var U = {
     return m + ':' + (s < 10 ? '0' : '') + s;
   },
 
-  // 1 234 567 -> 1.2M, длинные числа в HUD не влезают
   num: function (n) {
     n = Math.floor(n);
     if (n < 10000) return '' + n;
@@ -32,7 +29,6 @@ var U = {
     return (n / 1000000).toFixed(1) + 'M';
   },
 
-  // выбор с весами: [{w:3,...},{w:1,...}]
   weighted: function (list) {
     var total = 0, i;
     for (i = 0; i < list.length; i++) total += list[i].w || 1;
@@ -52,14 +48,12 @@ var U = {
     return a;
   },
 
-  // точка на окружности вокруг цели
   ring: function (cx, cy, rmin, rmax) {
     var a = Math.random() * Math.PI * 2, r = U.rand(rmin, rmax);
     return { x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r };
   }
 };
 
-// Сетка для поиска соседей. Без нее при 250+ врагах расталкивание жрет весь кадр.
 function HashGrid(cell) {
   this.cell = cell || 96;
   this.map = new Map();
@@ -71,7 +65,6 @@ HashGrid.prototype.insert = function (obj) {
   if (!bucket) { bucket = []; this.map.set(k, bucket); }
   bucket.push(obj);
 };
-// собирает всех в радиусе r (с запасом на ячейку), пишет в out
 HashGrid.prototype.query = function (x, y, r, out) {
   out.length = 0;
   var c = this.cell;
@@ -87,7 +80,6 @@ HashGrid.prototype.query = function (x, y, r, out) {
   return out;
 };
 
-// Пул объектов: массив + счетчик живых. Мусорщик спасибо не скажет, но кадры ровные.
 function Pool(factory, reset) {
   this.items = [];
   this.factory = factory;
@@ -107,11 +99,10 @@ Pool.prototype.alive = function () {
   return n;
 };
 
-// Кэш размытых кружков: shadowBlur на каждый кадр на телефоне не вариант.
 var GlowCache = {
   map: {},
   get: function (color, r) {
-    r = Math.max(1, Math.ceil(r));     // ноль дает канвас 0x0 и падение drawImage
+    r = Math.max(1, Math.ceil(r));
     var key = color + '_' + r;
     if (this.map[key]) return this.map[key];
     var size = r * 2;

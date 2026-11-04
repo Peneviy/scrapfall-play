@@ -1,4 +1,3 @@
-// Враги: типы, спавн-директор, поведение, босс.
 var Enemies = {
   defs: {
     grunt: { hp: 20, speed: 62, dmg: 9, r: 15, coins: 0.5, xp: 2, body: '#7d5a44', trim: '#c98b5a', from: 0, w: 10 },
@@ -13,13 +12,11 @@ var Enemies = {
     boss: { hp: 1400, speed: 38, dmg: 26, r: 46, coins: 70, xp: 60, body: '#2f3f4a', trim: '#f0a24a', w: 0 }
   },
 
-  // сколько врагов разрешено держать на сцене
   cap: function () {
     var m = Game.time / 60;
     return Math.min(CFG.scale.capHard, Math.floor(CFG.scale.capBase + CFG.scale.capPerMin * m));
   },
 
-  // после каждого полного круга из десяти боссов все становятся заметно злее
   cycleMult: function () { return 1 + 0.4 * Math.floor(Game.bossIndex / Bosses.list.length); },
   hpMult: function () {
     return (1 + CFG.scale.hpPerMin * (Game.time / 60)) * Save.mult().enemyHp * this.cycleMult();
@@ -33,7 +30,6 @@ var Enemies = {
       var d = this.defs[k];
       if (k === 'boss' || Game.time < d.from) continue;
       if (d.fromBoss && Game.bossIndex < d.fromBoss) continue;
-      // старые типы постепенно вытесняются новыми
       var w = d.w;
       if (k === 'grunt' && Game.time > 120) w *= 0.5;
       pool.push({ w: w, k: k });
@@ -43,8 +39,6 @@ var Enemies = {
   },
 
   spawn: function (type, x, y, elite) {
-    // Боссы и гнезда призывают в обход директора, поэтому потолок проверяем
-    // и тут: иначе к десятой минуте на поле пятьсот тварей.
     if (type !== 'boss' && Game.enemies.length >= CFG.scale.capHard) return null;
     var d = this.defs[type];
     var e = {
@@ -73,8 +67,6 @@ var Enemies = {
     return e;
   },
 
-  // Спавним сразу за краем экрана. На вертикальном телефоне картинка уже,
-  // чем на мониторе, и фиксированные 520 точек оставляли поле пустым.
   ringMin: function () { return Math.max(CFG.spawn.distMin, Game.viewRadius() + 60); },
   ringMax: function () { return this.ringMin() + (CFG.spawn.distMax - CFG.spawn.distMin); },
 
@@ -83,10 +75,8 @@ var Enemies = {
     return this.spawn(type, p.x, p.y, elite);
   },
 
-  // Директор: держит темп, пачки и элиток, плюс боссы по расписанию.
   director: function (dt) {
     Game.spawnT -= dt;
-    // один босс за раз: два сразу превращают бой в кашу
     if (Game.time >= Game.nextBoss && Game.bossCount() < 1) {
       Game.nextBoss = Game.time + CFG.boss.every;
       var b = this.spawnBoss(Game.bossIndex++);
@@ -102,7 +92,6 @@ var Enemies = {
     Game.spawnT = rate;
     if (Game.enemies.length >= this.cap()) return;
 
-    // чем дольше жив, тем больше выходит за один тик - иначе к пятой минуте пусто
     var batch = Math.min(CFG.spawn.batchMax, 1 + Math.floor(min * CFG.spawn.batchPerMin));
     for (var b = 0; b < batch; b++) {
       if (Game.enemies.length >= this.cap()) return;
@@ -110,21 +99,15 @@ var Enemies = {
     }
   },
 
-  // темп спавна в "минутах": в начале сразу выходит на плато, потом идет по времени
   spawnMin: function () {
     var s = CFG.spawn, t = Game.time;
     var m = Math.max(t / 60, s.plateau * U.clamp(t / s.rampT, 0, 1));
-    // Прокачался быстрее обычного - врагов больше: сильному в пустом поле
-    // скучно. Только в первые минуты и с потолком, иначе опыт с толпы
-    // раскрутит толпу сам себя.
     var lv = Game.player ? Game.player.level : 1;
     var ahead = lv - (1 + t / s.lvlPace);
     if (t < s.adaptUntil && ahead > 0) m += Math.min(s.adaptMax, ahead * s.adaptPerLvl);
     return m;
   },
 
-  // Стартовая волна: с первой секунды на экране есть кого бить, и разные.
-  // Они слабее обычных, чтобы первая стычка была легкой и бодрой.
   opening: function () {
     var p = Game.player, list = CFG.spawn.opening, total = 0, n = 0, type, i;
     for (type in list) total += list[type];
@@ -132,7 +115,6 @@ var Enemies = {
       var def = this.defs[type];
       var packA = Math.random() * Math.PI * 2;
       for (i = 0; i < list[type]; i++) {
-        // рой выходит кучкой, остальные - кольцом вокруг
         var a = def.pack ? packA + U.rand(-0.25, 0.25) : (n / total) * Math.PI * 2 + U.rand(-0.2, 0.2);
         var d = U.rand(330, 470);
         n++;
@@ -180,25 +162,18 @@ var Enemies = {
       var dx = p.x - e.x, dy = p.y - e.y;
       var d = Math.sqrt(dx * dx + dy * dy) || 1;
       e.ang = Math.atan2(dy, dx);
-      // элитка подошла на выстрел - редкий старый звук, не чаще раза в 25 секунд
       if (e.elite && !e.aggro && d < 380) { e.aggro = true; Snd.play('aggro'); }
 
-      // Отставших переносим поближе: иначе они висят мертвым грузом в лимите
-      // и вместо толпы вокруг игрока получается редкий кисель.
       if (d > this.ringMax() * 1.3 && !e.boss) {
         var np = U.ring(p.x, p.y, this.ringMin(), this.ringMax());
         e.x = np.x; e.y = np.y;
         continue;
       }
-      // Небольшая прибавка тем, кто еще за краем экрана: они успевают подойти,
-      // но у игрока остается время на маневр. Раньше тут был множитель 2.2,
-      // и первая минута превращалась в мясорубку.
       if (d > Game.viewRadius() * 1.1) sp *= 1.3;
 
       if (e.boss) {
         this.bossAI(e, dt, d);
       } else if (e.def.ranged) {
-        // стрелок держит дистанцию
         var want = e.def.keep;
         var dir = d > want + 40 ? 1 : (d < want - 40 ? -1 : 0);
         e.vx = (dx / d) * sp * dir;
@@ -209,7 +184,6 @@ var Enemies = {
           Game.spawnEnemyBullet(e.x, e.y, e.ang, 230, e.dmg * 0.8, e.elite ? CFG.col.enemyShot : CFG.col.spit);
         }
       } else if (e.def.nest) {
-        // гнездо не ходит, зато без конца выплевывает рой
         e.vx = e.vy = 0;
         e.shootCd -= dt;
         if (e.shootCd <= 0) {
@@ -221,7 +195,6 @@ var Enemies = {
           }
         }
       } else if (e.def.charger) {
-        // таран: замахивается на месте, потом летит по прямой
         if (e.charge > 0) {
           e.charge -= dt;
           e.vx = Math.cos(e.chargeAng) * 620;
@@ -241,7 +214,6 @@ var Enemies = {
         e.vy = (dy / d) * sp;
       }
 
-      // расталкивание, иначе все сливаются в один пиксель
       Game.grid.query(e.x, e.y, e.r * 2.2, near);
       for (var j = 0; j < near.length; j++) {
         var o = near[j];
@@ -260,17 +232,12 @@ var Enemies = {
       var wasX = e.x, wasY = e.y;
       e.x += e.vx * dt;
       e.y += e.vy * dt;
-      // босс проламывается сквозь строения, мелочь обходит
       if (!e.boss) {
         World.resolve(e);
-        // Уперся в стену - идем вдоль нее. Без этого толпа копится у стен
-        // и стоит там намертво, пока игрок не подойдет сам.
         var moved = Math.hypot(e.x - wasX, e.y - wasY);
         var want = Math.hypot(e.vx, e.vy) * dt;
         if (want > 0.01 && moved < want * 0.45) {
           e.stuckT = (e.stuckT || 0) + dt;
-          // Идем к ближнему краю препятствия, а не в случайную сторону:
-          // иначе половина толпы трется о стену и не может ее обойти.
           var bw = e.stuckT > CFG.walls.patience ? World.blockingWall(e) : null;
           if (bw) {
             var tx, ty;
@@ -293,7 +260,6 @@ var Enemies = {
         }
       }
 
-      // контактный урон
       e.atkCd -= dt;
       var touch = e.r + p.r;
       if (d < touch && e.atkCd <= 0 && !e.def.ranged) {
@@ -303,14 +269,12 @@ var Enemies = {
     }
   },
 
-  // Спавн босса по порядковому номеру. Каждый следующий круг списка - злее.
   spawnBoss: function (index) {
     var bd = Bosses.forIndex(index);
     var cycle = Bosses.cycle(index);
     var pos = U.ring(Game.player.x, Game.player.y, this.ringMin() * 1.05, this.ringMax() * 1.15);
     var e = this.spawn('boss', pos.x, pos.y, false);
     e.bd = bd;
-    // в 3D боссы крупнее: это главная угроза, должна давить размером
     e.r = bd.r * (View3D.on ? 1.2 : 1);
     e.speed = bd.speed * (1 + cycle * 0.12);
     e.dmg *= bd.dmgMul;
@@ -324,8 +288,6 @@ var Enemies = {
     return e;
   },
 
-  // Лиш: убежал далеко - босс возвращается на свою точку и ждет там,
-  // потихоньку залечиваясь. Это и есть "уйти, подкачаться и вернуться".
   bossAI: function (e, dt, d) {
     if (d > CFG.boss.leash) e.state = 'return';
     else if (d < CFG.boss.engage) e.state = 'fight';
@@ -346,9 +308,6 @@ var Enemies = {
     e.bd.ai(e, dt, d);
   },
 
-  // полоска здоровья над крупной целью
-  // Новый тип врага привязан к выходу очередного босса, а не к его смерти:
-  // от босса можно уйти, и тогда арена все равно должна меняться.
   announceUnlock: function () {
     for (var k in this.defs) {
       var d = this.defs[k];
@@ -369,10 +328,9 @@ var Enemies = {
     ctx.fillRect(e.x - w / 2, e.y - e.r - 14, w * (e.hp / e.maxHp), 5);
   },
 
-  // урон врагу. crit только для подписи, число уже посчитано
   damage: function (e, amount, crit, srcX, srcY, knock) {
     if (e.dead) return;
-    if (e.shield > 0) amount *= 0.45;   // улей прикрывается, пока рожает мелочь
+    if (e.shield > 0) amount *= 0.45;
     if (e.def.armor) amount *= 1 - e.def.armor;
     e.hp -= amount;
     e.flash = 0.08;
@@ -381,7 +339,6 @@ var Enemies = {
       e.x += Math.cos(a) * knock;
       e.y += Math.sin(a) * knock;
     }
-    // Цифры показываем не с каждого попадания, иначе в толпе сплошная каша.
     if (crit || e.boss || e.elite || e.def.heavy) {
       FX.text(e.x + U.rand(-6, 6), e.y - e.r - 4, Math.round(amount), crit ? '#ffd27d' : '#ffffff', crit ? 17 : 13);
     }
@@ -426,8 +383,6 @@ var Enemies = {
         Save.flush(true);
         UI.bossBanner(I18N.name(e.bd), false);
       }
-      // За каждого босса сразу уровень, и если вторая жизнь уже потрачена -
-      // она возвращается. Именно возвращается, а не копится про запас.
       Game.nextBoss = Math.max(Game.nextBoss, Game.time + CFG.boss.grace);
       Player.grantLevel(Game.player);
       var restored = false;
@@ -501,7 +456,6 @@ var Enemies = {
       ctx.fill();
       ctx.stroke();
 
-      // глаз в сторону движения
       ctx.fillStyle = e.elite ? '#ffd27d' : d.trim;
       ctx.beginPath();
       ctx.arc(e.r * 0.35, 0, e.r * 0.2, 0, Math.PI * 2);
@@ -519,7 +473,6 @@ var Enemies = {
         ctx.globalAlpha = 1;
       }
 
-      // полоска здоровья только у крупных
       if ((e.boss || e.elite || e.def.heavy) && e.hp < e.maxHp) {
         var w = e.r * 2;
         ctx.fillStyle = 'rgba(0,0,0,.6)';

@@ -1,4 +1,3 @@
-// Партиклы, всплывающие цифры, ударные волны и тряска камеры.
 var FX = {
   parts: [],
   rings: [],
@@ -21,8 +20,6 @@ var FX = {
     this.shakeAmt = 0;
   },
 
-  // Огненный шар взрыва и выжженное пятно после него. Рисуются только в 3D,
-  // в плоской версии взрыв по-прежнему показывает кольцо.
   blast: function (x, y, r, color) {
     if (this.blasts.length > 30) this.blasts.shift();
     this.blasts.push({ x: x, y: y, r: r, c: color || '#ffb35c', life: 0.45, max: 0.45 });
@@ -30,7 +27,6 @@ var FX = {
     this.scorch.push({ x: x, y: y, r: r * 0.6, life: 9, a: Math.random() * 6.28 });
   },
 
-  // молния от разряда: ломаная в несколько сегментов
   bolt: function (x1, y1, x2, y2, color) {
     var pts = [], n = 5;
     for (var i = 0; i <= n; i++) {
@@ -61,7 +57,6 @@ var FX = {
     }
   },
 
-  // направленный пшик, например из ствола
   spray: function (x, y, ang, n, color, speed) {
     if (this.lowFx()) n = Math.ceil(n * 0.5);
     for (var i = 0; i < n; i++) {

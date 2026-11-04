@@ -1,44 +1,36 @@
-// Обертка над SDK площадок. Вся игра дергает только PF.*, чтобы не плодить if-ы по коду.
-// Сборщик подставляет нужный скрипт SDK в index.html и меняет CFG.platform.
 var PF = {
   kind: CFG.platform,
   ready: false,
   ysdk: null,
   cg: null,
   gp: null,
-  gpush: null,            // SDK GamePush (дистрибуция: Пикабу, VK, OK, Y8 и др.)
-  pkb: null,              // SDK Пикабу Игр напрямую (сборка pikabu на своем хостинге)
-  fsGap: 0,               // кулдаун межстраничной площадки, если строже нашего
+  gpush: null,
+  pkb: null,
+  fsGap: 0,
   player: null,
   lb: null,
   lang: 'en',
   authorized: false,
   playerName: '',
   playerPhoto: '',
-  lastFullscreen: 0,      // время последней межстраничной, секунды от старта
+  lastFullscreen: 0,
   bootTime: 0,
   adRunning: false,
-  // CrazyGames на Basic Launch рекламу не крутит вообще, а с блокировщиком она
-  // не придет никогда. В обоих случаях кнопки AD не должны висеть впустую.
-  adsOff: '',             // '' | 'basic' | 'adblock' | 'free'
-  onAdStart: null,        // ставит игру на паузу
-  onAdSound: null,        // глушит и возвращает звук
+  adsOff: '',
+  onAdStart: null,
+  onAdSound: null,
   onAdEnd: null,
   onAdsOff: null,
-  muteAudio: false,       // звук выключен кнопкой самой площадки
+  muteAudio: false,
   onMuteAudio: null,
-  net: null,              // 'gd' | 'gm' - сети-раздатчики, у них общая схема событий
-  _netWait: null,         // ожидание текущего ролика в сети
-  // Сколько раз подряд рекламы не оказалось. На второй пустой раз награду
-  // отдаем без ролика: кнопка-пустышка хуже лишнего ящика лома, а ролик мы все
-  // равно спрашиваем на каждое нажатие - появится заполнение, будет и показ.
+  net: null,
+  _netWait: null,
   noFill: 0,
 
   now: function () { return performance.now() / 1000; },
 
   init: function (done) {
     this.bootTime = this.now();
-    // чтобы не дергать рекламу сразу после запуска
     this.lastFullscreen = this.now() - CFG.ads.fullscreenGap + CFG.ads.firstFullscreenAfter;
 
     var self = this;
@@ -55,7 +47,6 @@ var PF = {
         self.ysdk = sdk;
         try { self.lang = I18N.pick(sdk.environment.i18n.lang); } catch (e) { self.lang = 'en'; }
         self.ready = true;
-        // игрока и лидерборды тянем параллельно, игру не блокируем
         sdk.getPlayer({ scopes: false }).then(function (p) {
           self.player = p;
           try {
@@ -70,8 +61,6 @@ var PF = {
       return;
     }
 
-    // Сборка для друзей и тестов: рекламы нет совсем, награды за нее
-    // выдаются сразу. Дальше живет как обычная локальная.
     if (this.kind === 'friend') {
       this.adsOff = 'free';
       fallback();
@@ -81,13 +70,8 @@ var PF = {
     if (this.kind === 'gamepix') {
       if (typeof GamePix === 'undefined') { fallback(); return; }
       this.gp = GamePix;
-      // loaded() обязателен и ровно один раз: без него остальные методы SDK
-      // возвращают GAMEPIX_LOADED_NOT_CALLED.
       try { GamePix.loading(100); } catch (e) {}
       try { GamePix.loaded(); } catch (e) {}
-      // Их страница шлет игре PAUSE/RESUME/SOUNDOFF/SOUNDON (уход со страницы,
-      // оверлей рекламы, их кнопка звука), SDK зовет эти функции. Без них в
-      // консоли "pause not defined" и звук во время их рекламы не глохнет.
       try {
         var hooks = {
           pause: function () {
@@ -111,9 +95,6 @@ var PF = {
       return;
     }
 
-    // Сети-раздатчики: их SDK грузится сниппетом из index.html (см. pack.ps1),
-    // события копятся в PF_EVENTS, пока наших скриптов еще нет. Площадки у них
-    // чужие и разные, язык берем из браузера.
     if (this.kind === 'gamedistribution' || this.kind === 'gamemonetize') {
       this.net = this.kind === 'gamedistribution' ? 'gd' : 'gm';
       this.lang = I18N.pick(navigator.language);
@@ -132,10 +113,8 @@ var PF = {
         self.ready = true;
         try {
           var sys = self.cg.user;
-          // язык по их требованию берем из locale, по умолчанию английский
           var loc = sys && sys.systemInfo ? String(sys.systemInfo.locale || '') : '';
           self.lang = I18N.pick(loc);
-          // у CrazyGames своя кнопка звука, на Full ее обязаны слушаться
           var g = self.cg.game;
           if (g && g.settings) self._setMute(g.settings.muteAudio);
           if (g && g.addSettingsChangeListener) {
@@ -155,11 +134,6 @@ var PF = {
       return;
     }
 
-    // GamePush: их загрузчик сам тянет SDK и зовет window.onGPInit(gp), когда
-    // проект поднялся. Сниппет в index.html (см. pack.ps1) кладет gp в
-    // window.GP_READY, если мы еще не загрузились. Сборка без ключей или
-    // загрузчик, задушенный блокировщиком: ждем ads.timeout и живем как для
-    // друзей, награды сразу, иначе кнопки AD висят впустую.
     if (this.kind === 'gamepush') {
       if (!window.onGPInit) { this.adsOff = 'free'; fallback(); return; }
       var gpTimer = setTimeout(function () {
@@ -178,10 +152,6 @@ var PF = {
       return;
     }
 
-    // Пикабу Игры: SDK грузится async и работает только внутри их iframe (и в
-    // тестовой среде Студии). Открыли сборку напрямую (наш GitHub Pages) -
-    // живем как для друзей. Сниппет в index.html (pack.ps1) зовет
-    // window.onPkbLoad(ok) по onload/onerror и запоминает результат в PKB_LOADED.
     if (this.kind === 'pikabu') {
       var pkFree = function () { self.onPkbLoad = null; self.adsOff = 'free'; fallback(); };
       if (typeof window.onPkbLoad !== 'function' || window.top === window) { pkFree(); return; }
@@ -209,9 +179,7 @@ var PF = {
     var self = this;
     this.pkb = sdk;
     this.kind = 'pikabu';
-    // площадка русская, интерфейс по умолчанию русский (их требование)
     this.lang = 'ru';
-    // у них повторная межстраничная не раньше чем через 120 с, иначе COOLDOWN_ACTIVE
     this.fsGap = Math.max(CFG.ads.fullscreenGap, 125);
     this._pkbPlayer();
     try { sdk.on('userAuthorized', function () { self._pkbPlayer(); }); } catch (e) {}
@@ -234,7 +202,6 @@ var PF = {
     this.kind = 'gamepush';
     try { this.lang = I18N.pick(gp.language); } catch (e) { this.lang = 'en'; }
     try {
-      // площадка сама ставит игру на паузу (уход со страницы, их оверлей)
       gp.on('pause', function () {
         if (Game.running && !Game.paused) { self.pausedByPf = true; UI.togglePause(); }
       });
@@ -243,10 +210,7 @@ var PF = {
         self.pausedByPf = false;
       });
       if (gp.ads && gp.ads.isAdblockEnabled) this.setAdsOff('adblock');
-      // был ли показ, приходит событием; промис showFullscreen может
-      // закрыться и без него, поэтому флаг держим здесь
       gp.ads.on('fullscreen:close', function (ok) { self._gpFsOk = !!ok; });
-      // игрока ждем в фоне: облачный сейв подтянет PF.load, когда дойдет
       if (gp.player && gp.player.ready) {
         gp.player.ready.then(function () {
           try {
@@ -266,12 +230,6 @@ var PF = {
     if (this.onMuteAudio) this.onMuteAudio(this.muteAudio);
   },
 
-  // События сетей-раздатчиков. Схема у GameDistribution и GameMonetize одна:
-  // SDK_GAME_PAUSE - ролик пошел, игру на паузу и в тишину; SDK_GAME_START -
-  // ролик кончился или его не было; SDK_REWARDED_WATCH_COMPLETE - досмотрен
-  // (только у GameDistribution; у GameMonetize отдельного ролика за награду
-  // нет, крутим ту же межстраничную и досмотр считаем по паре пауза-старт).
-  // Преролл может прийти раньше нашего запроса, поэтому пауза и без ожидания.
   onSdkEvent: function (e) {
     var name = e && e.name, w = this._netWait;
     if (name === 'SDK_GAME_PAUSE') {
@@ -284,9 +242,6 @@ var PF = {
     }
   },
 
-  // Запрос ролика в сети. kind: 'inter' | 'reward', cb(shown, rewarded).
-  // У GameDistribution есть промис, у GameMonetize только события: ждем пару
-  // пауза-старт, а если ролик не начался за timeout, считаем, что его нет.
   _netAd: function (kind, cb) {
     var self = this, seen = false, over = false;
     var end = function (shown, rewarded) {
@@ -307,7 +262,6 @@ var PF = {
         if (!window.gdsdk) { end(false, false); return; }
         var p = kind === 'reward' ? window.gdsdk.showAd('rewarded') : window.gdsdk.showAd();
         p.then(function () {
-          // событие о досмотре приходит до промиса, но на всякий случай даем тик
           setTimeout(function () { end(true, w.rewarded); }, 50);
         }).catch(function () { end(false, false); });
       } else {
@@ -319,7 +273,6 @@ var PF = {
 
   _consolation: function () { this.noFill++; return this.noFill >= 2; },
 
-  // Загрузка кончилась: у Яндекса без этого вызова крутилка висит поверх игры.
   loadingDone: function () {
     try {
       if (this.ysdk && this.ysdk.features && this.ysdk.features.LoadingAPI) this.ysdk.features.LoadingAPI.ready();
@@ -345,22 +298,15 @@ var PF = {
     } catch (e) {}
   },
 
-  // ---------- реклама ----------
-
   fullscreenLeft: function () {
     return Math.max(0, Math.ceil((this.fsGap || CFG.ads.fullscreenGap) - (this.now() - this.lastFullscreen)));
   },
-  // where: 'run' - посреди забега, 'nav' - на кнопке навигации. CrazyGames
-  // пускает межстраничную только после смерти или на смене уровня, поэтому
-  // там такие места просто пропускаем.
   canFullscreen: function (where) {
     if (this.adsOff) return false;
     if (this.cg && where) return false;
     return !this.adRunning && this.fullscreenLeft() === 0;
   },
 
-  // Можно ли вообще предлагать ролик за награду. С блокировщиком кнопки
-  // прячем, иначе они жмутся и ничего не дают, за это CrazyGames отклоняет.
   canReward: function () { return this.adsOff !== 'adblock'; },
 
   setAdsOff: function (why) {
@@ -369,15 +315,12 @@ var PF = {
     if (this.onAdsOff) this.onAdsOff(why);
   },
 
-  // код ошибки из adError у CrazyGames
   _cgError: function (err) {
     var code = err && err.code;
     if (code === 'adsDisabledBasicLaunch') this.setAdsOff('basic');
     else if (code === 'adblock') this.setAdsOff('adblock');
   },
 
-  // Если SDK площадки не ответил, игра не должна остаться с заглушкой на
-  // экране навсегда. Сторож добивает вызов и возвращает управление.
   _guard: function (fn, sec) {
     var done = false;
     var timer = setTimeout(function () {
@@ -393,9 +336,6 @@ var PF = {
     };
   },
 
-  // lateMute: звук глушим не сразу, а когда ролик реально пошел. CrazyGames
-  // этого требует: запрос может вернуться пустым, и дерганье звука без
-  // рекламы на экране выглядит как баг.
   _adStart: function (lateMute) {
     this.adRunning = true;
     if (this.onAdStart) this.onAdStart();
@@ -410,7 +350,6 @@ var PF = {
     if (this.onAdEnd) this.onAdEnd();
   },
 
-  // Межстраничная. done() дергается всегда, даже если рекламы не было.
   showFullscreen: function (done, where) {
     done = done || function () {};
     if (!this.canFullscreen(where)) { done(false); return; }
@@ -475,17 +414,13 @@ var PF = {
       this._netAd('inter', function (shown) { finish(shown); });
       return;
     }
-    // локально просто показываем заглушку на пару секунд
     this._fakeAd(function () { finish(true); }, 2);
   },
 
-  // Rewarded. Только по нажатию игрока! Награду даем строго в onRewarded.
   showRewarded: function (onReward, onFail) {
     onReward = onReward || function () {};
     onFail = onFail || function () {};
     if (this.adRunning || !this.canReward()) { onFail(); return; }
-    // на Basic Launch у CrazyGames и в сборке для друзей рекламы нет совсем,
-    // награду отдаем сразу, иначе кнопка получается пустышкой
     if (this.adsOff === 'basic' || this.adsOff === 'free') { onReward(); return; }
     var self = this, rewarded = false;
     this._adStart(!!this.cg);
@@ -493,7 +428,6 @@ var PF = {
       self._adEnd();
       if (rewarded) onReward(); else onFail();
     };
-    // у ролика за награду свой запас: он честно может идти секунд тридцать
     var pass = this._guard(function () { rewarded = false; raw(); }, CFG.ads.rewardTimeout);
     var finish = function () { if (pass()) raw(); };
 
@@ -524,8 +458,6 @@ var PF = {
       return;
     }
     if (this.pkb) {
-      // reward: true только за досмотр. Закрыл раньше - без награды и без
-      // утешения; ролика не было вовсе (rendered: false) - считаем как noFill.
       var prw = this.pkb.ads.rewarded;
       var pkFail = function () { rewarded = self._consolation(); finish(); };
       try {
@@ -549,9 +481,6 @@ var PF = {
       return;
     }
     if (this.gp) {
-      // Ролики за награду у GamePix в бете, во многих странах их просто нет
-      // (из Вьетнама пусто всегда). Пусто - пробуем межстраничную и отдаем
-      // награду за нее, а если и ее нет - см. noFill.
       var gpFail = function () { rewarded = self._consolation(); finish(); };
       try {
         this.gp.rewardAd().then(function (res) {
@@ -587,7 +516,6 @@ var PF = {
     }, sec * 1000);
   },
 
-  // Баннер держим только в меню, в бою он лезет на HUD.
   banner: function (show) {
     if (!this.ysdk) return;
     try {
@@ -595,8 +523,6 @@ var PF = {
       else this.ysdk.adv.hideBannerAdv();
     } catch (e) {}
   },
-
-  // ---------- сохранения ----------
 
   save: function (data) {
     try { localStorage.setItem('scrapfall_save', JSON.stringify(data)); } catch (e) {}
@@ -607,19 +533,13 @@ var PF = {
       try { this.cg.data.setItem('scrapfall_save', JSON.stringify(data)); } catch (e) {}
     }
     if (this.gp && this.gp.localStorage) {
-      // у них строго строки, объект туда класть нельзя
       try { this.gp.localStorage.setItem('scrapfall_save', JSON.stringify(data)); } catch (e) {}
     }
     if (this.gpush && this.gpush.player) {
-      // поле sf (строка) заводится в кабинете GamePush, раздел Players.
-      // set локально, sync на их сервер и в облако площадки (Пикабу его
-      // требует) не чаще раза в 15 секунд, хвост уходит таймером.
       try { this.gpush.player.set('sf', JSON.stringify(data)); } catch (e) {}
       this._gpSync();
     }
     if (this.pkb && this.pkb.storage) {
-      // set синхронный, SDK сам дописывает на сервер с задержкой; flush не чаще
-      // раза в 20 с (у них лимит 100 запросов за 5 минут), хвост таймером
       try { this.pkb.storage.set('sf', data); } catch (e) {}
       this._pkbFlush();
     }
@@ -669,7 +589,6 @@ var PF = {
     }
     if (this.gpush && this.gpush.player && this.gpush.player.ready) {
       var gpp = this.gpush.player;
-      // если игрок не поднялся за timeout, играем с локальным сейвом
       var gpPass = this._guard(function () { cb(local); }, CFG.ads.timeout);
       gpp.ready.then(function () {
         if (!gpPass()) return;
@@ -683,7 +602,6 @@ var PF = {
     if (this.player && this.player.getData) {
       this.player.getData(['sf']).then(function (res) {
         var cloud = res && res.sf ? res.sf : null;
-        // если облако новее по числу рейдов - берем его
         if (cloud && (!local || (cloud.runs || 0) >= (local.runs || 0))) cb(cloud);
         else cb(local);
       }).catch(function () { cb(local); });
@@ -692,8 +610,6 @@ var PF = {
     cb(local);
   },
 
-  // GamePix собирает свою статистику по этим вызовам, на других площадках
-  // они просто ничего не делают.
   reportScore: function (n) {
     if (!this.gp) return;
     try { this.gp.updateScore(Math.max(0, Math.floor(n))); } catch (e) {}
@@ -708,8 +624,6 @@ var PF = {
     if (!this.gp) return;
     try { this.gp.happyMoment(); } catch (e) {}
   },
-
-  // ---------- рейтинг ----------
 
   lbSubmit: function (score) {
     if (!this.lb || !this.authorized) return;

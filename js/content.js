@@ -1,4 +1,3 @@
-// Контент: бойцы, пушки, окрасы, модули. Тут же отрисовка фигурки бойца.
 var Content = {
 
   chars: [
@@ -92,14 +91,12 @@ var Content = {
     return this.skins[0];
   },
 
-  // Фигурка бойца: корпус + ствол. Форма зависит от класса.
   drawChar: function (ctx, x, y, r, charId, skinId, ang, dashing) {
     var sk = this.skin(skinId);
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(ang);
 
-    // тень под ногами
     ctx.globalAlpha = 0.25;
     ctx.fillStyle = '#000';
     ctx.beginPath();
@@ -107,13 +104,11 @@ var Content = {
     ctx.fill();
     ctx.globalAlpha = 1;
 
-    // ствол
     ctx.fillStyle = '#243840';
     if (charId === 'brute') ctx.fillRect(r * 0.2, -r * 0.55, r * 1.25, r * 1.1);
     else if (charId === 'ranger') ctx.fillRect(r * 0.2, -r * 0.2, r * 1.9, r * 0.4);
     else ctx.fillRect(r * 0.2, -r * 0.26, r * 1.45, r * 0.52);
 
-    // корпус
     ctx.fillStyle = sk.body;
     ctx.strokeStyle = sk.trim;
     ctx.lineWidth = 2;
@@ -144,7 +139,6 @@ var Content = {
     ctx.fill();
     ctx.stroke();
 
-    // визор
     ctx.fillStyle = dashing ? '#ffffff' : sk.trim;
     ctx.beginPath();
     ctx.arc(r * 0.25, 0, r * 0.26, 0, Math.PI * 2);

@@ -1,6 +1,3 @@
-// Боссы: реестр с отдельным поведением на каждого.
-// Босс сидит на своей точке (anchor). Убежал - он вернется туда и будет ждать,
-// подлечиваясь. Можно уйти, подкачаться и прийти добивать.
 var Bosses = {
 
   list: [
@@ -40,7 +37,6 @@ var Bosses = {
       en: { n: 'DRILLER', d: 'Stops, aims and rams in a straight line' },
       ai: function (e, dt, d) {
         if (e.charge > 0) {
-          // сам таран: летит по запомненному направлению
           e.charge -= dt;
           e.vx = Math.cos(e.chargeAng) * 900;
           e.vy = Math.sin(e.chargeAng) * 900;
@@ -48,7 +44,6 @@ var Bosses = {
           return;
         }
         if (e.aim > 0) {
-          // замах: стоит на месте и держит прицел, можно отойти
           e.aim -= dt;
           e.vx = e.vy = 0;
           e.chargeAng = U.turn(e.chargeAng, e.ang, 2.2 * dt);
@@ -76,7 +71,7 @@ var Bosses = {
       ru: { n: 'ТКАЧ', d: 'Держится вдали и расставляет стрелков' },
       en: { n: 'WEAVER', d: 'Keeps away and plants shooters' },
       ai: function (e, dt, d) {
-        Bosses.approach(e, d, 430, 1, -1);   // отрицательный ближний множитель = пятится
+        Bosses.approach(e, d, 430, 1, -1);
         e.t1 -= dt;
         if (e.t1 <= 0) {
           e.t1 = U.rand(2.2, 3);
@@ -140,7 +135,7 @@ var Bosses = {
         if (e.shield > 0) e.shield -= dt;
         if (e.t1 <= 0) {
           e.t1 = U.rand(3, 4.2);
-          e.shield = 1.6;                 // пока рожает, урона получает меньше
+          e.shield = 1.6;
           FX.shake(4);
           Snd.play('shotBig');
           for (var k = 0; k < 9; k++) {
@@ -161,7 +156,6 @@ var Bosses = {
         Bosses.approach(e, d, 280, 1, 0.4);
         e.beamA = (e.beamA || 0) + dt * 0.9;
         e.beamLen = 420;
-        // ниже половины здоровья достает второй луч, напротив первого
         e.beams = e.hp < e.maxHp * 0.5 ? 2 : 1;
         var p = Game.player;
         var px = p.x - e.x, py = p.y - e.y;
@@ -195,7 +189,6 @@ var Bosses = {
         if (e.t1 <= 0) {
           e.t1 = U.rand(1.6, 2.4);
           var p = Game.player;
-          // одну под ноги игроку, одну под себя - чтобы не подходили вплотную
           Game.spawnMine(p.x + U.rand(-70, 70), p.y + U.rand(-70, 70), e.dmg * 0.8, 2.2);
           if (U.chance(0.5)) Game.spawnMine(e.x, e.y, e.dmg * 0.8, 2.6);
         }
@@ -207,7 +200,6 @@ var Bosses = {
       ru: { n: 'КОПЕЙЩИК', d: 'Кружит вокруг и бьет очередями точно в тебя' },
       en: { n: 'LANCER', d: 'Circles around and fires aimed bursts' },
       ai: function (e, dt, d) {
-        // ходит по кругу: держит дистанцию и смещается вбок
         var want = 340;
         var radial = d > want + 40 ? 1 : (d < want - 40 ? -1 : 0);
         var sp = e.speed;
@@ -290,7 +282,6 @@ var Bosses = {
     return this.list[0];
   },
 
-  // круг за кругом: список кончился - идем по второму, но крепче
   forIndex: function (i) { return this.list[i % this.list.length]; },
   cycle: function (i) { return Math.floor(i / this.list.length); },
 
@@ -300,14 +291,12 @@ var Bosses = {
     return n;
   },
 
-  // общий кусок поведения: подходит на дистанцию want, рядом притормаживает
   approach: function (e, d, want, farMul, nearMul) {
     var sp = e.speed * (d > want ? farMul : nearMul);
     e.vx = Math.cos(e.ang) * sp;
     e.vy = Math.sin(e.ang) * sp;
   },
 
-  // Корпус босса. Вынесен отдельно, чтобы рисовать им же шлейф фантома.
   body: function (ctx, e, bd, x, y, ang, alpha) {
     ctx.save();
     ctx.globalAlpha = alpha;
@@ -327,7 +316,6 @@ var Bosses = {
     ctx.lineWidth = 3;
 
     if (bd.id === 'lancer') {
-      // вытянутый корпус с жалом: копейщик и должен выглядеть как копье
       ctx.beginPath();
       ctx.moveTo(e.r * 2.1, 0);
       ctx.lineTo(e.r * 0.5, -e.r * 0.62);
@@ -365,7 +353,6 @@ var Bosses = {
     var bd = e.bd;
     GlowCache.draw(ctx, 'rgba(240,162,74,.22)', e.x, e.y, e.r * 2.4, 1);
 
-    // луч стража рисуем до корпуса
     if (bd.id === 'warden' && e.beamA !== undefined) {
       ctx.save();
       ctx.globalAlpha = 0.5;
@@ -382,8 +369,6 @@ var Bosses = {
       ctx.restore();
     }
 
-    // Фантом полупрозрачный и со шлейфом: он должен читаться как призрак,
-    // а не как еще один многоугольник.
     if (bd.id === 'phantom' && e.trail) {
       for (var t = 0; t < e.trail.length; t++) {
         this.body(ctx, e, bd, e.trail[t].x, e.trail[t].y, e.trail[t].a, 0.06 + t * 0.05);
@@ -391,7 +376,6 @@ var Bosses = {
     }
     this.body(ctx, e, bd, e.x, e.y, e.ang, bd.id === 'phantom' ? 0.72 : 1);
 
-    // прицел бурильщика
     if (e.aim > 0) {
       ctx.save();
       ctx.globalAlpha = 0.4;
@@ -407,7 +391,6 @@ var Bosses = {
       ctx.globalAlpha = 1;
     }
 
-    // щит улья
     if (e.shield > 0) {
       ctx.strokeStyle = 'rgba(183,154,214,.7)';
       ctx.lineWidth = 3;
@@ -416,7 +399,6 @@ var Bosses = {
       ctx.stroke();
     }
 
-    // если босс ушел отдыхать на свою точку - показываем это
     if (e.state === 'return') {
       ctx.globalAlpha = 0.5;
       ctx.fillStyle = '#7e9aa0';

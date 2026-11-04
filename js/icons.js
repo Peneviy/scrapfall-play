@@ -1,5 +1,3 @@
-// Значки интерфейса: линии в одну краску, рисуются цветом текста. Все тут,
-// в коде, никаких файлов. Кнопки с атрибутом data-icon получают значок сами.
 var Icons = {
   paths: {
     car: '<rect x="3" y="12" width="18" height="6" rx="2"/><path d="M6 12V9h7l2 3"/><path d="M13 10h8"/><circle cx="7" cy="18" r="1.4"/><circle cx="12" cy="18" r="1.4"/><circle cx="17" cy="18" r="1.4"/>',
@@ -10,7 +8,6 @@ var Icons = {
     hangar: '<path d="M3 21V9l9-6 9 6v12"/><path d="M7 21v-8h10v8"/><path d="M7 16h10"/>',
     board: '<path d="M3 21h18"/><rect x="9" y="9" width="6" height="12"/><rect x="3" y="14" width="6" height="7"/><rect x="15" y="16" width="6" height="5"/><path d="M12 3l1 2 2 .3-1.5 1.4.4 2.1-1.9-1-1.9 1 .4-2.1L9 5.3 11 5z"/>',
     crate: '<rect x="3" y="7" width="18" height="13" rx="1"/><path d="M3 11h18M8 7v13M16 7v13"/><path d="M7 7l2-3h6l2 3"/>',
-    // модули
     dmg: '<path d="M12 3c2 2 3 5 3 8v8H9v-8c0-3 1-6 3-8z"/><path d="M9 15h6"/>',
     hp: '<path d="M12 3l8 3v6c0 5-4 8-8 9-4-1-8-4-8-9V6z"/><path d="M12 8v8M8 12h8"/>',
     spd: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.5"/><path d="M12 4v5.5M12 14.5V20M4 12h5.5M14.5 12H20"/>',
@@ -29,7 +26,6 @@ var Icons = {
       'stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + p + '</svg>';
   },
 
-  // все кнопки с data-icon получают значок перед текстом
   apply: function () {
     var nodes = document.querySelectorAll('[data-icon]');
     for (var i = 0; i < nodes.length; i++) {

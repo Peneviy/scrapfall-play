@@ -1,10 +1,8 @@
-// Строения и ящики. Карта бесконечная, поэтому куски генерятся на лету по
-// хешу координат: одна и та же клетка всегда дает одни и те же стены.
 var World = {
-  block: 720,          // размер куска мира
-  chunks: {},          // "cx:cy" -> { walls: [], crates: [] }
-  near: [],            // стены рядом с игроком, пересчитываются раз в кадр
-  crates: [],          // живые ящики рядом
+  block: 720,
+  chunks: {},
+  near: [],
+  crates: [],
   tmp: [],
 
   reset: function () {
@@ -13,7 +11,6 @@ var World = {
     this.crates.length = 0;
   },
 
-  // детерминированный генератор: из координат куска делаем поток чисел
   rng: function (cx, cy) {
     var s = (cx * 374761393 + cy * 668265263) >>> 0;
     s = (s ^ (s >>> 13)) * 1274126177 >>> 0;
@@ -31,7 +28,6 @@ var World = {
     if (c) return c;
 
     c = { walls: [], crates: [] };
-    // вокруг точки старта чисто, иначе можно родиться внутри стены
     if (!(cx === 0 && cy === 0)) {
       var r = this.rng(cx, cy);
       if (r() < 0.55) {
@@ -45,7 +41,6 @@ var World = {
           var y = oy + 60 + r() * (this.block - h - 120);
           c.walls.push({ x: x, y: y, w: w, h: h });
         }
-        // ящик прижимаем к стене: так он выглядит как заначка, а не мусор в поле
         if (r() < 0.75 && c.walls.length) {
           var base = c.walls[Math.floor(r() * c.walls.length)];
           c.crates.push({
@@ -55,8 +50,6 @@ var World = {
           });
         }
       }
-      // Красные бочки с горючим. Генерятся после стен и ящиков, чтобы старая
-      // раскладка мира не поменялась. Стрельнул - рвануло и раскидало толпу.
       var nb = r() < 0.55 ? 1 + Math.floor(r() * 3) : 0;
       var bx0 = cx * this.block, by0 = cy * this.block;
       for (var bi = 0; bi < nb; bi++) {
@@ -68,11 +61,8 @@ var World = {
         }
         if (!clear) continue;
         c.crates.push({ x: bx, y: by, r: 11, hp: 12, dead: false, hit: 0, ex: true });
-        // бочки любят стоять кучкой: тогда взрыв цепной
         if (r() < 0.4) c.crates.push({ x: bx + 22, y: by + 8, r: 11, hp: 12, dead: false, hit: 0, ex: true });
       }
-      // Начинку ящика решаем здесь же, из того же потока: тогда ящик с аптечкой
-      // можно пометить заранее, и при пересоздании куска он не сменит содержимое.
       for (var ci = 0; ci < c.crates.length; ci++) {
         if (c.crates[ci].ex) continue;
         var roll = r() * 12;
@@ -83,7 +73,6 @@ var World = {
     return c;
   },
 
-  // Собираем стены и ящики вокруг игрока один раз за кадр.
   refresh: function (x, y, radius) {
     this.near.length = 0;
     this.crates.length = 0;
@@ -97,7 +86,6 @@ var World = {
         for (var j = 0; j < c.crates.length; j++) if (!c.crates[j].dead) this.crates.push(c.crates[j]);
       }
     }
-    // карта бесконечная, но память не бесконечная: дальние куски забываем
     var keys = Object.keys(this.chunks);
     if (keys.length > 220) {
       for (var k = 0; k < keys.length; k++) {
@@ -107,7 +95,6 @@ var World = {
     }
   },
 
-  // точка внутри стены (для пуль)
   blocked: function (x, y) {
     for (var i = 0; i < this.near.length; i++) {
       var w = this.near[i];
@@ -116,7 +103,6 @@ var World = {
     return false;
   },
 
-  // Стена, в которую уперлись: нужна, чтобы знать, куда ее обходить.
   blockingWall: function (o, pad) {
     pad = pad || 6;
     for (var i = 0; i < this.near.length; i++) {
@@ -129,8 +115,6 @@ var World = {
     return null;
   },
 
-  // Выталкиваем круг из стен. Двигаем по той оси, где перекрытие меньше,
-  // тогда получается скольжение вдоль стены, а не залипание в углу.
   resolve: function (o) {
     for (var i = 0; i < this.near.length; i++) {
       var w = this.near[i];
@@ -146,7 +130,6 @@ var World = {
         o.x += dx / d * push;
         o.y += dy / d * push;
       } else {
-        // центр внутри прямоугольника: выталкиваем через ближайшую грань
         var left = o.x - w.x, right = w.x + w.w - o.x;
         var top = o.y - w.y, bottom = w.y + w.h - o.y;
         var m = Math.min(left, right, top, bottom);
@@ -158,7 +141,6 @@ var World = {
     }
   },
 
-  // ящик получил урон
   hitCrate: function (c, dmg) {
     c.hp -= dmg;
     c.hit = 0.1;
@@ -172,8 +154,6 @@ var World = {
     this.drop(c.x, c.y, c.loot);
   },
 
-  // Ящик ломается и телом: автоприцел по ящикам не стреляет, и игроки не
-  // понимали, как достать аптечку. Бочку телом не трогаем - она бьет и по нам.
   touchCrates: function (p) {
     for (var i = 0; i < this.crates.length; i++) {
       var c = this.crates[i];
@@ -183,8 +163,6 @@ var World = {
     }
   },
 
-  // Урон по площади: взрывы, кольцо, горн, спутники. Бочки детонируют,
-  // ящики ломаются. cd - пауза между ударами по одному ящику (спутники).
   damageArea: function (x, y, rad, dmg, cd) {
     for (var i = 0; i < this.crates.length; i++) {
       var o = this.crates[i];
@@ -200,9 +178,6 @@ var World = {
     }
   },
 
-  // Бочка рванула. Урон растет вместе с врагами, иначе к десятой минуте
-  // бочка их только щекочет. Боссу достается меньше, игроку - если стоял
-  // рядом. Соседние бочки детонируют следом.
   boomR: 125,
   explode: function (c) {
     if (c.dead) return;
@@ -232,7 +207,6 @@ var World = {
     }
   },
 
-  // Выпадение из ящика. Баффы временные, поэтому не ломают баланс забега.
   drop: function (x, y, t) {
     var roll = t || U.weighted([
       { w: 4, t: 'scrap' },
@@ -248,7 +222,6 @@ var World = {
     var i;
     for (i = 0; i < this.near.length; i++) {
       var w = this.near[i];
-      // тень, чтобы блок читался как объем, а не как дырка в полу
       ctx.fillStyle = 'rgba(0,0,0,.45)';
       ctx.fillRect(w.x + 6, w.y + 8, w.w, w.h);
       ctx.fillStyle = '#26404b';
@@ -258,7 +231,6 @@ var World = {
       ctx.strokeStyle = '#4e8496';
       ctx.lineWidth = 2;
       ctx.strokeRect(w.x, w.y, w.w, w.h);
-      // заклепки по углам
       ctx.fillStyle = '#7fb3c2';
       ctx.fillRect(w.x + 4, w.y + 11, 3, 3);
       ctx.fillRect(w.x + w.w - 7, w.y + 11, 3, 3);
@@ -267,7 +239,6 @@ var World = {
       var c = this.crates[i];
       if (c.hit > 0) c.hit -= 0.016;
       if (c.ex) {
-        // бочка с горючим в плоской версии: красный круг в желтом ободе
         ctx.fillStyle = c.hit > 0 ? '#ffffff' : '#b8301e';
         ctx.strokeStyle = '#e8ab2f';
         ctx.lineWidth = 3;
@@ -278,12 +249,9 @@ var World = {
         continue;
       }
       var med = c.loot === 'heal';
-      // аптечный ящик дышит зеленым: с тестов просили показать, что это не просто ящик
       if (med) GlowCache.draw(ctx, 'rgba(126,224,138,.45)', c.x, c.y, c.r * 2.6, 0.55 + 0.45 * Math.sin(Game.time * 5));
       ctx.save();
       ctx.translate(c.x, c.y);
-      // аптечный ящик светлый с зеленым плюсом, как знак первой помощи;
-      // красный крест на белом - эмблема Красного Креста, его в играх не рисуют
       ctx.fillStyle = c.hit > 0 ? '#ffffff' : (med ? '#e9f3ea' : '#7a5a34');
       ctx.strokeStyle = med ? CFG.col.heal : '#ffd27d';
       ctx.lineWidth = 2;

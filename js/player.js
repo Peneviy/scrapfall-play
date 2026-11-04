@@ -1,4 +1,3 @@
-// Игрок, его пули, спутники и турели.
 var Player = {
 
   create: function (charId, gunId, skinId) {
@@ -35,7 +34,6 @@ var Player = {
     p.xpNeed = Player.xpFor(1);
     if (ch.turret) p.st.turret = 1;
 
-    // стартовые уровни за престиж
     var boost = Save.data.prestige * CFG.prestige.startLevel;
     for (var i = 0; i < boost; i++) {
       var cards = Skills.roll(p, 1);
@@ -55,7 +53,6 @@ var Player = {
     skill.apply(p);
   },
 
-  // уровень без опыта: награда за босса
   grantLevel: function (p) {
     p.level++;
     PF.reportLevel(p.level);
@@ -120,12 +117,11 @@ var Player = {
 
     if (p.inv > 0) p.inv -= dt;
     if (p.dashCdT > 0) p.dashCdT -= dt;
-    if (p.slowT > 0) p.slowT -= dt;   // холод от морозника
+    if (p.slowT > 0) p.slowT -= dt;
     if (p.buffs.rage > 0) p.buffs.rage -= dt;
     if (p.buffs.haste > 0) p.buffs.haste -= dt;
     if (p.st.regen > 0) p.heal(p.st.regen * dt);
 
-    // движение
     var mv = Input.move;
     if (p.dashT > 0) {
       p.dashT -= dt;
@@ -151,7 +147,6 @@ var Player = {
       }
     }
 
-    // морозильник
     if (p.st.frost > 0) {
       var fr = (140 + p.st.frost * 60) * p.st.radius;
       var near = [];
@@ -161,8 +156,6 @@ var Player = {
       }
     }
 
-    // Прицел. В авторежиме целимся в ближайшего, в ручном - в курсор.
-    // Ручной режим специально сделан отдельной веткой: под будущий пвп.
     var manual = Save.data.set.aim === 'mouse' && !Input.touch;
     var target = Game.nearestEnemy(p.x, p.y, p.gun.range + 120);
     p.target = target;
@@ -181,7 +174,6 @@ var Player = {
       this.shoot(p, p.ang);
     }
 
-    // спутники
     if (p.st.orbit > 0) {
       p.orbA += dt * 2.6;
       var rad = 62;
@@ -202,7 +194,6 @@ var Player = {
       }
     }
 
-    // кольцо разряда
     if (p.st.nova > 0) {
       p.novaCd -= dt;
       if (p.novaCd <= 0) {
@@ -222,7 +213,6 @@ var Player = {
       }
     }
 
-    // горн: жжет всех в радиусе, тикает дважды в секунду
     if (p.st.burn > 0) {
       p.burnCd -= dt;
       if (p.burnCd <= 0) {
@@ -241,7 +231,6 @@ var Player = {
       }
     }
 
-    // лента: держит и жжет ближайшего
     p.tetherTarget = null;
     if (p.st.tether > 0) {
       var tg = Game.nearestEnemy(p.x, p.y, 240 + p.st.tether * 40);
@@ -252,7 +241,6 @@ var Player = {
       }
     }
 
-    // турели
     if (p.st.turret > 0) {
       p.turretCd -= dt;
       if (p.turretCd <= 0 && Game.turrets.length < p.st.turret + 1) {
@@ -267,8 +255,6 @@ var Player = {
   },
 
   shoot: function (p, ang) {
-    // Куда смотришь - туда и бьет сильнее всего. Боковые и задний выстрелы
-    // идут с понижающим множителем, чтобы направление всегда решало.
     var angles = [{ a: ang, k: 1 }];
     if (p.st.arcs >= 1) angles.push({ a: ang + Math.PI, k: CFG.aim.arcDamage });
     if (p.st.arcs >= 2) {
@@ -277,10 +263,6 @@ var Player = {
     }
 
     var count = p.gun.count + p.st.count;
-    // Две пули летят парой, параллельно, как из двух стволов: в веере из двух
-    // ни одна не шла по прицелу, и Трещотка с первым Сплиттером мазала в упор.
-    // От трех пуль веер со средней по прицелу, на полную ширину он
-    // раскрывается от четырех.
     var fan = (p.gun.spread + p.st.spread) * Math.min(1, (count - 1) / 3);
     for (var a = 0; a < angles.length; a++) {
       for (var i = 0; i < count; i++) {
@@ -293,14 +275,10 @@ var Player = {
     Snd.play(p.gun.sfx);
   },
 
-  // side: сдвиг поперек полета, для пары параллельных пуль
   bullet: function (p, ang, power, side) {
     var crit = U.chance(p.st.crit);
     var dmg = p.gun.dmg * p.st.dmg * (crit ? 2 : 1) * (power === undefined ? 1 : power);
     if (p.buffs.rage > 0) dmg *= 1.5;
-    // Враг сидит на машине: с дула пуля рождается уже за его центром и первым
-    // же шагом уходит дальше, в упор попасть было нельзя. Тогда рождаем ее в
-    // центре и первый кадр не двигаем.
     var t = p.target;
     var close = t && !t.dead && U.dist2(p.x, p.y, t.x, t.y) < (p.r + t.r) * (p.r + t.r);
     var off = close ? 0 : 16;
@@ -393,7 +371,6 @@ var Player = {
       if (e.dead) continue;
       if (U.dist2(x, y, e.x, e.y) < radius * radius) Enemies.damage(e, dmg, false, x, y, 20);
     }
-    // осколки ломают ящики и поджигают бочки, отсюда цепные взрывы
     World.damageArea(x, y, radius, dmg);
   },
 
@@ -441,7 +418,6 @@ var Player = {
   draw: function (ctx, p) {
     var sk = Content.skin(p.skin);
 
-    // радиус подбора еле заметным кругом
     ctx.globalAlpha = 0.07;
     ctx.strokeStyle = sk.trail;
     ctx.lineWidth = 1;
@@ -465,8 +441,6 @@ var Player = {
       ctx.stroke();
     }
 
-    // Кольцо заранее показывает зону и наливается к моменту удара:
-    // иначе непонятно, когда оно вообще срабатывает.
     if (p.st.nova > 0) {
       var nr2 = (180 + p.st.nova * 70) * p.st.radius;
       var k = U.clamp(1 - p.novaCd / 6, 0, 1);
@@ -478,7 +452,6 @@ var Player = {
       ctx.stroke();
     }
 
-    // Подсветка под ногами: в плотной толпе иначе теряешь себя из виду.
     GlowCache.draw(ctx, 'rgba(255,210,125,.22)', p.x, p.y, p.r * 3.2, 1);
     ctx.strokeStyle = 'rgba(255,255,255,.65)';
     ctx.lineWidth = 2;
@@ -486,12 +459,10 @@ var Player = {
     ctx.arc(p.x, p.y, p.r + 6, 0, Math.PI * 2);
     ctx.stroke();
 
-    // мигание после удара
     if (p.inv > 0 && Math.floor(p.inv * 20) % 2 === 0) ctx.globalAlpha = 0.45;
     Content.drawChar(ctx, p.x, p.y, p.r, p.char.id, p.skin, p.ang, p.dashT > 0);
     ctx.globalAlpha = 1;
 
-    // лента до цели
     if (p.tetherTarget && !p.tetherTarget.dead) {
       ctx.save();
       ctx.globalAlpha = 0.75;
@@ -505,7 +476,6 @@ var Player = {
       ctx.globalAlpha = 1;
     }
 
-    // спутники
     if (p.st.orbit > 0) {
       for (var k = 0; k < p.st.orbit; k++) {
         var a = p.orbA + k / p.st.orbit * Math.PI * 2;
@@ -544,8 +514,6 @@ var Player = {
 
   drawBullets: function (ctx) {
     var list = Game.bullets;
-    // При четырех направлениях стрельбы пуль на экране столько, что свечение
-    // под каждой начинает рябить. В такой куче его просто выключаем.
     var glow = list.length < 90 && !Save.data.set.low;
     for (var i = 0; i < list.length; i++) {
       var b = list[i];

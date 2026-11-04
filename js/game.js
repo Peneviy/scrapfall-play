@@ -1,4 +1,3 @@
-// Ядро: цикл, мир, камера, жизненный цикл рейда.
 var Game = {
   canvas: null, ctx: null,
   w: 0, h: 0, dpr: 1, scale: 1,
@@ -16,8 +15,6 @@ var Game = {
 
   init: function (canvas) {
     this.canvas = canvas;
-    // Если 3D завелось, плоский канвас остается сверху прозрачным слоем под
-    // цифры, миникарту и стик. Не завелось - играем в плоскую версию.
     var c3 = document.getElementById('game3d');
     if (View3D.init(c3)) canvas.classList.add('overlay');
     else if (c3) c3.style.display = 'none';
@@ -35,7 +32,6 @@ var Game = {
 
   resize: function () {
     var w = window.innerWidth, h = window.innerHeight;
-    // на слабых телефонах dpr 3 убивает fps, хватает и двойки
     this.dpr = Math.min(window.devicePixelRatio || 1, 2);
     this.w = w; this.h = h;
     this.canvas.width = Math.floor(w * this.dpr);
@@ -48,8 +44,6 @@ var Game = {
     View3D.resize(w, h, this.dpr);
   },
 
-  // Колесо мыши: чуть ближе или дальше. В 3D камера считается от того же
-  // scale, так что отдельной логики там нет.
   zoomBy: function (dir) {
     var s = Save.data.set;
     s.zoom = U.clamp((s.zoom || 1) * (dir > 0 ? 0.94 : 1.06), CFG.view.zoomMin, CFG.view.zoomMax);
@@ -57,14 +51,11 @@ var Game = {
     this.resize();
   },
 
-  // половина диагонали видимой области в мировых единицах
   viewRadius: function () {
     if (View3D.on) return View3D.radius;
     var hw = this.w / 2 / this.scale, hh = this.h / 2 / this.scale;
     return Math.sqrt(hw * hw + hh * hh);
   },
-
-  // ---------- жизненный цикл ----------
 
   start: function () {
     var d = Save.data;
@@ -114,7 +105,6 @@ var Game = {
     UI.showGameOver();
   },
 
-  // вторая жизнь за рекламу: чистим поле вокруг, чтобы не умереть сразу же
   revive: function () {
     this.player.alive = true;
     this.player.hp = this.player.st.maxHp;
@@ -135,14 +125,12 @@ var Game = {
     return Math.floor(this.score + this.time * CFG.score.perSec);
   },
 
-  // Подсчет итогов. Отделен от записи, потому что между ними игрок может
-  // взять вторую жизнь за рекламу, и тогда рейд продолжается.
   settle: function () {
     if (this.settled) return this.res;
     this.settled = true;
     var bonus = Math.floor(this.time * CFG.coins.timeBonus + this.player.level * CFG.coins.lvlBonus);
     bonus = Math.floor(bonus * Save.mult().loot * this.player.char.loot);
-    this.payout = this.runCoins + bonus;   // то, что реально уйдет в кошелек
+    this.payout = this.runCoins + bonus;
     this.scoreParts.time = Math.floor(this.time * CFG.score.perSec);
     this.res = {
       score: this.finalScore(), time: this.time,
@@ -153,7 +141,6 @@ var Game = {
 
   unsettle: function () { this.settled = false; },
 
-  // запись результата: лом в кошелек, рекорд в сейв, очки в рейтинг
   commit: function () {
     if (this.committed || !this.settled) return;
     this.committed = true;
@@ -175,15 +162,12 @@ var Game = {
     PF.banner(true);
   },
 
-  // ---------- мир ----------
-
   bossCount: function () {
     var n = 0;
     for (var i = 0; i < this.enemies.length; i++) if (this.enemies[i].boss && !this.enemies[i].dead) n++;
     return n;
   },
 
-  // босс, чью полоску показываем сверху: ближайший, кто реально дерется
   activeBoss: function () {
     var best = null, bd = 1e9;
     for (var i = 0; i < this.enemies.length; i++) {
@@ -210,7 +194,6 @@ var Game = {
 
   gemCap: 140,
   spawnGem: function (x, y, value) {
-    // Поле уже засыпано - вместо нового камня утяжеляем случайный старый.
     if (this.gems.length >= this.gemCap) {
       var g = this.gems[(Math.random() * this.gems.length) | 0];
       g.v += value;
@@ -220,7 +203,6 @@ var Game = {
     this.gems.push({ x: x, y: y, vx: U.rand(-40, 40), vy: U.rand(-40, 40), v: value, r: 5 + Math.min(4, value), age: 0 });
   },
 
-  // ядовитое облако от спор: тормозит и грызет всех внутри
   spawnCloud: function (x, y, r, dmg) {
     this.clouds.push({ x: x, y: y, r: r, dmg: dmg, life: 7, tick: 0 });
   },
@@ -255,13 +237,11 @@ var Game = {
     this.ebullets.push({
       x: x, y: y, vx: Math.cos(ang) * speed, vy: Math.sin(ang) * speed,
       r: opts.r || 6, dmg: dmg, life: opts.life || 4.5, c: color || CFG.col.spit,
-      pw: !!opts.pw,          // летит сквозь строения
-      spear: !!opts.spear,    // рисуется вытянутым копьем
+      pw: !!opts.pw,
+      spear: !!opts.spear,
       ang: ang
     });
   },
-
-  // ---------- апдейт ----------
 
   update: function (dt) {
     this.time += dt;
@@ -283,7 +263,6 @@ var Game = {
     Snd.duck();
     Save.tick();
 
-    // камера с запаздыванием
     this.cam.x = U.lerp(this.cam.x, this.player.x, U.clamp(CFG.view.camLerp * dt, 0, 1));
     this.cam.y = U.lerp(this.cam.y, this.player.y, U.clamp(CFG.view.camLerp * dt, 0, 1));
 
@@ -317,7 +296,6 @@ var Game = {
       g = this.gems[i];
       d = U.dist(g.x, g.y, p.x, p.y);
       if (d < p.st.pickup) {
-        // притягиваем тем сильнее, чем ближе
         var pull = 340 * (1 - d / p.st.pickup) + 120;
         var a = U.angleTo(g.x, g.y, p.x, p.y);
         g.x += Math.cos(a) * pull * dt;
@@ -325,8 +303,6 @@ var Game = {
       } else {
         g.x += g.vx * dt; g.y += g.vy * dt;
         g.vx *= 1 - 3 * dt; g.vy *= 1 - 3 * dt;
-        // Полежавший камень сам ползет к игроку, и чем дольше лежит, тем быстрее.
-        // Иначе тот, кто бегает без остановки, вообще перестает качаться.
         g.age += dt;
         if (g.age > 2.5 || this.gems.length > 25) {
           var pull = Math.min(300, 70 + g.age * 26);
@@ -354,7 +330,6 @@ var Game = {
     }
   },
 
-  // Подбор из ящиков: лом, аптечка и временные баффы.
   updateDrops: function (dt) {
     var p = this.player;
     for (var i = this.drops.length - 1; i >= 0; i--) {
@@ -364,8 +339,6 @@ var Game = {
       if (d.life <= 0) { this.drops.splice(i, 1); continue; }
       var rr = p.r + d.r + 8;
       if (U.dist2(d.x, d.y, p.x, p.y) > rr * rr) continue;
-      // аптечку при полном здоровье не подбираем: ящик ломается телом, и
-      // иначе она сгорала бы впустую прямо под машиной
       if (d.t === 'heal' && p.hp >= p.st.maxHp) continue;
       this.applyDrop(d);
       this.drops.splice(i, 1);
@@ -409,7 +382,6 @@ var Game = {
     }
   },
 
-  // Мины подрывника: лежат, мигают, потом хлопают по площади.
   spawnMine: function (x, y, dmg, delay) {
     this.mines.push({ x: x, y: y, t: delay || 2.4, dmg: dmg, r: 110 });
   },
@@ -429,7 +401,6 @@ var Game = {
     }
   },
 
-  // Ударная волна титана: кольцо расходится и цепляет один раз.
   spawnWave: function (x, y, max, speed, dmg) {
     this.waves.push({ x: x, y: y, r: 20, max: max, sp: speed, dmg: dmg, hit: false });
   },
@@ -478,8 +449,6 @@ var Game = {
     }
   },
 
-  // ---------- отрисовка ----------
-
   render: function () {
     var ctx = this.ctx;
     if (View3D.on) {
@@ -525,8 +494,6 @@ var Game = {
     Input.draw(ctx);
   },
 
-  // Миникарта в углу: строения, толпа, босс и ящики. Рисуем прямо на основном
-  // холсте в экранных координатах, отдельный канвас тут ни к чему.
   mapRange: 2400,
   drawMinimap: function (ctx) {
     var size = Math.min(132, Math.max(92, this.w * 0.16));
@@ -536,7 +503,6 @@ var Game = {
     var k = size / (this.mapRange * 2);
     var p = this.player;
 
-    // в 3D миникарта в тон интерфейсу: темное железо и выцветшая краска
     var iron = View3D.on;
     ctx.save();
     ctx.globalAlpha = iron ? 0.8 : 0.72;
@@ -553,7 +519,6 @@ var Game = {
     var cx = x0 + size / 2, cy = y0 + size / 2;
     var i, o, mx, my;
 
-    // строения
     ctx.fillStyle = iron ? '#a08566' : '#4e8496';
     for (i = 0; i < World.near.length; i++) {
       o = World.near[i];
@@ -561,14 +526,12 @@ var Game = {
         Math.max(2, o.w * k), Math.max(2, o.h * k));
     }
 
-    // ящики
     for (i = 0; i < World.crates.length; i++) {
       o = World.crates[i];
       ctx.fillStyle = o.ex ? '#ff5a3c' : (o.loot === 'heal' ? CFG.col.heal : CFG.col.ally);
       ctx.fillRect(cx + (o.x - p.x) * k - 1.5, cy + (o.y - p.y) * k - 1.5, 3, 3);
     }
 
-    // толпа и боссы
     for (i = 0; i < this.enemies.length; i++) {
       o = this.enemies[i];
       if (o.dead) continue;
@@ -584,7 +547,6 @@ var Game = {
       }
     }
 
-    // сам игрок и куда смотрит
     ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
@@ -600,8 +562,6 @@ var Game = {
     ctx.globalAlpha = 1;
   },
 
-  // Свое здоровье прямо над машиной в плоском режиме (в 3D то же рисует
-  // View3D.drawOverlay). Полоса внизу остается, это дубль.
   drawPlayerHp: function (ctx) {
     var p = this.player;
     if (!p || !p.alive) return;
@@ -615,7 +575,6 @@ var Game = {
     for (var t = 1; t < 5; t++) ctx.fillRect(x + w * t / 5, y, 1, 4);
   },
 
-  // стрелка к боссу, если он уехал за край экрана
   drawBossMarker: function (ctx) {
     var boss = null;
     for (var i = 0; i < this.enemies.length; i++) if (this.enemies[i].boss) { boss = this.enemies[i]; break; }
@@ -672,7 +631,6 @@ var Game = {
     }
     ctx.stroke();
 
-    // хлам на земле: позиция считается от координат клетки, поэтому не дергается
     ctx.fillStyle = 'rgba(30,62,72,.55)';
     for (var gx = x0; gx < x1 + step; gx += step) {
       for (var gy = y0; gy < y1 + step; gy += step) {
@@ -750,10 +708,7 @@ var Game = {
 
   vignetteCache: null,
   drawVignette: function (ctx) {
-    // Окно бывает нулевого размера: в iframe площадки до первого показа и при
-    // сворачивании. Канвас 0x0 роняет drawImage, поэтому просто пропускаем кадр.
     if (this.w < 2 || this.h < 2) return;
-    // в 3D виньетка меняется со временем суток: днем теплая и легкая, ночью темная
     var rgb = View3D.on ? View3D.vig.rgb : '0,0,0';
     var a = View3D.on ? Math.round(View3D.vig.k * 20) / 20 : 0.55;
     var key = this.w + 'x' + this.h + ':' + rgb + ':' + a;
@@ -772,8 +727,6 @@ var Game = {
     ctx.drawImage(this.vignetteCache.c, 0, 0, this.w, this.h);
   },
 
-  // ---------- цикл ----------
-
   frame: function (ts) {
     var self = this;
     requestAnimationFrame(function (t) { self.frame(t); });
@@ -781,7 +734,17 @@ var Game = {
     var dt = (ts - this.lastTs) / 1000;
     this.lastTs = ts;
     if (!(dt > 0)) return;
-    if (dt > 0.25) dt = 0.25;   // после сворачивания вкладки не проматываем полчаса боя
+    if (dt > 0.25) dt = 0.25;
+
+    if (this.running && !this.paused && View3D.on && !Save.data.set.low && !Save.data.lowAuto) {
+      this.slowT = dt > 0.028 ? (this.slowT || 0) + dt : 0;
+      if (this.slowT > 3) {
+        Save.data.lowAuto = 1;
+        View3D.setLow(true);
+        Save.flush(false);
+        UI.toast(I18N.t('lowAuto'));
+      }
+    }
 
     if (this.running && !this.paused) {
       this.acc += dt;
@@ -796,7 +759,6 @@ var Game = {
     }
     if (this.running) this.render();
     else if (View3D.on) View3D.idle();
-    // музыку планируем по часам звука, а не по шагу игры: так ритм не плывет
     Snd.music();
   },
 

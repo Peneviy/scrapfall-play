@@ -1,21 +1,14 @@
-// 3D-картинка поверх той же логики. Мир остается плоским (x, y), в сцене это
-// (x, 0, y). Игра считает все как раньше, этот модуль раз в кадр смотрит на
-// Game.* и переставляет модели. Плоский канвас остается сверху для цифр урона,
-// полосок здоровья, миникарты и стика.
 var View3D = {
   on: false,
   renderer: null, scene: null, camera: null,
   w: 0, h: 0,
-  radius: 700,        // докуда видно землю от центра экрана, нужно спавну
-  ppu: 1,             // экранных пикселей на единицу мира у игрока
-  off: null,          // смещение камеры от точки, на которую она смотрит
+  radius: 700,
+  ppu: 1,
+  off: null,
   last: 0,
-
-  // ---------- запуск ----------
 
   init: function (canvas) {
     if (typeof THREE === 'undefined' || !canvas) return false;
-    // ?2d в адресе - старая плоская картинка, удобно сравнивать
     if (/[?&]2d\b/.test(location.search)) return false;
     var r;
     try {
@@ -33,13 +26,8 @@ var View3D = {
     s.fog = new THREE.Fog(CFG.view3d.fog, 900, 2300);
     this.camera = new THREE.PerspectiveCamera(CFG.view3d.fov, 1, 20, 5000);
 
-    // Выжженный полдень: солнце почти белое, небо светлое, от песка теплый
-    // отсвет снизу. Песок светлый, поэтому ржавые враги читаются темными
-    // силуэтами, а не сливаются с землей.
     var hemi = this.hemi = new THREE.HemisphereLight('#d6e6f5', '#b08458', 1.45);
     s.add(hemi);
-    // фара и лампа над машиной: днем выключены, ночью без них ничего не видно.
-    // Свет всегда в сцене, меняется только яркость, иначе шейдеры пересобираются.
     this.lamp = new THREE.PointLight('#ffd9a0', 0, 460, 1);
     s.add(this.lamp);
     this.head = new THREE.SpotLight('#fff1d0', 0, 650, 0.42, 0.55, 1);
@@ -49,8 +37,6 @@ var View3D = {
     this.sunDir = new THREE.Vector3(-0.6, 1.25, 0.45).normalize();
     s.add(sun);
     s.add(sun.target);
-    // Тени от солнца дают объем лучше любых текстур. На слабом режиме их нет,
-    // остаются только круглые пятна под ногами.
     this.shadowsOn = !(Save.data && Save.data.set.low);
     if (this.shadowsOn) {
       r.shadowMap.enabled = true;
@@ -88,8 +74,6 @@ var View3D = {
     return true;
   },
 
-  // Камеру ставим так, чтобы по земле было видно примерно столько же, сколько
-  // в плоской версии: иначе поедет весь баланс спавна.
   resize: function (w, h, dpr) {
     if (!this.on) return;
     this.w = w; this.h = h;
@@ -110,7 +94,6 @@ var View3D = {
     cam.updateProjectionMatrix();
     cam.updateMatrixWorld();
 
-    // самая дальняя видимая точка земли - по ней считаем кольцо спавна
     var far = 0;
     for (var i = 0; i < 4; i++) {
       var g = this.toGround(i % 2 ? w : 0, i < 2 ? 0 : h, true);
@@ -127,11 +110,6 @@ var View3D = {
     if (this.halos) this.halos.mesh.geometry.dispose();
     this.rebuildHalos();
   },
-
-  // ---------- время суток ----------
-  // Сутки идут по кругу за забег: старт ярким полднем (первое впечатление
-  // должно быть светлым), потом рыжий закат, ночь с фарами и рассвет.
-  // t - доля суток, между точками все плавно смешивается.
 
   buildAtmos: function () {
     var keys = [
@@ -177,17 +155,13 @@ var View3D = {
     this.renderer.setClearColor(this._fog, 1);
     this.ground.material.color.copy(a.ground).lerp(b.ground, k);
     var dark = this.dark = U.lerp(a.dark, b.dark, k);
-    // ночью свечение складываем, днем на светлом песке сложение не видно
     var glowMode = dark > 0.45 ? THREE.AdditiveBlending : THREE.NormalBlending;
     if (this.glows.mesh.material.blending !== glowMode) this.glows.mesh.material.blending = glowMode;
     this.lamp.intensity = dark * 300;
     this.head.intensity = dark * 1700;
-    // днем виньетка теплая и легкая, ночью темная и плотная
     this.vig.k = 0.22 + dark * 0.4;
     this.vig.rgb = dark > 0.5 ? '4,6,16' : '70,40,18';
   },
-
-  // ---------- пол ----------
 
   buildGround: function () {
     var c = document.createElement('canvas');
@@ -197,7 +171,6 @@ var View3D = {
     g.fillStyle = CFG.view3d.ground;
     g.fillRect(0, 0, 512, 512);
 
-    // рисуем каждую деталь девять раз со сдвигом, тогда текстура тайлится без швов
     var wrap = function (fn) {
       for (var ox = -512; ox <= 512; ox += 512) for (var oy = -512; oy <= 512; oy += 512) fn(ox, oy);
     };
@@ -216,7 +189,6 @@ var View3D = {
       });
     }
     g.globalAlpha = 1;
-    // рябь от ветра на песке: волнистые полосы, светлая и темная рядом
     for (i = 0; i < 26; i++) {
       var ry = r() * 512, rx = r() * 512, len = 120 + r() * 220, amp = 2 + r() * 4, ph = r() * 6;
       var drawRipple = function (dy, col) {
@@ -234,7 +206,6 @@ var View3D = {
       drawRipple(0, 'rgba(255,240,210,.14)');
       drawRipple(2.5, 'rgba(120,85,50,.1)');
     }
-    // трещины в сухой земле
     g.strokeStyle = 'rgba(120,84,52,.4)';
     for (i = 0; i < 16; i++) {
       var px = r() * 512, py = r() * 512, n = 3 + Math.floor(r() * 4);
@@ -251,7 +222,6 @@ var View3D = {
         g.stroke();
       });
     }
-    // камешки и мелкий мусор
     for (i = 0; i < 700; i++) {
       var sx = r() * 512, sy = r() * 512, sz = 1 + r() * 2.5;
       g.fillStyle = r() < 0.5 ? 'rgba(110,78,48,.45)' : 'rgba(255,238,205,.4)';
@@ -273,17 +243,12 @@ var View3D = {
     this.scene.add(this.ground);
   },
 
-  // ---------- пачки одинаковых объектов ----------
-
   buildBatches: function () {
     var self = this;
     this.batches = [];
     var add = function (b) { self.batches.push(b); self.scene.add(b.mesh); return b; };
     var M = Models;
 
-    // Враги: на каждый тип своя пачка, свет отдельно. Рисуются после стен
-    // (renderOrder 2), а перед ними (1) - силуэт с обратной проверкой глубины:
-    // виден только там, где врага закрыли контейнер или скала.
     this.matGhost = View3D.ghostMat('#e2503a', 0.5);
     this.foes = {};
     for (var k in Enemies.defs) {
@@ -313,9 +278,7 @@ var View3D = {
     this.blades = add(new View3D.Batch(bl.geo, this.matLit, 16, false));
     this.blades.mesh.castShadow = true;
     add(new View3D.Batch(bl.glow, this.matGlow, 16, false, this.blades));
-    // мелкие частицы навыков: снег, языки пламени, споры
     this.motes = add(new View3D.Batch(new THREE.BoxGeometry(1, 1, 1), this.matFlat, 500, true));
-    // огненные шары взрывов: полупрозрачные, цвет от белого к углю
     this.fireballs = add(new View3D.Batch(new THREE.IcosahedronGeometry(1, 1),
       new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.88, depthWrite: false }), 40, true));
     this.fireballs.mesh.renderOrder = 7;
@@ -325,7 +288,6 @@ var View3D = {
     this._c = new THREE.Color();
     this.crates.glow = add(new View3D.Batch(crate.glow, this.matGlow, 80, false, this.crates));
 
-    // хлам на полу, цвет каждой штуке свой
     this.props = {};
     var kinds = ['tire', 'barrel', 'barrelDown', 'plate', 'pipe', 'rock', 'bush', 'grass', 'yucca', 'deadtree', 'pole', 'sign'];
     this.wireCol = M.color('#2a2420');
@@ -342,7 +304,6 @@ var View3D = {
       a(M.K(0.95, 1.8, 4), '#ffffff', 2.4, 0, 0, Math.PI / 4, 0, -Math.PI / 2);
     });
     this.spears = add(new View3D.Batch(spear.geo, this.matTint, 120, true));
-    // обводки снарядов: та же форма наизнанку, чуть крупнее и темная
     var rimAlly = new THREE.MeshBasicMaterial({ color: '#2b1705', side: THREE.BackSide });
     var rimFoe = new THREE.MeshBasicMaterial({ color: '#2a0309', side: THREE.BackSide });
     this.shotRims = add(new View3D.Batch(sphere, rimAlly, 700, false));
@@ -358,7 +319,6 @@ var View3D = {
       a(M.B(0.6, 2, 0.6), CFG.col.heal);
     });
     this.heals = add(new View3D.Batch(cross.geo, this.matGlow, 120, false));
-    // у куба нет цвета в вершинах, поэтому материал без них, иначе лут черный
     this.drops = add(new View3D.Batch(new THREE.BoxGeometry(1.2, 1.2, 1.2), this.matFlat, 120, true));
     this.orbs = add(new View3D.Batch(new THREE.OctahedronGeometry(1), this.matFlat, 16, true));
     var mine = M.build(function (a) {
@@ -369,10 +329,8 @@ var View3D = {
     this.mineLights = add(new View3D.Batch(new THREE.SphereGeometry(0.3, 6, 4), this.matFlat, 60, true));
     this.debris = add(new View3D.Batch(new THREE.BoxGeometry(1, 1, 1), this.matFlat, 900, true));
 
-    // плоские круги и полосы считаются в шейдере, текстуры не нужны
     this.decals = add(View3D.makeDiscs(400, THREE.NormalBlending, 1));
     this.shadows = add(View3D.makeDiscs(1600, THREE.NormalBlending, 2));
-    // при настоящих тенях пятно под ногами остается только легким затемнением
     this.shadows.k = this.shadowsOn ? 0.55 : 1;
     this.rings = add(View3D.makeDiscs(800, THREE.NormalBlending, 3));
     this.glows = add(View3D.makeDiscs(500, THREE.AdditiveBlending, 4));
@@ -381,8 +339,6 @@ var View3D = {
   },
 
   rebuildHalos: function () {
-    // ореолы смотрят в камеру; камера никогда не поворачивается, поэтому
-    // хватает одного заранее наклоненного квадрата на всех
     if (this.halos) {
       this.scene.remove(this.halos.mesh);
       this.batches.splice(this.batches.indexOf(this.halos), 1);
@@ -391,8 +347,6 @@ var View3D = {
     this.batches.push(this.halos);
     this.scene.add(this.halos.mesh);
   },
-
-  // ---------- координаты ----------
 
   toScreen: function (x, y, h, out) {
     var v = this._v.set(x, h || 0, y).project(this.camera);
@@ -403,7 +357,6 @@ var View3D = {
     return out;
   },
 
-  // точка на земле под экранной точкой; local - без учета положения камеры
   toGround: function (sx, sy, local) {
     this._ndc.set(sx / this.w * 2 - 1, -(sy / this.h) * 2 + 1);
     this._ray.setFromCamera(this._ndc, this.camera);
@@ -411,8 +364,6 @@ var View3D = {
     if (!hit) return { x: local ? 0 : Game.cam.x, y: local ? 0 : Game.cam.y };
     return { x: hit.x, y: hit.z };
   },
-
-  // ---------- кадр ----------
 
   render: function () {
     var now = performance.now() / 1000;
@@ -423,14 +374,12 @@ var View3D = {
     this.idleOn = false;
 
     var cx = Game.cam.x, cy = Game.cam.y;
-    var sh = 0.7;   // в объеме тряска ощущается сильнее, чем на плоском
+    var sh = 0.7;
     this.camera.position.set(cx + this.off.x + FX.shakeX * sh, this.off.y, cy + this.off.z + FX.shakeY * sh);
     this.camera.updateMatrixWorld();
 
     var t = this.tile;
     this.ground.position.set(Math.round(cx / t) * t, 0, Math.round(cy / t) * t);
-    // солнце ездит за камерой, иначе карта теней кончится через пару экранов;
-    // шагом в тексель, чтобы края теней не дрожали при движении
     var snap = this.radius * 2.1 / 2048;
     var sx = Math.round(cx / snap) * snap, sy = Math.round(cy / snap) * snap;
     this.sun.target.position.set(sx, 0, sy);
@@ -453,10 +402,6 @@ var View3D = {
     for (i = 0; i < this.batches.length; i++) this.batches[i].end();
     this.renderer.render(this.scene, this.camera);
   },
-
-  // ---------- витрина: машины и боссы в меню и ангаре ----------
-  // Отдельный маленький рендер: модель стоит на круглом пятачке песка, кадр
-  // копируется в обычный канвас карточки. Один WebGL на все картинки.
 
   thumbInit: function () {
     if (this.th) return this.th;
@@ -484,7 +429,6 @@ var View3D = {
     var key = kind + ':' + id + ':' + skin + ':' + (dark ? 1 : 0) + ':' + gun;
     if (th.cache[key]) return th.cache[key];
     var g = new THREE.Group();
-    // непобежденный босс - темный силуэт, интрига остается
     var mat = dark ? new THREE.MeshBasicMaterial({ color: '#241b14' }) : this.matLit;
     var glow = dark ? mat : this.matGlow;
     var add = function (parent, geo, m) { if (geo) parent.add(new THREE.Mesh(geo, m)); };
@@ -510,7 +454,6 @@ var View3D = {
     return g;
   },
 
-  // ang - поворот модели, чтобы в меню она медленно крутилась
   thumb: function (canvas, kind, id, skin, ang, dark, gun) {
     if (!this.on) return false;
     var th = this.thumbInit();
@@ -528,7 +471,6 @@ var View3D = {
     return true;
   },
 
-  // машина в главном меню медленно поворачивается на своем пятачке
   heroSpin: function () {
     var c = document.getElementById('heroPreview');
     if (!c || !c.offsetParent || !Save.data) return;
@@ -536,15 +478,12 @@ var View3D = {
     this.thumb(c, 'car', Save.data.char, Save.data.skin, -0.7 + t * 0.5, false, Save.data.gun);
   },
 
-  // В меню за кнопками медленно плывет та же свалка в закатном свете.
-  // Пустой фон под меню выглядел бы как заглушка.
   idle: function () {
     var now = performance.now() / 1000;
-    if (now - (this.idleLast || 0) < 1 / 31) return;   // меню хватит и 30 кадров
+    if (now - (this.idleLast || 0) < 1 / 31) return;
     this.idleLast = now;
     if (!this.idleOn) {
       this.idleOn = true;
-      // плоский слой мог остаться с последнего кадра боя: миникарта, цифры
       var ctx = Game.ctx;
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, Game.canvas.width, Game.canvas.height);
@@ -574,7 +513,6 @@ var View3D = {
     this.heroSpin();
   },
 
-  // пятна и хлам на полу: зависят только от координат куска мира
   syncDeco: function (cx, cy) {
     var b = World.block;
     var x0 = Math.floor((cx - 1500) / b), x1 = Math.floor((cx + 1500) / b);
@@ -585,7 +523,6 @@ var View3D = {
       var list = [];
       for (var gx = x0; gx <= x1; gx++) for (var gy = y0; gy <= y1; gy++) list.push(this.deco(gx, gy));
       this.decoList = list;
-      // старые куски забываем, чтобы кеш не рос бесконечно
       var keys = Object.keys(this.decoCache);
       if (keys.length > 200) this.decoCache = {};
     }
@@ -603,7 +540,6 @@ var View3D = {
         var pi = pb.put(d.x, d.up ? d.s * 0.62 : 0, d.y, d.a, d.s, d.s, d.s);
         if (pi >= 0) pb.tint(pi, d.c, 1);
       }
-      // провода между столбами: два тонких, на высоте изоляторов
       for (j = 0; j < c.wires.length; j++) {
         var wr = c.wires[j], wx = Math.cos(Math.atan2(wr[3] - wr[1], wr[2] - wr[0]) + Math.PI / 2) * 11;
         var wy = Math.sin(Math.atan2(wr[3] - wr[1], wr[2] - wr[0]) + Math.PI / 2) * 11;
@@ -666,12 +602,10 @@ var View3D = {
         k: k, x: x, y: y, a: r() * 6.28, s: sizes[k] * (0.8 + r() * 0.5),
         c: Models.color(pal[Math.floor(r() * pal.length)])
       });
-      // покрышки любят лежать стопкой
       if (k === 'tire' && r() < 0.4) {
         res.props.push({ k: 'tire', x: x + 2, y: y - 1, a: r() * 6.28, s: sizes.tire, c: Models.color('#ffffff'), up: 1 });
       }
     }
-    // иногда через кусок тянется старая линия столбов с проводами
     res.wires = [];
     if (r() < 0.35) {
       var la = r() * Math.PI, lx = ox + b * 0.2 + r() * b * 0.6, ly = oy + b * 0.2 + r() * b * 0.6;
@@ -688,7 +622,6 @@ var View3D = {
     return res;
   },
 
-  // Стены: из каждой генерим свою модель, держим, пока она рядом.
   syncWalls: function () {
     var near = World.near, i;
     var frame = this.frameNo = (this.frameNo || 0) + 1;
@@ -718,9 +651,7 @@ var View3D = {
     var alongX = w.w >= w.h;
     var style = r();
     var mdl = M.build(function (add) {
-      // все строим вдоль X, вертикальную стену потом поворачиваем целиком
       var put = add;
-      // контейнер: ребристый ящик с ржавыми потеками
       var container = function (cx, y0, len, dep, hgt, col, yaw) {
         var c = Math.cos(yaw), s = Math.sin(yaw);
         var at = function (dx) { return [cx + dx * c, -dx * s]; };
@@ -731,7 +662,6 @@ var View3D = {
           put(B(2.4, hgt * 0.92, dep + 1.6), shade, q[0], y0 + hgt * 0.47, q[1], 0, yaw);
         }
         put(B(len + 1.2, 2.6, dep + 1.2), shade, cx, y0 + hgt, 0, 0, yaw);
-        // крышу видно лучше всего, поэтому на ней гофра и ржавые пятна
         var roof = M.shade(col, 1.18);
         for (var rx = -len / 2 + 5; rx < len / 2 - 3; rx += 6) {
           var rr = at(rx);
@@ -745,7 +675,6 @@ var View3D = {
         }
       };
       if (style < 0.28) {
-        // контейнеры, иногда второй сверху: вертикаль, которой в игре нет
         var cols = ['#7a3424', '#2f5560', '#6b6a3a', '#8a6a2f', '#4a4f58', '#5a2f3a'];
         var hgt = 46 + r() * 10;
         container(0, 0, long, short, hgt, cols[Math.floor(r() * cols.length)], 0);
@@ -756,7 +685,6 @@ var View3D = {
           put(M.T(9, 3.6, 5, 10), '#1f1c1a', (r() - 0.5) * long * 0.5, hgt + 3.6, 0, Math.PI / 2);
         }
       } else if (style < 0.5) {
-        // штабель сплющенных машин, чем выше слой, тем реже
         var carCols = ['#6b2f2a', '#2f5560', '#8a6a2f', '#4a4f58', '#3f5a3a', '#7a5a3a'];
         var rows = Math.max(1, Math.round(short / 40));
         var per = Math.max(1, Math.round(long / 62));
@@ -777,7 +705,6 @@ var View3D = {
           }
         }
       } else if (style < 0.72) {
-        // куча хлама: листы, трубы, бочки вперемешку, иногда торчит мачта
         var junk = ['#5d5752', '#6b4a2a', '#3d4a4f', '#7a3b2a', '#4a3e34', '#8a6a2f'];
         var cnt = Math.min(34, Math.max(8, Math.floor(long * short / 700)));
         put(B(long, 6, short), '#5a4636', 0, 3, 0);
@@ -798,7 +725,6 @@ var View3D = {
           put(B(12, 8, 0.6), '#a8402c', mx + 8, mh - 14, 0, 0, 0, 0.1);
         }
       } else {
-        // столбы песчаника слоями, сужаются кверху, как в каньоне
         var bands = ['#c98e5c', '#b77a4c', '#d9a46e', '#a86c42', '#c48452'];
         var pillars = Math.max(1, Math.round(long / 70));
         var pw = long / pillars;
@@ -843,7 +769,6 @@ var View3D = {
       var k = this.crates.put(c.x, 0, c.y, spin, c.r, c.r, c.r);
       if (k < 0) break;
       this.crates.tint(k, white, c.hit > 0 ? 5 : 1);
-      // ящик с аптечкой: над стопкой парит зеленый крест, видно издалека
       if (c.loot === 'heal') {
         var hy = c.r * 2.7 + 6 + Math.sin(Game.time * 3 + c.x * 0.1) * 2;
         this.heals.put(c.x, hy, c.y, Game.time * 1.5, 5, 5, 5);
@@ -854,8 +779,6 @@ var View3D = {
     }
   },
 
-  // ---------- враги ----------
-
   syncEnemies: function () {
     var list = Game.enemies, t = Game.time, d = this._dummy;
     var white = Models.color('#ffffff'), elite = Models.color('#c48cff'), purple = Models.color('#a24bd6');
@@ -864,7 +787,6 @@ var View3D = {
       if (e.boss && e.bd) continue;
       var b = this.foes[e.boss ? 'brute' : e.type] || this.foes.grunt;
       var r = e.boss ? e.r * 0.8 : e.r;
-      // походка: подпрыгивание и покачивание, у роя - зависание
       var ph = t * (e.def.heavy ? 7 : 11) + e.phase;
       var hover = e.type === 'swarm' ? r * 0.5 + Math.sin(ph * 0.7) * r * 0.15 : 0;
       var hop = e.type === 'nest' ? 0 : Math.abs(Math.sin(ph)) * r * 0.1;
@@ -891,8 +813,6 @@ var View3D = {
       }
     }
   },
-
-  // ---------- боссы ----------
 
   bossMesh: function (bd) {
     var c = this.bossMeshes[bd.id];
@@ -922,7 +842,6 @@ var View3D = {
     g.visible = false;
     this.scene.add(g);
     c = { group: g, mat: mat, spin: spin, ghosts: [] };
-    // шлейф фантома: несколько полупрозрачных копий
     if (bd.id === 'phantom') {
       for (var i = 0; i < 5; i++) {
         var gm = mat.clone();
@@ -953,7 +872,6 @@ var View3D = {
       g.position.set(e.x, hover + stomp, e.y);
       g.rotation.set(0, -e.ang, 0);
       g.scale.set(r, r, r);
-      // попадание - короткая вспышка, замах - пульсирует своим цветом
       if (e.flash > 0) c.mat.emissive.setScalar(0.4);
       else if (e.aim > 0 || e.shield > 0) c.mat.emissive.copy(Models.color(bd.trim)).multiplyScalar(0.22 + 0.14 * Math.sin(Game.time * 20));
       else c.mat.emissive.setScalar(0);
@@ -980,7 +898,6 @@ var View3D = {
       var gl = this.glows.put(e.x, 1, e.y, 0, r * 2.6, 1, r * 2.6);
       this.glows.disc(gl, Models.color(bd.trim), 0, 2.2, 1, 0.35);
 
-      // луч стража
       if (bd.id === 'warden' && e.beamA !== undefined) {
         for (var bi = 0; bi < (e.beams || 1); bi++) {
           var ba = e.beamA + bi * Math.PI;
@@ -993,12 +910,10 @@ var View3D = {
           this.lines.strip(s3, Models.color(bd.trim), e.beamLen, 0, 1, 0.35);
         }
       }
-      // прицел бурильщика пунктиром по земле
       if (e.aim > 0) {
         var l = this.lines.line(e.x, e.y, e.x + Math.cos(e.chargeAng) * 700, e.y + Math.sin(e.chargeAng) * 700, 8, 2);
         this.lines.strip(l, Models.color(bd.trim), 700, 24, 0, 0.6);
       }
-      // щит улья
       if (e.shield > 0) {
         var sr = this.rings.put(e.x, 3, e.y, 0, r + 14, 1, r + 14);
         this.rings.disc(sr, Models.color('#b79ad6'), 4 / (r + 14), 0, 0, 0.8);
@@ -1014,8 +929,6 @@ var View3D = {
     }
   },
 
-  // ---------- игрок ----------
-
   playerMesh: function (p) {
     var key = p.char.id + ':' + p.skin + ':' + p.gun.id;
     if (this.pl && this.pl.key === key) return this.pl;
@@ -1028,11 +941,6 @@ var View3D = {
     var g = new THREE.Group();
     var mat = this.matLit.clone();
     mat.emissive = new THREE.Color(0x000000);
-    // Сама машина рисуется после всех стен (renderOrder 2), а перед ней (1)
-    // ее силуэт с обратной проверкой глубины: он виден только там, где машину
-    // закрыло что-то из уже нарисованного. Без этого за контейнером себя
-    // просто теряешь. Своей геометрии в буфере глубины в этот момент еще нет,
-    // поэтому сама на себя машина силуэт не отбрасывает.
     var ghost = View3D.ghostMat(sk.trim, 0.6);
     var part = function (parent, geo, m, order) {
       var mesh = new THREE.Mesh(geo, m);
@@ -1067,7 +975,6 @@ var View3D = {
     var g = v.group, r = p.r;
     g.visible = p.alive || !Game.over;
 
-    // шасси поворачивается туда, куда реально едем, башня - куда стреляем
     var mx = p.x - v.px, my = p.y - v.py;
     v.px = p.x; v.py = p.y;
     if (p.dashT > 0) v.heading = U.turn(v.heading, p.dashAng, 30 * dt);
@@ -1076,7 +983,6 @@ var View3D = {
     v.fire = p.fireCd;
     v.recoil = Math.max(0, v.recoil - dt * 9);
 
-    // ночью фара светит туда, куда смотрит пушка: так видно, по кому бьешь
     if (this.dark > 0.01) {
       var ca = Math.cos(p.ang), sa = Math.sin(p.ang);
       this.lamp.position.set(p.x, 140, p.y);
@@ -1124,13 +1030,11 @@ var View3D = {
       this.rings.disc(nri, gold, (1 + k * 2) / nr, 0, 0, 0.25 + k * 0.5);
     }
 
-    // спутники
     if (p.st.orbit > 0) {
       var tech = Models.color(CFG.col.tech);
       for (var o = 0; o < p.st.orbit; o++) {
         var a = p.orbA + o / p.st.orbit * Math.PI * 2;
         var ox = p.x + Math.cos(a) * 62, oy = p.y + Math.sin(a) * 62;
-        // спутник - вращающаяся пила
         this.blades.put(ox, 14, oy, Game.time * 16 + o, 11, 11, 11);
         this.halo(ox, 14, oy, 20, tech, 0.6);
         var os = this.shadows.put(ox + 4, 0.6, oy + 4, 0, 11, 1, 11);
@@ -1138,7 +1042,6 @@ var View3D = {
       }
     }
 
-    // мороз: вокруг машины кружат и падают снежинки
     var t = Game.time, mk, ph, i2;
     if (p.st.frost > 0) {
       var frr = (140 + p.st.frost * 60) * p.st.radius, snow = Models.color('#e6f6ff');
@@ -1150,7 +1053,6 @@ var View3D = {
         this.motes.tint(mk, snow, 1.3);
       }
     }
-    // горение: языки пламени поднимаются по кругу ауры
     if (p.st.burn > 0) {
       var brr = (130 + p.st.burn * 45) * p.st.radius, c0 = this._c;
       for (i2 = 0; i2 < 30; i2++) {
@@ -1206,7 +1108,21 @@ var View3D = {
     }
   },
 
-  // ---------- снаряды, подбор, ловушки ----------
+  setLow: function (on) {
+    if (!this.on) return;
+    Save.data.set.low = on ? 1 : 0;
+    this.shadowsOn = !on;
+    this.renderer.shadowMap.enabled = !on;
+    this.sun.castShadow = !on;
+    this.scene.traverse(function (o) {
+      var m = o.material;
+      if (!m) return;
+      if (m.length) { for (var i = 0; i < m.length; i++) m[i].needsUpdate = true; }
+      else m.needsUpdate = true;
+    });
+    this.shadows.k = on ? 1 : 0.55;
+    Game.resize();
+  },
 
   halo: function (x, h, y, r, col, a) {
     if (Save.data.set.low) return;
@@ -1214,10 +1130,6 @@ var View3D = {
     this.halos.disc(k, col, 0, 1.8, 1, a);
   },
 
-  // Снаряды в 3D читаются хуже, чем на плоском фоне, поэтому дизайн жесткий:
-  // все свое - бело-золотые трассеры, все чужое - красные шары. Разных
-  // цветов и размеров больше нет. У обоих темная обводка (меш наизнанку чуть
-  // крупнее), она держит контраст и на светлом песке, и ночью.
   syncShots: function () {
     var i, b, k;
     var list = Game.bullets;
@@ -1232,7 +1144,6 @@ var View3D = {
       this.shots.tint(k, b.crit ? hot : core, 1.8);
       this.shotRims.put(b.x, 13, b.y, a, r * 2.8 + 2.2, r * 0.85 + 1.6, r * 0.85 + 1.6);
       if (glow) this.halo(b.x, 13, b.y, r * 3, core, 0.6);
-      // тень пули на песке: без нее пули теряются на светлой земле
       var bs = this.shadows.put(b.x + 6, 0.7, b.y + 4, 0, r * 1.3, 1, r * 1.3);
       this.shadows.disc(bs, null, 0, 1.2, 1, 0.5);
     }
@@ -1253,7 +1164,6 @@ var View3D = {
       this.halo(b.x, 12, b.y, er * 2.8, red, 0.8);
       var es = this.shadows.put(b.x + 6, 0.7, b.y + 4, 0, er * 1.2, 1, er * 1.2);
       this.shadows.disc(es, null, 0, 1.2, 1, 0.5);
-      // красное кольцо на земле под каждым чужим снарядом: видно, куда летит
       var gk = this.rings.put(b.x, 1.2, b.y, 0, er * 1.9, 1, er * 1.9);
       this.rings.disc(gk, red, 0.22, 1.2, 0.35, 0.75);
     }
@@ -1321,7 +1231,6 @@ var View3D = {
       this.glows.disc(cg, green, 0, 0.5, 1, 0.22 * a);
       var cr = this.rings.put(c.x, 1.8, c.y, 0, c.r * 0.95, 1, c.r * 0.95);
       this.rings.disc(cr, green, 2 / c.r, 0, 0, 0.5 * a);
-      // споры медленно поднимаются над облаком
       for (var sp = 0; sp < 12; sp++) {
         var sa = sp * 2.39996 + i;
         var srad = c.r * 0.85 * ((sp * 0.618) % 1);
@@ -1338,7 +1247,6 @@ var View3D = {
     for (i = 0; i < list.length; i++) {
       var p = list[i];
       var a = U.clamp(p.life / p.max, 0, 1);
-      // осколки летят по дуге: в плоской игре высоты нет, придумываем ее
       var h = 3 + Math.sin((1 - a) * Math.PI) * 14 * Math.min(1.5, p.r / 3);
       var s = p.r * 1.3 * (0.35 + 0.65 * a);
       var k = this.debris.put(p.x, h, p.y, p.life * 9 + i, s, s, s);
@@ -1351,13 +1259,11 @@ var View3D = {
       var rad = Math.max(2, U.lerp(r.r, r.r1, kk));
       var ri = this.rings.put(r.x, 2.2, r.y, 0, rad, 1, rad);
       this.rings.disc(ri, Models.color(r.c), Math.min(0.6, r.w * (1 - kk * 0.6) / rad), 0, 0, 1 - kk);
-      // крупные кольца (нова, шипы, удары боссов) поднимаются стеной волны
       if (r.r1 >= 60) {
         var wi = this.shockwalls.put(r.x, 0, r.y, 0, rad, Math.min(70, r.r1 * 0.32) * (1 - kk * 0.4), rad);
         this.shockwalls.wall(wi, Models.color(r.c), (1 - kk) * 0.6);
       }
     }
-    // разряд: мягкое свечение и белая жила внутри
     for (i = 0; i < FX.bolts.length; i++) {
       var bo = FX.bolts[i];
       var al = bo.life / bo.max, bc = Models.color(bo.c), core = Models.color('#ffffff');
@@ -1370,8 +1276,6 @@ var View3D = {
         this.strips.strip(sc, core, len, 0, 0, al);
       }
     }
-    // Взрыв: вспышка быстро раздувается, сжимается и темнеет до углей, над
-    // ней поднимаются клубы дыма с нормальным светом, чтобы был объем.
     var c0 = this._c, hot = Models.color('#fff3c8'), ember = Models.color('#3a1607'), smoke = Models.color('#5e5146');
     for (i = 0; i < FX.blasts.length; i++) {
       var bl = FX.blasts[i];
@@ -1394,7 +1298,6 @@ var View3D = {
       var fg = this.glows.put(bl.x, 1.4, bl.y, 0, bl.r, 1, bl.r);
       this.glows.disc(fg, Models.color(bl.c), 0, 1.4, 1, 0.55 * (1 - k));
     }
-    // выжженные пятна остаются на песке и тают
     var soot = Models.color('#1a120b');
     for (i = 0; i < FX.scorch.length; i++) {
       var sc2 = FX.scorch[i];
@@ -1403,11 +1306,8 @@ var View3D = {
     }
   },
 
-  // ---------- плоский слой сверху ----------
-
   drawOverlay: function (ctx) {
     var i, s = this._s || (this._s = {});
-    // полоски здоровья у крупных
     var list = Game.enemies;
     for (i = 0; i < list.length; i++) {
       var e = list[i];
@@ -1428,8 +1328,6 @@ var View3D = {
         ctx.globalAlpha = 1;
       }
     }
-    // Свое здоровье прямо над машиной: не надо уводить глаза в угол экрана.
-    // Нижняя полоса остается, это дубль для боя.
     var p = Game.player;
     if (p && p.alive) {
       this.toScreen(p.x, p.y, p.r * 2.4 + 10, s);
@@ -1441,7 +1339,6 @@ var View3D = {
       ctx.fillStyle = 'rgba(0,0,0,.4)';
       for (var tk = 1; tk < 5; tk++) ctx.fillRect(s.x - pw / 2 + pw * tk / 5, s.y, 1, 5);
     }
-    // всплывающие цифры
     ctx.save();
     ctx.textAlign = 'center';
     for (i = 0; i < FX.texts.length; i++) {
@@ -1460,9 +1357,6 @@ var View3D = {
   }
 };
 
-// Силуэт сквозь препятствия. Материал непрозрачный по флагу, чтобы попасть в
-// общий проход до самих машин, но смешивается по альфе через CustomBlending:
-// на светлом песке сложение цветов было бы не видно.
 View3D.ghostMat = function (hex, alpha) {
   return new THREE.MeshBasicMaterial({
     color: hex, opacity: alpha,
@@ -1472,13 +1366,10 @@ View3D.ghostMat = function (hex, alpha) {
   });
 };
 
-// ---------- пачка одинаковых мешей ----------
-
 View3D.Batch = function (geo, mat, max, colored, shareWith) {
   this.mesh = new THREE.InstancedMesh(geo, mat, max);
   this.mesh.frustumCulled = false;
   if (shareWith) {
-    // светящиеся детали стоят ровно там же, где тело: матрицы общие
     this.mesh.instanceMatrix = shareWith.mesh.instanceMatrix;
     this.follow = shareWith;
   } else {
@@ -1501,7 +1392,6 @@ View3D.Batch = function (geo, mat, max, colored, shareWith) {
 View3D.Batch.prototype = {
   begin: function () { this.n = 0; },
 
-  // поворот только вокруг вертикали: так быстрее, чем через Object3D
   put: function (x, y, z, ang, sx, sy, sz) {
     if (this.n >= this.max) return -1;
     var o = this.n * 16, a = this.m;
@@ -1534,8 +1424,6 @@ View3D.Batch.prototype = {
   }
 };
 
-// Круги на земле: кольца, ауры, тени, свечение. Форму рисует шейдер по
-// параметрам, поэтому один и тот же квадрат годится и под тень, и под волну.
 View3D.makeDiscs = function (max, blending, order, tilt) {
   var geo = new THREE.PlaneGeometry(2, 2);
   if (tilt) geo.rotateX(-tilt);
@@ -1558,8 +1446,6 @@ View3D.makeDiscs = function (max, blending, order, tilt) {
       '  gl_Position = projectionMatrix * modelViewMatrix * instanceMatrix * vec4(position, 1.0);',
       '}'
     ].join('\n'),
-    // x - толщина кольца в долях радиуса, y - мягкость заливки (степень),
-    // z - сила заливки, w - общая прозрачность
     fragmentShader: [
       'varying vec4 vDisc;',
       'varying vec3 vColor;',
@@ -1591,7 +1477,6 @@ View3D.makeDiscs = function (max, blending, order, tilt) {
   b.col = col.array;
   b.extra = [disc, col];
   b.k = 1;
-  // col = null значит черный: тени
   b.disc = function (i, color, ring, soft, fill, alpha) {
     if (i < 0) return;
     var o = i * 4;
@@ -1603,8 +1488,6 @@ View3D.makeDiscs = function (max, blending, order, tilt) {
   return b;
 };
 
-// Стена ударной волны: открытый цилиндр, к верху тает. Из плоского кольца
-// нова, шипов и ударов боссов получается объемная волна.
 View3D.makeWalls = function (max) {
   var geo = new THREE.CylinderGeometry(1, 1, 1, 48, 1, true);
   geo.translate(0, 0.5, 0);
@@ -1651,7 +1534,6 @@ View3D.makeWalls = function (max) {
   return b;
 };
 
-// Полосы: лучи, разряды, прицелы. Квадрат вытягивается от точки до точки.
 View3D.makeStrips = function (max, blending, order) {
   var geo = new THREE.PlaneGeometry(1, 1);
   geo.rotateX(-Math.PI / 2);
@@ -1673,7 +1555,6 @@ View3D.makeStrips = function (max, blending, order) {
       '  gl_Position = projectionMatrix * modelViewMatrix * instanceMatrix * vec4(position, 1.0);',
       '}'
     ].join('\n'),
-    // x - длина в мире, y - шаг пунктира (0 - сплошная), z - мягкие края, w - прозрачность
     fragmentShader: [
       'varying vec4 vS;',
       'varying vec3 vColor;',

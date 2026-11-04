@@ -1,4 +1,3 @@
-// Карты прокачки внутри рейда. apply() правит статы игрока, все остальное - текст.
 var Skills = {
   list: [
     {
@@ -202,7 +201,6 @@ var Skills = {
     return null;
   },
 
-  // Три карты: не повторяем взятые до максимума, эпики режем в первые минуты.
   roll: function (player, count) {
     var pool = [];
     for (var i = 0; i < this.list.length; i++) {
@@ -213,10 +211,8 @@ var Skills = {
       var w = s.w;
       if (s.rar === 'epic' && Game.time < 45) w *= 0.25;
       if (s.rar === 'leg') { if (Game.time < 180) continue; w *= 1; }
-      if (lvl > 0) w *= 1.35;            // добивать начатое приятнее
+      if (lvl > 0) w *= 1.35;
       if (s.id === 'turret' && player.char.turret) w *= 1.6;
-      // Карта, которая дружит с уже собранным билдом, выпадает чаще.
-      // Это не ветки талантов, но ролл перестает быть слепым.
       if (s.syn) {
         for (var q = 0; q < s.syn.length; q++) {
           if (player.skills[s.syn[q]]) { w *= 1.55; break; }
@@ -231,9 +227,6 @@ var Skills = {
       out.push(picked.s);
       pool.splice(pool.indexOf(picked), 1);
     }
-    // Ветка не должна замыкаться: если все карты про урон или все про
-    // живучесть (def), последнюю меняем на карту с другой стороны, пока
-    // такие есть. С тестов: взял хилки - пушки больше не предлагают, и наоборот.
     if (out.length >= 2 && pool.length) {
       var side = !!out[0].def, same = true, j;
       for (j = 1; j < out.length; j++) if (!!out[j].def !== side) { same = false; break; }

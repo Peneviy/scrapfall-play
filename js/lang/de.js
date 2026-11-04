@@ -1,4 +1,3 @@
-// Немецкий. Правки текста прямо тут, ключи те же, что в i18n.js.
 I18N.add('de', {
   ui: {
     play: 'Raid', shop: 'Hangar', board: 'Rangliste', settings: 'Einstellungen', back: 'Zurück',
@@ -24,6 +23,7 @@ I18N.add('de', {
     adBlocked: 'Werbeblocker ist an, Werbeboni sind aus',
     at_split: 'Kugeln pro Salve: {n}', at_triple0: 'ein Schuss nach hinten kommt dazu', at_triple1: 'Schüsse nach hinten und zur Seite',
     at_splash: 'Sprengradius: {n}', at_pierce: 'durchschlägt Ziele: {n}', at_ricochet: 'Abpraller: {n}',
+    lowAuto: 'Schwacher Rechner: Schatten aus, in den Einstellungen wieder einschaltbar',
     at_rapid: 'Feuerrate: +{n}%', at_heavy: 'Gesamtschaden: +{n}%', at_crit: 'Kritchance: {n}%',
     at_orbit: 'Trümmer: {n}', at_turret: 'Geschütze: bis zu {n}', at_chain: 'Sprünge: {n}', at_boots: 'Tempo: +{n}%',
     at_plate: 'Leben gesamt: +{n}', at_regen: 'heilt {n} pro Sekunde', at_magnet: 'Sammelradius: +{n}%',

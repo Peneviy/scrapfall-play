@@ -1,6 +1,3 @@
-// Турецкий. Правки текста прямо тут, ключи те же, что в i18n.js.
-// items: имена и описания контента по id (машины, пушки, окрасы, модули,
-// карты, боссы, враги), первым идет имя, вторым описание.
 I18N.add('tr', {
   ui: {
     play: 'Baskın', shop: 'Hangar', board: 'Sıralama', settings: 'Ayarlar', back: 'Geri',
@@ -26,6 +23,7 @@ I18N.add('tr', {
     adBlocked: 'Reklam engelleyici açık, reklam bonusları kapalı',
     at_split: 'seride mermi: {n}', at_triple0: 'geriye bir atış eklenir', at_triple1: 'geriye ve yanlara atış',
     at_splash: 'patlama yarıçapı: {n}', at_pierce: 'delip geçtiği hedef: {n}', at_ricochet: 'sekme: {n}',
+    lowAuto: 'Yavaş cihaz: gölgeler kapatıldı, ayarlardan geri açabilirsin',
     at_rapid: 'atış hızı: +%{n}', at_heavy: 'toplam hasar: +%{n}', at_crit: 'kritik şansı: %{n}',
     at_orbit: 'parça: {n}', at_turret: 'taret: en çok {n}', at_chain: 'sıçrama: {n}', at_boots: 'hız: +%{n}',
     at_plate: 'toplam can: +{n}', at_regen: 'saniyede {n} iyileştirir', at_magnet: 'toplama yarıçapı: +%{n}',
@@ -83,23 +81,19 @@ I18N.add('tr', {
     unlockAt: '{n} hurdaya açılır'
   },
   items: {
-    // машины
     scav: ['ÇÖPÇÜ', 'Sıradan bir toplayıcı. Özel bir şeyi yok ama %15 daha fazla hurda bulur.'],
     brute: ['KABA', 'Pompalı ve kalın deri. %20 daha az hasar alır ama yavaş.'],
     ranger: ['NİŞANCI', 'Uzaktan sert vurur ama canı az. Hatalar pahalıya patlar.'],
     rigger: ['TAMİRCİ', 'Taretle başlar ve tüm taretler iki kat uzun yaşar. Silahı daha zayıf.'],
-    // пушки
     pistol: ['Kesici', 'Tek atış, sabit tempo. Levye kadar güvenilir.'],
     smg: ['Çıngırak', 'Çok hızlı ama zayıf ve dağınık.'],
     scatter: ['Yelpaze', 'Koni şeklinde beş saçma. Yakında parçalar, uzakta işe yaramaz.'],
     rail: ['Biz', 'Yavaş delici atış. Üç hedefi delip geçer.'],
     flak: ['Patlangaç', 'Parça tesirli yük, temasta patlar.'],
-    // окрасы
     rust: ['Pas', 'Fabrika boyası.'],
     reef: ['Resif', 'Turkuaz ve tuz.'],
     void: ['Boşluk', 'Elitler gibi mor.'],
     ash: ['Kül', 'Altın şeritli siyah.'],
-    // модули
     dmg: ['Zırh delici', 'seviye başına sana ait her şeye +%8 hasar'],
     hp: ['Plakalar', 'seviye başına +%10 can'],
     spd: ['Aktarma', 'seviye başına +%3 hareket hızı'],
@@ -108,7 +102,6 @@ I18N.add('tr', {
     cd: ['Sürgü', 'atışlar arası süre -%5'],
     radius: ['Rezonatör', 'patlama, halka ve aura yarıçapı +%7'],
     tech: ['Balast', 'taret, parça, ark ve ışın hasarı +%8'],
-    // карты
     split: ['Ayırıcı', 'Yelpazeye +1 mermi'],
     triple: ['Her yöne', 'Önce geriye atış, ikinci seviyede yanlara da'],
     splash: ['Parça mermi', 'Mermiler patlar, patlama yarıçapı +40'],
@@ -134,7 +127,6 @@ I18N.add('tr', {
     siphon: ['EMİŞ', 'Her yirminci öldürme %3 can geri verir'],
     reactor: ['Reaktör', 'Taretler 18 saniye daha uzun yaşar'],
     burn: ['OCAK', 'Araç etrafındaki her şeyi sürekli yakar'],
-    // боссы
     crusher: ['EZİCİ', 'Çepeçevre ateş eder ve yardım çağırır'],
     driller: ['DELİCİ', 'Durur, nişan alır ve düz hatta tos vurur'],
     weaver: ['DOKUMACI', 'Uzak durur ve nişancılar yerleştirir'],
@@ -145,7 +137,6 @@ I18N.add('tr', {
     lancer: ['MIZRAKÇI', 'Etrafında döner ve tam sana seri atar'],
     titan: ['TİTAN', 'Yavaş ama vuruşları şok dalgası yayar'],
     phantom: ['HAYALET', 'Sahada ışınlanır ve hemen ardından yelpaze açar'],
-    // враги, которых объявляем
     charger: ['Tos'],
     shellback: ['Kabuk'],
     splitter: ['Bölünen'],

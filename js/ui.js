@@ -1,4 +1,3 @@
-// Весь интерфейс на обычном DOM: так быстрее верстать и проще править тексты.
 var UI = {
   screens: ['scrLoading', 'scrMenu', 'scrShop', 'scrBoard', 'scrSettings', 'scrLevel', 'scrPause', 'scrOver'],
   tab: 'chars',
@@ -61,7 +60,6 @@ var UI = {
     this.el('setShake').onchange = function () { set.shake = this.checked ? 1 : 0; Save.flush(true); };
     this.el('setLow').onchange = function () { set.low = this.checked ? 1 : 0; Save.flush(true); };
 
-    // кнопки языков строим из списка, чтобы новый язык не требовал правки разметки
     var row = document.querySelector('.lang-row');
     if (row) {
       row.innerHTML = '';
@@ -89,8 +87,6 @@ var UI = {
     this.syncAim();
   },
 
-  // Ручной прицел мышкой или авто по ближайшему. Пригодится под пвп,
-  // а пока это просто выбор стиля игры.
   toggleAim: function () {
     var s = Save.data.set;
     s.aim = s.aim === 'mouse' ? 'auto' : 'mouse';
@@ -131,9 +127,6 @@ var UI = {
     this.toastT = setTimeout(function () { t.classList.add('hidden'); }, 1900);
   },
 
-  // ---------- меню ----------
-
-  // кнопки AD: при блокировщике прячем, чтобы не жались впустую
   syncAdButtons: function () {
     var off = !PF.canReward();
     this.el('btnFreeCoins').classList.toggle('hidden', off);
@@ -158,7 +151,6 @@ var UI = {
     this.el('heroPerk').textContent = I18N.desc(ch);
 
     var c = this.el('heroPreview');
-    // в 3D машину в меню рисует и крутит сама сцена, плоская фигурка - запасной путь
     if (!View3D.thumb(c, 'car', ch.id, d.skin, undefined, false, d.gun)) {
       var g = c.getContext('2d');
       g.clearRect(0, 0, c.width, c.height);
@@ -176,9 +168,6 @@ var UI = {
     if (!Save.data.hintSeen) this.showCtrlHint();
   },
 
-  // Подсказка управления в первом забеге: клавиши или жест по экрану, и что
-  // стрелять не надо. Висит, пока игрок не поедет секунды полторы, и не
-  // дольше восьми секунд. Второй раз не показываем.
   showCtrlHint: function () {
     var el = this.el('ctrlHint');
     var touch = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
@@ -212,7 +201,7 @@ var UI = {
 
   togglePause: function () {
     if (!Game.running || Game.over) return;
-    if (!this.el('scrLevel').classList.contains('hidden')) return;  // во время выбора карт пауза уже есть
+    if (!this.el('scrLevel').classList.contains('hidden')) return;
     if (Game.paused) {
       this.el('scrPause').classList.add('hidden');
       this.el('hud').classList.remove('hidden');
@@ -225,8 +214,6 @@ var UI = {
     }
   },
 
-  // На паузе: взятые карты с уровнем и текущим эффектом. Описание карты
-  // в title, на компьютере всплывает при наведении.
   renderPauseSkills: function () {
     var p = Game.player, html = '';
     for (var id in p.skills) {
@@ -240,8 +227,6 @@ var UI = {
     }
     this.el('pauseSkills').innerHTML = html;
   },
-
-  // ---------- HUD ----------
 
   updateHud: function () {
     var p = Game.player;
@@ -258,7 +243,6 @@ var UI = {
     var dash = this.el('dashBtn');
     dash.classList.toggle('cd', p.dashCdT > 0);
 
-    // откат рывка показываем полоской прямо в плашке с клавишей
     var ab = this.el('abDash');
     var onCd = p.dashCdT > 0;
     ab.classList.toggle('cool', onCd);
@@ -268,15 +252,12 @@ var UI = {
     if (bsig !== this.buffSig) {
       this.buffSig = bsig;
       var bh = '';
-      // Что именно делает бафф, пишем прямо в плашке: HUD не ловит наведение,
-      // да и на телефоне наводить нечем.
       if (p.buffs.rage > 0) bh += '<div style="color:#ff7a5c;border-color:#ff7a5c">' + I18N.t('buff_rage') + ' <s>' + I18N.t('buffEff_rage') + '</s> ' + Math.ceil(p.buffs.rage) + '</div>';
       if (p.buffs.haste > 0) bh += '<div style="color:#7ec8ff;border-color:#7ec8ff">' + I18N.t('buff_haste') + ' <s>' + I18N.t('buffEff_haste') + '</s> ' + Math.ceil(p.buffs.haste) + '</div>';
       if (p.buffs.shield > 0) bh += '<div style="color:#b07ef5;border-color:#b07ef5">' + I18N.t('buff_shield') + ' <s>' + I18N.t('buffEff_shield') + '</s> ' + p.buffs.shield + '</div>';
       this.el('buffStrip').innerHTML = bh;
     }
 
-    // полоска босса: висит, только пока он реально дерется
     var boss = Game.activeBoss();
     var bar = this.el('bossBar');
     if (boss) {
@@ -292,7 +273,6 @@ var UI = {
       this.barBoss = null;
     }
 
-    // строку скиллов перерисовываем только когда что-то изменилось
     var sig = '';
     for (var k in p.skills) sig += k + p.skills[k];
     if (sig !== this.skillSig) {
@@ -307,13 +287,11 @@ var UI = {
     }
   },
 
-  // Плашка на пол-экрана: пришел босс / пройден босс.
   bossBanner: function (name, incoming) {
     var b = this.el('bossBanner');
     this.el('bannerKind').textContent = I18N.t(incoming ? 'bossIn' : 'bossOut');
     this.el('bannerName').textContent = name;
     b.classList.remove('hidden');
-    // перезапуск анимации: без этого вторая плашка подряд появляется молча
     b.style.animation = 'none';
     void b.offsetWidth;
     b.style.animation = '';
@@ -321,12 +299,8 @@ var UI = {
     this.bannerT = setTimeout(function () { b.classList.add('hidden'); }, 2600);
   },
 
-  // ---------- выбор карт ----------
-
   showLevelUp: function () {
     var cards = Skills.roll(Game.player, 3);
-    // Все карты выкачаны в максимум: экран был бы пустой и игрок застрял бы.
-    // Вместо выбора даем лечение и немного лома.
     if (!cards.length) {
       var p = Game.player;
       p.heal(p.st.maxHp * 0.35);
@@ -350,7 +324,6 @@ var UI = {
     var row = this.el('cardRow'), self = this;
     row.innerHTML = '';
     this.cards = cards;
-    // с клавиатуры карта берется цифрой 1-3, значок с цифрой только там
     var touch = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
     row.classList.toggle('kb', !touch);
     for (var i = 0; i < cards.length; i++) {
@@ -370,7 +343,6 @@ var UI = {
     }
   },
 
-  // цифра 1-3 на экране выбора карт
   pickByKey: function (n) {
     if (this.el('scrLevel').classList.contains('hidden')) return;
     if (this.cards && this.cards[n]) this.pickCard(this.cards[n]);
@@ -382,7 +354,6 @@ var UI = {
     this.el('scrLevel').classList.add('hidden');
     this.skillSig = null;
 
-    // каждый N-й уровень пробуем показать межстраничную, если кулдаун прошел
     Game.adLevelCounter++;
     var self = this;
     if (Game.adLevelCounter % CFG.ads.levelEvery === 0 && PF.canFullscreen('run')) {
@@ -409,8 +380,6 @@ var UI = {
       self.toast(I18N.t('adFail'));
     });
   },
-
-  // ---------- итоги ----------
 
   showGameOver: function () {
     var res = Game.settle();
@@ -462,7 +431,6 @@ var UI = {
   again: function () {
     Game.commit();
     var self = this;
-    // реклама между рейдами, но только если прошел кулдаун
     if (PF.canFullscreen()) {
       PF.showFullscreen(function () { self.startRun(); });
     } else {
@@ -481,8 +449,6 @@ var UI = {
       this.refreshMenu();
     }
   },
-
-  // ---------- ангар ----------
 
   openShop: function (tab) {
     if (tab) {
@@ -525,8 +491,6 @@ var UI = {
 
         var extra = '';
         if (kind === 'guns') {
-          // Голый dps вводил в заблуждение: у медленных пушек он ниже, хотя они
-          // сильнее с прокачкой. Показываем составляющие, а не одно число.
           extra = '<div class="stats">' + I18N.t('dps', {
             d: it.dmg * it.count,
             r: (1 / it.cd).toFixed(1),
@@ -553,7 +517,6 @@ var UI = {
           else Content.drawChar(c2.getContext('2d'), 48, 48, 26, d.char, it.id, -Math.PI / 2, false);
           div.insertBefore(c2, div.firstChild);
         }
-        // пушка на твоей текущей машине: видно, как она встанет на башню
         if (kind === 'guns' && View3D.on) {
           var c3 = document.createElement('canvas');
           self.bigThumb(c3, d.char, d.skin, it.id);
@@ -580,7 +543,6 @@ var UI = {
     }
   },
 
-  // 3D-картинка в карточке ангара: буфер вдвое больше, чтобы не мылилось
   bigThumb: function (c, charId, skinId, gunId) {
     c.width = c.height = 192;
     c.style.width = c.style.height = '112px';
@@ -621,7 +583,6 @@ var UI = {
 
       var c = document.createElement('canvas');
       c.width = c.height = 96;
-      // в 3D трофей - модель босса, непобежденный остается темным силуэтом
       if (View3D.on) {
         c.width = c.height = 192;
         c.style.width = c.style.height = '112px';
@@ -634,7 +595,6 @@ var UI = {
         continue;
       }
       var g = c.getContext('2d');
-      // рисуем силуэт босса тем же многоугольником, что и в бою
       g.fillStyle = wins ? b.body : '#1b2a31';
       g.strokeStyle = wins ? b.trim : '#2c4750';
       g.lineWidth = 3;
@@ -669,7 +629,6 @@ var UI = {
   prestige: function () {
     var t = performance.now() / 1000;
     var btn = this.el('btnPrestige');
-    // подтверждение вторым кликом, без системного confirm
     if (t - this.prestigeArmed > 4) {
       this.prestigeArmed = t;
       btn.textContent = I18N.t('prestigeConfirm', { r: Save.data.prestige + 1 });
@@ -682,8 +641,6 @@ var UI = {
       this.refreshMenu();
     }
   },
-
-  // ---------- рейтинг ----------
 
   openBoard: function () {
     this.show('scrBoard');
@@ -719,8 +676,6 @@ var UI = {
       self.el('btnAuth').classList.add('hidden');
     });
   },
-
-  // ---------- ящик с ломом за рекламу ----------
 
   freeCoins: function () {
     var t = PF.now(), self = this;

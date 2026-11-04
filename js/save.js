@@ -1,4 +1,3 @@
-// Мета-прогресс: лом, открытые персонажи/пушки/окрасы, модули, престиж, настройки.
 var Save = {
   data: null,
   dirty: false,
@@ -9,7 +8,7 @@ var Save = {
       v: 1,
       coins: 0,
       runs: 0,
-      hintSeen: false,      // подсказку управления показали
+      hintSeen: false,
       kills: 0,
       best: { score: 0, time: 0, level: 1 },
       chars: { scav: 1 },
@@ -30,12 +29,10 @@ var Save = {
     PF.load(function (raw) {
       var d = self.def();
       if (raw && typeof raw === 'object') {
-        // мягкий мерж, чтобы старые сейвы не ломались после патчей
         for (var k in d) {
           if (raw[k] === undefined) continue;
           if (typeof d[k] === 'object' && d[k] !== null && !Array.isArray(d[k])) {
             for (var kk in d[k]) if (raw[k][kk] !== undefined) d[k][kk] = raw[k][kk];
-            // открытое добавляем целиком: в раw могут быть айди, которых нет в дефолте
             if (k === 'chars' || k === 'guns' || k === 'skins' || k === 'bosses') {
               for (var id in raw[k]) d[k][id] = raw[k][id];
             }
@@ -49,7 +46,6 @@ var Save = {
     });
   },
 
-  // Пишем не чаще раза в 2 секунды: setData на Яндексе ругается на частые вызовы.
   flush: function (force) {
     if (!this.data) return;
     var t = performance.now() / 1000;
@@ -90,7 +86,6 @@ var Save = {
     this.flush(true);
   },
 
-  // ---------- модули (постоянные апгрейды) ----------
   upMax: 5,
   upCost: function (key) {
     var lvl = this.data.up[key] || 0;
@@ -111,7 +106,6 @@ var Save = {
     return n;
   },
 
-  // ---------- итоговые множители ----------
   mult: function () {
     var u = this.data.up, p = this.data.prestige;
     return {
@@ -120,7 +114,7 @@ var Save = {
       spd: 1 + 0.03 * u.spd,
       xp: 1 + 0.08 * u.xp,
       loot: (1 + 0.1 * u.loot) * (1 + p * CFG.prestige.coinMult),
-      cd: 1 - 0.05 * u.cd,           // скорость стрельбы
+      cd: 1 - 0.05 * u.cd,
       radius: 1 + 0.07 * (u.radius || 0),
       tech: 1 + 0.08 * (u.tech || 0),
       enemyHp: 1 + p * CFG.prestige.enemyHp,
@@ -128,7 +122,6 @@ var Save = {
     };
   },
 
-  // ---------- престиж ----------
   prestigeReady: function () {
     return this.upTotal() >= CFG.prestige.reqUpgrades && Bosses.defeated() >= CFG.prestige.reqBosses;
   },
@@ -137,12 +130,10 @@ var Save = {
     this.data.prestige++;
     this.data.coins = 0;
     this.data.up = { dmg: 0, hp: 0, spd: 0, xp: 0, loot: 0, cd: 0, radius: 0, tech: 0 };
-    // персонажи, пушки и окрасы остаются, иначе сбрасываться никто не станет
     this.flush(true);
     return true;
   },
 
-  // ---------- итоги рейда ----------
   finishRun: function (res) {
     var d = this.data;
     d.runs++;

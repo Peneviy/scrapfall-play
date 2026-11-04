@@ -1,9 +1,5 @@
-// Русский и английский лежат тут, остальные языки в js/lang/<код>.js (там же
-// имена и описания контента по id). Ключи короткие, тексты правлю прямо тут.
 var I18N = {
   lang: 'ru',
-  // Порядок = порядок кнопок в настройках. Новый язык: файл в js/lang,
-  // строка в index.html и код сюда. Площадкам список языков сообщаем руками.
   langs: ['ru', 'en', 'tr', 'de', 'es', 'pt'],
   packs: {},
 
@@ -31,6 +27,7 @@ var I18N = {
     adBlocked: 'Стоит блокировщик рекламы, бонусы за рекламу отключены',
     at_split: 'пуль в очереди: {n}', at_triple0: 'добавится выстрел назад', at_triple1: 'выстрелы назад и вбок',
     at_splash: 'радиус взрыва: {n}', at_pierce: 'пробивает целей: {n}', at_ricochet: 'отскоков: {n}',
+    lowAuto: 'Слабый компьютер: тени выключены, вернуть можно в настройках',
     at_rapid: 'темп стрельбы: +{n}%', at_heavy: 'урон всего: +{n}%', at_crit: 'шанс крита: {n}%',
     at_orbit: 'обломков: {n}', at_turret: 'турелей: до {n}', at_chain: 'прыжков: {n}', at_boots: 'скорость: +{n}%',
     at_plate: 'здоровья всего: +{n}', at_regen: 'лечит {n} в секунду', at_magnet: 'радиус подбора: +{n}%',
@@ -112,6 +109,7 @@ var I18N = {
     adBlocked: 'Ad blocker is on, ad bonuses are disabled',
     at_split: 'bullets in a burst: {n}', at_triple0: 'adds a shot backwards', at_triple1: 'shots back and to the sides',
     at_splash: 'blast radius: {n}', at_pierce: 'pierces targets: {n}', at_ricochet: 'bounces: {n}',
+    lowAuto: 'Slow device: shadows are off, turn them back on in settings',
     at_rapid: 'fire rate: +{n}%', at_heavy: 'total damage: +{n}%', at_crit: 'crit chance: {n}%',
     at_orbit: 'shards: {n}', at_turret: 'turrets: up to {n}', at_chain: 'jumps: {n}', at_boots: 'speed: +{n}%',
     at_plate: 'total health: +{n}', at_regen: 'heals {n} per second', at_magnet: 'pickup radius: +{n}%',
@@ -169,14 +167,11 @@ var I18N = {
     unlockAt: 'Unlocks for {n} scrap'
   },
 
-  // Перевод из js/lang/<код>.js: ui - словарь интерфейса, items - имена и
-  // описания контента по id вида { scav: ['имя', 'описание'] }.
   add: function (lang, pack) {
     this.packs[lang] = pack;
     this[lang] = pack.ui || {};
   },
 
-  // Код языка площадки ('pt-BR', 'es_ES', 'tr') -> наш, иначе английский
   pick: function (raw) {
     var l = String(raw || '').toLowerCase().replace('_', '-').split('-')[0];
     return this.langs.indexOf(l) >= 0 && this[l] ? l : 'en';
@@ -200,8 +195,6 @@ var I18N = {
     return s;
   },
 
-  // имя/описание контентной сущности (персонаж, оружие, скилл, босс): сначала
-  // поле объекта на текущем языке, потом пак из js/lang по id, потом английский
   _item: function (obj) {
     var p = this.packs[this.lang];
     return p && p.items && obj.id ? p.items[obj.id] : null;
@@ -214,7 +207,6 @@ var I18N = {
     var o = obj[this.lang], it = this._item(obj);
     return (o && o.d) || (it && it[1]) || (obj.en && obj.en.d) || obj.ru.d;
   },
-  // имя врага по ключу из Enemies.defs: там имена лежат простыми строками
   foe: function (key, d) {
     var p = this.packs[this.lang], it = p && p.items && p.items[key];
     return (it && it[0]) || d[this.lang] || (this.lang === 'ru' ? d.ru : d.en);

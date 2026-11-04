@@ -1,5 +1,3 @@
-// Португальский (бразильский, но без жаргона, чтобы и в Португалии читалось).
-// Правки текста прямо тут, ключи те же, что в i18n.js.
 I18N.add('pt', {
   ui: {
     play: 'Incursão', shop: 'Hangar', board: 'Ranking', settings: 'Opções', back: 'Voltar',
@@ -25,6 +23,7 @@ I18N.add('pt', {
     adBlocked: 'Bloqueador de anúncios ativo, bônus por anúncio desligados',
     at_split: 'balas por rajada: {n}', at_triple0: 'adiciona um tiro para trás', at_triple1: 'tiros para trás e para os lados',
     at_splash: 'raio da explosão: {n}', at_pierce: 'atravessa alvos: {n}', at_ricochet: 'ricochetes: {n}',
+    lowAuto: 'Dispositivo lento: sombras desligadas, dá para religar nas opções',
     at_rapid: 'cadência: +{n}%', at_heavy: 'dano total: +{n}%', at_crit: 'chance de crítico: {n}%',
     at_orbit: 'estilhaços: {n}', at_turret: 'torretas: até {n}', at_chain: 'saltos: {n}', at_boots: 'velocidade: +{n}%',
     at_plate: 'vida total: +{n}', at_regen: 'cura {n} por segundo', at_magnet: 'raio de coleta: +{n}%',

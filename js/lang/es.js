@@ -1,4 +1,3 @@
-// Испанский. Правки текста прямо тут, ключи те же, что в i18n.js.
 I18N.add('es', {
   ui: {
     play: 'Incursión', shop: 'Hangar', board: 'Ranking', settings: 'Ajustes', back: 'Volver',
@@ -24,6 +23,7 @@ I18N.add('es', {
     adBlocked: 'Hay un bloqueador de anuncios, los bonus por anuncios están apagados',
     at_split: 'balas por ráfaga: {n}', at_triple0: 'añade un disparo hacia atrás', at_triple1: 'disparos atrás y a los lados',
     at_splash: 'radio de explosión: {n}', at_pierce: 'atraviesa objetivos: {n}', at_ricochet: 'rebotes: {n}',
+    lowAuto: 'Equipo lento: sombras desactivadas, puedes volver a activarlas en ajustes',
     at_rapid: 'cadencia: +{n}%', at_heavy: 'daño total: +{n}%', at_crit: 'prob. de crítico: {n}%',
     at_orbit: 'fragmentos: {n}', at_turret: 'torretas: hasta {n}', at_chain: 'saltos: {n}', at_boots: 'velocidad: +{n}%',
     at_plate: 'vida total: +{n}', at_regen: 'cura {n} por segundo', at_magnet: 'radio de recogida: +{n}%',

@@ -1,7 +1,3 @@
-/* Интерфейс в духе пустоши: железные пластины с ржавчиной и заклепками,
-   желтая предупреждающая краска, бумажные бирки, трафаретные заголовки.
-   Все текстуры нарисованы градиентами и встроенным svg-шумом: файлов картинок
-   нет, наружу ничего не грузится. */
 
 @font-face{font-family:"Oswald";font-style:normal;font-weight:200 700;font-display:swap;
   src:url(fonts/oswald-cyrillic-wght-normal.woff2) format("woff2");
@@ -31,19 +27,15 @@
   --xp:#7fd6bf;
   --hp:#d8452c;
   --bad:#a24bd6;
-  /* шум для потертостей: черные точки с прозрачностью */
   --noise:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .5 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  /* железная пластина: шум, рыжий потек снизу, сам металл */
   --plate:var(--noise),
     radial-gradient(120% 90% at 88% 115%,rgba(156,75,34,.38),transparent 62%),
     radial-gradient(60% 50% at 8% -10%,rgba(255,236,200,.07),transparent 70%),
     linear-gradient(180deg,var(--steel2),var(--steel));
   --hazard:repeating-linear-gradient(-45deg,var(--paint) 0 7px,#1d150b 7px 14px);
-  /* четыре заклепки по углам */
   --rivet:radial-gradient(circle at 50% 50%,#a8977e 0 1.5px,#3a2e24 2px,rgba(0,0,0,.5) 2.6px,transparent 3.2px);
   --rivets:var(--rivet) 0 0/8px 8px no-repeat,var(--rivet) 100% 0/8px 8px no-repeat,
     var(--rivet) 0 100%/8px 8px no-repeat,var(--rivet) 100% 100%/8px 8px no-repeat;
-  /* срезанные углы, как у вырезанного автогеном листа */
   --cut:polygon(0 7px,7px 0,calc(100% - 12px) 0,100% 12px,100% calc(100% - 5px),calc(100% - 5px) 100%,10px 100%,0 calc(100% - 10px));
 }
 
@@ -57,8 +49,6 @@ canvas#game3d{position:fixed;inset:0;width:100%;height:100%;display:block}
 
 .hidden{display:none !important}
 
-/* ---------- экраны ---------- */
-/* фон полупрозрачный: за меню видно пустыню из 3D */
 .screen{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;
   justify-content:center;gap:18px;padding:env(safe-area-inset-top) 16px 18px;
   background:radial-gradient(ellipse 85% 75% at 50% 45%,rgba(21,16,12,.05),rgba(21,16,12,.6)),
@@ -66,7 +56,6 @@ canvas#game3d{position:fixed;inset:0;width:100%;height:100%;display:block}
 .screen.overlay{background:rgba(20,14,9,.74);backdrop-filter:blur(2px) saturate(.7)}
 #scrLoading{background:var(--noise),radial-gradient(ellipse at 50% 60%,#2a1f17,#120c08)}
 
-/* трафаретный заголовок: горизонтальная перемычка через буквы и краска с распылителя */
 .logo,.scr-title,.over-title,.lvl-title,.boss-banner span{
   -webkit-mask-image:linear-gradient(180deg,#000 0 46%,transparent 46% 53%,#000 53%);
   mask-image:linear-gradient(180deg,#000 0 46%,transparent 46% 53%,#000 53%)}
@@ -80,14 +69,12 @@ canvas#game3d{position:fixed;inset:0;width:100%;height:100%;display:block}
 .over-title{font-size:min(11vw,48px);font-weight:700;color:var(--red);letter-spacing:.08em;
   text-transform:uppercase;transform:rotate(-2deg);text-shadow:0 0 1px var(--red),2px 3px 0 rgba(0,0,0,.5)}
 
-/* ---------- кнопки ---------- */
 .btn,.big-btn{font:inherit;cursor:pointer;color:var(--bone);border:0;clip-path:var(--cut);
   background:var(--plate);padding:10px 20px;font-weight:600;font-size:16px;letter-spacing:.08em;
   text-transform:uppercase;box-shadow:inset 0 1px 0 rgba(255,235,200,.14),inset 0 -3px 0 rgba(0,0,0,.35),
   inset 1px 0 0 rgba(255,235,200,.05),inset -1px 0 0 rgba(0,0,0,.3);transition:transform .07s,filter .15s}
 .btn:active,.big-btn:active{transform:translateY(2px)}
 .btn:hover,.big-btn:hover{filter:brightness(1.15)}
-/* главная кнопка - лист в желтой краске с полосами по краям */
 .big-btn{font-size:22px;padding:15px 52px;color:#1d150b;font-weight:700;letter-spacing:.16em;
   background:var(--noise),
     repeating-linear-gradient(-45deg,rgba(29,21,11,.92) 0 7px,transparent 7px 14px) 0 0/16px 100% no-repeat,
@@ -105,7 +92,6 @@ canvas#game3d{position:fixed;inset:0;width:100%;height:100%;display:block}
 
 .ad-btn{display:inline-flex;align-items:center;gap:9px}
 .no-ads .ad-tag{display:none}
-/* метка AD как кусок изоленты */
 .ad-tag{font-style:normal;font-size:11px;font-weight:700;background:var(--bone);color:#1d150b;
   padding:1px 6px;letter-spacing:.1em;transform:rotate(-4deg);box-shadow:1px 1px 0 rgba(0,0,0,.35)}
 .big-btn .ad-tag{background:#1d150b;color:var(--paint)}
@@ -119,7 +105,6 @@ canvas#game3d{position:fixed;inset:0;width:100%;height:100%;display:block}
 .icon-btn{font:inherit;font-weight:700;color:var(--bone);cursor:pointer;width:36px;height:32px;border:0;
   clip-path:var(--cut);background:var(--plate);box-shadow:inset 0 1px 0 rgba(255,235,200,.14)}
 
-/* ---------- меню ---------- */
 .menu-mid{display:flex;gap:18px;align-items:stretch;flex-wrap:wrap;justify-content:center}
 .hero-card,.menu-stats,.card,.item,.toast{position:relative}
 .hero-card:before,.menu-stats:before,.card:before,.item:before{content:"";position:absolute;inset:5px;
@@ -137,7 +122,6 @@ canvas#game3d{position:fixed;inset:0;width:100%;height:100%;display:block}
   border-bottom:1px solid rgba(0,0,0,.35);box-shadow:0 1px 0 rgba(255,235,200,.05);padding-bottom:4px}
 .menu-stats b{color:var(--gold);font-weight:600}
 
-/* ---------- ангар и вкладки ---------- */
 .top-bar{position:absolute;top:0;left:0;right:0;height:58px;display:flex;align-items:center;
   justify-content:space-between;gap:8px;padding:0 10px;background:var(--plate);
   box-shadow:0 2px 0 rgba(0,0,0,.4)}
@@ -160,14 +144,12 @@ canvas#game3d{position:fixed;inset:0;width:100%;height:100%;display:block}
   display:flex;flex-direction:column;gap:6px;cursor:pointer;
   box-shadow:inset 0 1px 0 rgba(255,235,200,.12),inset 0 -3px 0 rgba(0,0,0,.35);transition:transform .08s,filter .15s}
 .item:hover{filter:brightness(1.12);transform:translateY(-2px)}
-/* куплено - мазок бирюзовой краски в углу, выбрано - желтая рамка краской */
 .item.owned{background:linear-gradient(135deg,rgba(100,179,160,.5) 0 10px,transparent 10px),var(--plate)}
 .item.active{box-shadow:inset 0 0 0 3px var(--paint),inset 0 -3px 0 rgba(0,0,0,.35)}
 .item.locked{filter:saturate(.6) brightness(.85)}
 .item.locked:hover{filter:saturate(.8) brightness(.95)}
 .item h4{margin:0;font-size:19px;font-weight:600;letter-spacing:.08em;text-transform:uppercase}
 .item p{margin:0;font-size:13px;color:var(--bone2);line-height:1.35;flex:1;font-weight:300}
-/* цена - бумажная бирка на проволоке */
 .item .price{align-self:flex-start;background:var(--noise),var(--bone);color:#1d150b;font-weight:600;font-size:13px;
   letter-spacing:.06em;padding:2px 10px;transform:rotate(-2deg);box-shadow:1px 2px 0 rgba(0,0,0,.4);text-transform:uppercase}
 .item .price:empty{display:none}
@@ -185,7 +167,6 @@ canvas#game3d{position:fixed;inset:0;width:100%;height:100%;display:block}
 .pb-text{display:flex;flex-direction:column;font-size:13px;color:var(--bone2);font-weight:300}
 .pb-text b{color:var(--red);font-size:16px;font-weight:600;letter-spacing:.08em;text-transform:uppercase}
 
-/* ---------- рейтинг ---------- */
 .board-list{position:absolute;top:64px;bottom:60px;left:0;right:0;overflow-y:auto;padding:12px 16px}
 .board-row{display:flex;align-items:center;gap:10px;padding:9px 12px;margin-bottom:5px;font-size:16px;
   background:var(--plate);clip-path:var(--cut)}
@@ -196,7 +177,6 @@ canvas#game3d{position:fixed;inset:0;width:100%;height:100%;display:block}
 .board-row img{width:26px;height:26px;border-radius:50%}
 #btnAuth{position:absolute;bottom:12px;left:14px;right:14px}
 
-/* ---------- настройки ---------- */
 .settings-list{display:flex;flex-direction:column;gap:12px;min-width:280px;padding:18px 22px;
   background:var(--plate);clip-path:var(--cut)}
 .sw{display:flex;justify-content:space-between;align-items:center;font-size:17px;letter-spacing:.06em;
@@ -206,20 +186,17 @@ canvas#game3d{position:fixed;inset:0;width:100%;height:100%;display:block}
 .btn.lang.active{color:#1d150b;background:var(--noise),linear-gradient(180deg,#f4bd4c,var(--paint2))}
 .ver{text-align:center;color:var(--bone3);font-size:12px;letter-spacing:.1em}
 
-/* ---------- HUD ---------- */
 #hud{position:fixed;inset:0;z-index:10;pointer-events:none;
   padding:calc(env(safe-area-inset-top) + 8px) 10px 10px}
 #hud button{pointer-events:auto}
 .hud-top{display:flex;flex-direction:column;gap:6px}
 .xp-wrap{display:flex;align-items:center;gap:8px}
-/* опыт - бирюзовая краска по трафарету с делениями */
 .xp-bar{flex:1;height:9px;background:rgba(20,14,9,.75);box-shadow:inset 0 1px 2px rgba(0,0,0,.6),0 0 0 1px rgba(0,0,0,.5)}
 .xp-bar i{display:block;height:100%;width:0;
   background:repeating-linear-gradient(90deg,transparent 0 10px,rgba(0,0,0,.28) 10px 12px),linear-gradient(180deg,#9fe6d2,#4f9e8b)}
 .xp-wrap span{font-weight:700;color:var(--xp);font-size:16px;min-width:20px;text-align:right;
   text-shadow:0 1px 2px #000}
 .hud-row{display:flex;gap:6px;align-items:center}
-/* фишки сверху - металлические бирки с мазком краски слева */
 .chip{background:var(--plate);clip-path:polygon(0 0,calc(100% - 7px) 0,100% 7px,100% 100%,0 100%);
   padding:3px 11px 3px 10px;font-weight:600;font-size:16px;letter-spacing:.04em;font-variant-numeric:tabular-nums;
   box-shadow:inset 3px 0 0 var(--bone3),inset 0 1px 0 rgba(255,235,200,.12)}
@@ -229,7 +206,6 @@ canvas#game3d{position:fixed;inset:0;width:100%;height:100%;display:block}
 .chip.score{color:var(--teal);letter-spacing:.03em;box-shadow:inset 3px 0 0 var(--teal),inset 0 1px 0 rgba(255,235,200,.12)}
 .hud-bottom{position:absolute;left:10px;right:10px;bottom:calc(env(safe-area-inset-bottom) + 10px);
   display:flex;flex-direction:column;gap:8px}
-/* здоровье - прибор с делениями в рамке из железа */
 .hp-wrap{position:relative;max-width:330px}
 .hp-bar{height:18px;padding:3px;background:var(--plate);clip-path:var(--cut);
   box-shadow:inset 0 1px 0 rgba(255,235,200,.12)}
@@ -237,7 +213,6 @@ canvas#game3d{position:fixed;inset:0;width:100%;height:100%;display:block}
   background:repeating-linear-gradient(90deg,transparent 0 9%,rgba(0,0,0,.35) 9% 10%),linear-gradient(180deg,#f07a5a,var(--hp) 55%,#8e2414)}
 .hp-wrap span{position:absolute;inset:0;text-align:center;font-size:12px;font-weight:600;line-height:18px;
   letter-spacing:.06em;text-shadow:0 1px 2px #000,0 0 3px #000}
-/* пауза: взятые карты */
 .pause-skills{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;max-width:min(92vw,640px);margin:0 auto 16px;max-height:40vh;overflow:auto}
 .pause-skills:empty{display:none}
 .ps{display:grid;grid-template-columns:auto 1fr auto;column-gap:6px;align-items:center;width:min(44vw,200px);padding:6px 9px;
@@ -251,7 +226,6 @@ canvas#game3d{position:fixed;inset:0;width:100%;height:100%;display:block}
   clip-path:polygon(0 0,calc(100% - 5px) 0,100% 5px,100% 100%,0 100%)}
 #skillStrip div i{font-style:normal}
 #skillStrip div b{color:var(--paint);font-weight:600}
-/* кнопка рывка на телефоне - круглый люк в полосатой окантовке */
 .touch-btn{position:absolute;right:22px;bottom:calc(env(safe-area-inset-bottom) + 70px);
   width:80px;height:80px;border-radius:50%;
   background:radial-gradient(circle,#3a332c 0 52%,#1d150b 53% 56%,transparent 57%),
@@ -260,16 +234,13 @@ canvas#game3d{position:fixed;inset:0;width:100%;height:100%;display:block}
   font-weight:700;font-size:14px;letter-spacing:.12em;color:var(--bone);pointer-events:auto}
 .touch-btn.cd{opacity:.35}
 
-/* ---------- карты скиллов ---------- */
 .lvl-title{font-size:24px;letter-spacing:.2em;text-transform:uppercase;color:var(--bone2);font-weight:600}
 .lvl-title b{color:var(--paint);font-size:32px}
 .card-row{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;max-width:840px}
-/* карта - железная табличка, сверху полоса краски по редкости */
 .card{width:min(46vw,236px);min-height:168px;background:var(--plate);clip-path:var(--cut);
   padding:18px 16px 14px;cursor:pointer;display:flex;flex-direction:column;gap:7px;
   box-shadow:inset 0 5px 0 var(--bone3),inset 0 -3px 0 rgba(0,0,0,.35);transition:transform .08s,filter .15s}
 .card:hover{transform:translateY(-5px);filter:brightness(1.14)}
-/* значков навыков в Oswald нет, браузер брал случайные шрифты и они съезжали */
 .card .ic,#skillStrip div i{font-family:"Segoe UI Symbol","Apple Symbols","Noto Sans Symbols 2","DejaVu Sans",sans-serif}
 .card .ic{font-size:22px;line-height:40px;width:40px;height:40px;display:block;text-align:center;
   border-radius:50%;background:radial-gradient(circle,rgba(0,0,0,.55),rgba(0,0,0,.25));
@@ -278,7 +249,6 @@ canvas#game3d{position:fixed;inset:0;width:100%;height:100%;display:block}
 .card p{margin:0;font-size:14px;color:var(--bone2);line-height:1.32;flex:1;font-weight:300}
 .card .stack{font-size:12px;color:var(--teal);font-weight:600;letter-spacing:.1em;text-transform:uppercase}
 .card .next{font-size:12px;color:var(--gold);font-weight:500;letter-spacing:.04em}
-/* цифра клавиши на карте, только на клавиатуре */
 .card-row.kb .card{position:relative}
 .card .key{display:none;position:absolute;top:10px;right:12px;font-size:12px;font-weight:700;line-height:1;padding:3px 6px;
   border:1px solid var(--gold);border-radius:4px;color:var(--gold);opacity:.75}
@@ -288,11 +258,9 @@ canvas#game3d{position:fixed;inset:0;width:100%;height:100%;display:block}
 .card.leg{box-shadow:inset 0 5px 0 var(--gold),inset 0 0 26px rgba(242,196,106,.16),inset 0 -3px 0 rgba(0,0,0,.35)}
 .card.leg h3{color:var(--gold)}
 
-/* ---------- итоги: рапорт на бумажке ---------- */
 .over-stats{display:flex;flex-direction:column;gap:6px;min-width:260px;font-size:17px;color:#2a2018;
   background:var(--noise),linear-gradient(180deg,#f1e6cc,#ddcca6);padding:16px 20px 10px;
   transform:rotate(-1deg);box-shadow:2px 4px 0 rgba(0,0,0,.45);position:relative}
-/* скотч сверху */
 .over-stats:before{content:"";position:absolute;top:-9px;left:50%;width:70px;height:18px;margin-left:-35px;
   background:rgba(232,220,180,.6);transform:rotate(3deg);box-shadow:0 1px 2px rgba(0,0,0,.25)}
 .over-stats div{display:flex;justify-content:space-between;border-bottom:1px dashed rgba(42,32,24,.35);padding-bottom:4px}
@@ -307,10 +275,8 @@ canvas#game3d{position:fixed;inset:0;width:100%;height:100%;display:block}
   animation:pulse 1s infinite alternate}
 @keyframes pulse{to{opacity:.45}}
 
-/* ---------- прочее ---------- */
 .loading-bar{width:min(60vw,320px);height:10px;padding:2px;background:var(--plate);clip-path:var(--cut)}
 .loading-bar i{display:block;height:100%;width:10%;background:var(--hazard);transition:width .2s}
-/* подсказка - бумажка на скотче */
 .toast{position:fixed;left:50%;bottom:16%;transform:translateX(-50%) rotate(-1deg);z-index:60;
   background:var(--noise),linear-gradient(180deg,#f1e6cc,#ddcca6);color:#2a2018;padding:10px 20px;
   font-weight:500;font-size:16px;letter-spacing:.03em;max-width:80vw;text-align:center;
@@ -323,12 +289,10 @@ canvas#game3d{position:fixed;inset:0;width:100%;height:100%;display:block}
   animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-/* ---------- босс ---------- */
 .boss-bar{margin-top:10px;max-width:540px;align-self:center;width:100%}
 .bb-name{display:flex;justify-content:space-between;font-size:15px;font-weight:600;
   letter-spacing:.16em;text-transform:uppercase;color:var(--paint);margin-bottom:3px;
   text-shadow:0 1px 3px #000}
-/* полоса босса в полосатой рамке, как ограждение */
 .bb-track{height:14px;padding:3px;background:var(--hazard);box-shadow:0 2px 4px rgba(0,0,0,.5)}
 .bb-track i{display:block;height:100%;width:100%;transition:width .15s linear;
   background:repeating-linear-gradient(90deg,transparent 0 9%,rgba(0,0,0,.3) 9% 10%),linear-gradient(180deg,#ff7a5c,#b8301a)}
@@ -343,16 +307,13 @@ canvas#game3d{position:fixed;inset:0;width:100%;height:100%;display:block}
 .trophy.done{filter:none;box-shadow:inset 0 0 0 3px var(--gold),inset 0 -3px 0 rgba(0,0,0,.35)}
 .trophy .cnt{font-size:13px;font-weight:600;color:var(--gold);letter-spacing:.06em}
 
-/* ---------- клавиши и баффы ---------- */
 .ability-bar{display:flex;gap:6px;flex-wrap:wrap;margin-top:2px}
 .ab{position:relative;display:flex;align-items:center;gap:7px;font:inherit;font-size:13px;font-weight:500;
   letter-spacing:.06em;text-transform:uppercase;color:var(--bone);background:var(--plate);border:0;
   clip-path:polygon(0 0,calc(100% - 6px) 0,100% 6px,100% 100%,0 100%);padding:4px 10px 4px 5px;overflow:hidden}
-/* клавиша - потертый колпачок */
 .ab i{font-style:normal;font-size:11px;font-weight:700;letter-spacing:.08em;color:#1d150b;
   background:linear-gradient(180deg,var(--bone),var(--bone2));padding:1px 5px;box-shadow:0 2px 0 rgba(0,0,0,.45)}
 .ab.dim{opacity:.6}
-/* подсказка управления на поле в первом забеге */
 .ctrl-hint{position:absolute;left:50%;top:60%;transform:translate(-50%,0);display:flex;flex-direction:column;align-items:center;gap:8px;
   padding:10px 16px;border-radius:12px;background:rgba(8,16,20,.6);border:1px solid rgba(255,255,255,.14);
   font-size:13px;color:var(--txt);text-align:center;pointer-events:none;transition:opacity .5s;max-width:90vw}
@@ -377,7 +338,6 @@ canvas#game3d{position:fixed;inset:0;width:100%;height:100%;display:block}
 .btn.with-ic{display:inline-flex;align-items:center;gap:8px}
 .tab.with-ic{display:inline-flex;align-items:center;gap:6px}
 .ico{flex:none}
-/* значок модуля - выбитый в железе кружок с краской */
 .u-ic{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--paint);
   background:radial-gradient(circle,rgba(0,0,0,.55),rgba(0,0,0,.25));box-shadow:inset 0 0 0 2px rgba(255,235,200,.12)}
 

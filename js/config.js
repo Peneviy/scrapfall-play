@@ -1,105 +1,77 @@
-// Все числа по балансу держу тут, чтобы не лазить по коду.
-// PLATFORM подменяет сборщик (tools/pack.ps1), в дев-режиме остается local.
 var CFG = {
-  version: '0.20.13',
-  platform: 'pikabu',      // local | yandex | crazygames | gamepix | gamepush | pikabu | friend
+  version: '0.20.15',
+  platform: 'pikabu',
   debug: false,
 
-  // --- мир и камера ---
-  // targetW важен для вертикальных телефонов: без него зум режет обзор по ширине
-  // zoomMin/zoomMax - насколько игрок может отъехать или приблизить колесом:
-  // узко специально, чтобы обзор не ломал баланс спавна
   view: { targetH: 760, targetW: 560, minScale: 0.5, maxScale: 1.35, camLerp: 6, zoomMin: 0.85, zoomMax: 1.18 },
-  // 3D-камера: наклон в градусах от горизонта, zoom > 1 отодвигает дальше
-  // day - длина суток в секундах забега: полдень, закат, ночь, рассвет
   view3d: { fov: 34, pitch: 56, zoom: 0.92, fog: '#dcb98f', ground: '#c9a06c', day: 420 },
-  grid: 96,               // шаг фоновой сетки и размер ячейки для коллизий
+  grid: 96,
 
-  // --- игрок ---
   player: {
     hp: 120,
     speed: 205,
     radius: 13,
     pickup: 105,
-    iframes: 0.7,         // неуязвимость после получения урона
+    iframes: 0.7,
     dashCd: 2.2,
     dashTime: 0.16,
     dashSpeed: 780,
     regen: 0
   },
 
-  // arcDamage: во сколько раз слабее выстрелы вбок и назад по сравнению с основным
   aim: { arcDamage: 0.6, mouseDefault: false },
 
-  // --- прогрессия уровней ---
   xp: { base: 9, growth: 1.4, flat: 8 },
 
-  // --- враги: общий рост за секунду боя ---
   scale: {
-    hpPerMin: 0.5,        // +50% hp каждую минуту
+    hpPerMin: 0.5,
     dmgPerMin: 0.16,
     speedPerMin: 0.045,
     spawnPerMin: 0.62,
-    capBase: 90,          // максимум врагов на экране в начале
+    capBase: 90,
     capPerMin: 26,
-    capHard: 340          // жесткий потолок, чтобы мобилки не умирали
+    capHard: 340
   },
-  // batchPerMin: за каждую минуту директор выпускает на одного больше за тик
   spawn: { interval: 1.35, distMin: 520, distMax: 760, packChance: 0.18,
            batchPerMin: 0.7, batchMax: 5, minInterval: 0.3,
-           // Плато в начале: стартовая волна сразу, и за rampT секунд спавн
-           // выходит на темп минуты plateau. Дальше держится, пока время не
-           // догонит. Здоровье врагов при этом считается по честному времени,
-           // так что первые стычки бодрые, но легкие.
            opening: { grunt: 8, runner: 3, swarm: 5 }, plateau: 0.7, rampT: 15,
-           // обычный темп роста: уровень за lvlPace секунд; кто обгоняет его в
-           // первые adaptUntil секунд, получает больше врагов
            lvlPace: 16, adaptUntil: 210, adaptPerLvl: 0.15, adaptMax: 0.6 },
-  // patience: сколько секунд враг топчется у стены, прежде чем пойдет в обход
-  // slide: насколько медленнее он идет вдоль стены
   walls: { patience: 1.2, slide: 0.45 },
   boss: { first: 150, every: 130, grace: 35, leash: 1500, engage: 900, regen: 0.05 },
   elite: { after: 90, chance: 0.06 },
 
-  // --- награда ---
   coins: { timeBonus: 0.5, lvlBonus: 5, waveBonus: 12 },
   score: { perKill: 12, perSec: 8, perLvl: 130, bossBonus: 400 },
 
-  // --- престиж ---
   prestige: {
-    reqUpgrades: 12,      // сколько уровней модулей надо купить, чтобы открыть сброс
-    reqBosses: 3,         // и сколько разных боссов пройти
-    coinMult: 0.2,        // +20% лома за ранг
-    enemyHp: 0.12,        // враги крепче на ранг
-    startLevel: 1         // +1 стартовый уровень за ранг
+    reqUpgrades: 12,
+    reqBosses: 3,
+    coinMult: 0.2,
+    enemyHp: 0.12,
+    startLevel: 1
   },
 
-  // --- реклама ---
-  // Интервалы намеренно с запасом: у Яндекса минимум 60 сек между межстраничными,
-  // за спам можно улететь в бан. 75 сек = безопасно.
   ads: {
     fullscreenGap: 75,
-    firstFullscreenAfter: 90,   // не дергаем рекламу в первые полторы минуты сессии
-    levelEvery: 3,              // каждый 3-й левелап - межстраничная (если кулдаун позволил)
+    firstFullscreenAfter: 90,
+    levelEvery: 3,
     rerollPerRun: 5,
     revivePerRun: 1,
-    reviveMax: 4,             // больше за боссов, но не бесконечно
-    timeout: 12,               // сколько ждем ответа SDK по межстраничной
-    rewardTimeout: 60,         // ролик за награду может идти долго, ждем дольше
+    reviveMax: 4,
+    timeout: 12,
+    rewardTimeout: 60,
     freeCoinsGap: 90,
-    freeCoins: 120              // база за ящик, умножается на множители
+    freeCoins: 120
   },
 
-  // Единая палитра сущностей. Главное правило: свое - золото и фиолет,
-  // чужое - розовое и зеленое. Иначе в толпе оранжевое сливается с оранжевым.
   col: {
-    ally: '#ffd27d',        // пули игрока
+    ally: '#ffd27d',
     allyGlow: 'rgba(255,210,125,.45)',
-    tech: '#b07ef5',        // турели, спутники, разряд - все, что от скиллов
+    tech: '#b07ef5',
     techGlow: 'rgba(176,126,245,.5)',
-    enemyShot: '#ff4d8d',   // снаряды врагов и босса
+    enemyShot: '#ff4d8d',
     enemyShotGlow: 'rgba(255,77,141,.35)',
-    spit: '#b6e07a',        // плевки стрелков
+    spit: '#b6e07a',
     gem: '#6fe3c3',
     heal: '#7ee08a'
   },

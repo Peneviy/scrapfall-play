@@ -1,4 +1,3 @@
-// Управление: клавиатура, тач-стик, геймпад. Наружу отдаем только move/dash.
 var Input = {
   keys: {},
   move: { x: 0, y: 0 },
@@ -7,8 +6,6 @@ var Input = {
   stick: { active: false, id: -1, ox: 0, oy: 0, x: 0, y: 0, max: 62 },
   mouse: { x: 0, y: 0, down: false },
 
-  // Раскладка не важна: у кириллицы те же e.code. Но если code пустой,
-  // пробуем вытащить клавишу из e.key.
   codeOf: function (e) {
     if (e.code) return e.code;
     var k = (e.key || '').toLowerCase();
@@ -39,33 +36,22 @@ var Input = {
       if (code === 'Space' || code === 'ShiftLeft') self.dashWanted = true;
       if (code === 'Escape' || code === 'KeyP') UI.togglePause();
       if (code === 'Tab') { e.preventDefault(); UI.toggleAim(); }
-      // карта на уровне берется цифрой верхнего ряда, просьба с тестов
       if (code === 'Digit1' || code === 'Digit2' || code === 'Digit3') UI.pickByKey(+code.charAt(5) - 1);
-      // стрелки и пробел скроллят страницу в iframe, площадки на это ругаются
       if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].indexOf(code) >= 0) e.preventDefault();
     });
 
-    // Если keyup пришел без внятного кода (бывает при переключении раскладки,
-    // горячих клавишах системы и в эмуляторах), сбрасываем все: иначе клавиша
-    // залипает и корабль улетает в одну сторону навсегда.
     window.addEventListener('keyup', function (e) {
       var code = self.codeOf(e);
       if (!code) { self.clear(); return; }
       self.keys[code] = false;
     });
 
-    // Колесо внутри iframe площадки прокручивает страницу под игрой, поэтому
-    // гасим всегда, а в забеге оно еще и двигает камеру
     window.addEventListener('wheel', function (e) {
       e.preventDefault();
       if (Game.running && e.deltaY) Game.zoomBy(e.deltaY);
     }, { passive: false });
 
-    // Вернулись в окно - начинаем с чистого листа
     window.addEventListener('focus', function () { self.clear(); });
-    // Пауза по потере фокуса убрана: в iframe площадки клик вне игры тоже
-    // снимает фокус, GamePix это прямо запрещает. Пауза остается по уходу
-    // вкладки (visibilitychange в game.js) и по сигналу площадки.
     window.addEventListener('blur', function () { self.clear(); });
 
     canvas.addEventListener('mousemove', function (e) { self.mouse.x = e.clientX; self.mouse.y = e.clientY; });
@@ -158,7 +144,6 @@ var Input = {
     this.move.y = my;
   },
 
-  // курсор в мировых координатах: нужен ручному прицелу
   worldMouse: function () {
     if (View3D.on) return View3D.toGround(this.mouse.x, this.mouse.y);
     return {
@@ -173,7 +158,6 @@ var Input = {
     return d;
   },
 
-  // стик рисуем поверх мира, в экранных координатах
   draw: function (ctx) {
     if (!this.stick.active) return;
     var s = this.stick;

@@ -1,8 +1,3 @@
-// Модели для 3D. Все собирается кодом из коробок, цилиндров и конусов, файлов
-// с моделями нет. Договоренность: модель врага собрана под радиус 1 и при
-// отрисовке растягивается на e.r. Вперед смотрит +X, вверх +Y.
-// Детали с флагом glow уходят в отдельную геометрию без освещения: глаза,
-// фары и швы должны светиться и в тени.
 var Models = {
   _col: {},
 
@@ -12,8 +7,6 @@ var Models = {
     return c;
   },
 
-  // Склеиваем детали в одну геометрию с цветом в вершинах: одна модель - один
-  // вызов отрисовки, и ее можно размножить через InstancedMesh.
   build: function (fn) {
     var body = [], glow = [];
     var m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler();
@@ -39,13 +32,10 @@ var Models = {
     };
   },
 
-  // светлее или темнее того же цвета: камера смотрит сверху, и именно крыша
-  // определяет, как враг читается в толпе
   shade: function (hex, k) {
     return '#' + new THREE.Color(hex).multiplyScalar(k).getHexString();
   },
 
-  // короткие имена под фигуры, иначе описания моделей не читаются
   B: function (w, h, d) { return new THREE.BoxGeometry(w, h, d); },
   C: function (rt, rb, h, n) { return new THREE.CylinderGeometry(rt, rb, h, n || 8); },
   K: function (r, h, n) { return new THREE.ConeGeometry(r, h, n || 6); },
@@ -57,8 +47,6 @@ var Models = {
   METAL: '#5d5752',
   STEEL: '#3d3f42',
   RUST: '#8a4a2a',
-
-  // ---------- враги ----------
 
   enemy: function (type, d) {
     var M = this, B = M.B, C = M.C, K = M.K, S = M.S, O = M.O, T = M.T;
@@ -155,16 +143,11 @@ var Models = {
         }
         add(S(0.24, 6, 4), trim, 0, 1.18, 0, 0, 0, 0, 1, 1, 1, 'glow');
       } else {
-        // запасной вариант на случай нового типа без модели
         add(B(1.4, 1.2, 1.4), body, 0, 0.9, 0);
         add(B(0.12, 0.2, 0.7), trim, 0.72, 1.1, 0, 0, 0, 0, 1, 1, 1, 'glow');
       }
     });
   },
-
-  // ---------- игрок ----------
-  // Машина из трех частей: шасси смотрит туда, куда едем, башня - туда, куда
-  // стреляем, ствол отдельно, чтобы откатываться при выстреле.
 
   player: function (charId, sk, gunId) {
     var M = this, B = M.B, C = M.C, K = M.K, S = M.S, T = M.T;
@@ -231,38 +214,31 @@ var Models = {
       add(B(0.1, 0.12, 0.36), trim, 0.24, charId === 'ranger' ? 1.24 : 1.5, 0, 0, 0, 0, 1, 1, 1, 'glow');
     });
 
-    // Пушка своя у каждого оружия и ставится на башню любого корпуса: у корпуса
-    // только точка крепления. Так пять пушек на четыре машины, а не двадцать.
     var my = { brute: 1.62, ranger: 1.2, rigger: 1.42 }[charId] || 1.38;
     var barrel = this.build(function (add) {
       var gun = '#2a3236', g = 'glow';
       if (gunId === 'smg') {
-        // трещотка: два тонких ствола и барабан сбоку
         add(C(0.06, 0.07, 1.15, 6), gun, 0.72, my, 0.1, 0, 0, -HALF);
         add(C(0.06, 0.07, 1.15, 6), gun, 0.72, my, -0.1, 0, 0, -HALF);
         add(C(0.2, 0.2, 0.16, 10), '#5d5752', 0.35, my - 0.05, 0.3, HALF);
         add(B(0.14, 0.12, 0.34), steel, 1.3, my, 0);
       } else if (gunId === 'scatter') {
-        // веер: пять коротких труб веером в широком кожухе
         add(B(0.7, 0.26, 0.62), '#3a3330', 0.55, my, 0);
         for (var i = -2; i <= 2; i++) {
           add(C(0.06, 0.08, 0.55, 6), gun, 1.05, my, i * 0.12, 0, i * 0.18, -HALF);
         }
         add(B(0.1, 0.3, 0.68), metal, 0.22, my, 0);
       } else if (gunId === 'rail') {
-        // шило: длинная игла с катушками, кончик светится
         add(C(0.05, 0.07, 2.3, 6), gun, 1.3, my, 0, 0, 0, -HALF);
         for (var r = 0; r < 4; r++) add(T(0.11, 0.035, 4, 10), metal, 0.55 + r * 0.32, my, 0, 0, HALF, 0);
         add(B(0.5, 0.2, 0.26), steel, 0.32, my, 0);
         add(S(0.08, 5, 4), '#9fe8ff', 2.48, my, 0, 0, 0, 0, 1, 1, 1, g);
       } else if (gunId === 'flak') {
-        // хлопушка: толстая мортира под углом и короб снарядов
         add(C(0.18, 0.22, 0.9, 9), gun, 0.62, my + 0.12, 0, 0, 0, -HALF + 0.35);
         add(T(0.21, 0.05, 4, 10), metal, 1.0, my + 0.28, 0, 0, HALF, 0.35);
         add(B(0.36, 0.28, 0.3), '#5a4a2c', 0.1, my - 0.02, 0.32);
         add(C(0.06, 0.06, 0.22, 6), '#c9a24a', 0.1, my + 0.18, 0.32);
       } else {
-        // резак: ствол средней длины с дульным тормозом
         add(C(0.09, 0.11, 1.35, 8), gun, 0.78, my, 0, 0, 0, -HALF);
         add(B(0.22, 0.17, 0.22), steel, 1.48, my, 0);
         add(B(0.4, 0.2, 0.24), '#3a3330', 0.3, my, 0);
@@ -270,10 +246,6 @@ var Models = {
     });
     return { chassis: chassis, turret: turret, barrel: barrel };
   },
-
-  // ---------- боссы ----------
-  // У каждого свой силуэт, чтобы с первого взгляда было понятно, кто пришел.
-  // spin - деталь, которая крутится сама (бур, голова стража).
 
   boss: function (bd) {
     var M = this, B = M.B, C = M.C, K = M.K, S = M.S, O = M.O, T = M.T;
@@ -383,8 +355,6 @@ var Models = {
       }
     });
 
-    // Общий набор "чтобы было страшно": гребень шипов по спине и пара
-    // красных глаз спереди. Высота спины у каждого своя.
     var back = { crusher: 1.62, driller: 1.22, weaver: 1.95, frostmaw: 1.62, hive: 1.4, warden: 1.5,
       sapper: 1.1, lancer: 1.3, titan: 2.3, phantom: 1.62 }[bd.id] || 1.6;
     var menace = this.build(function (add) {
@@ -409,7 +379,6 @@ var Models = {
       spin.at = [1.3, 0.85, 0];
       spin.axis = 'x';
     } else if (bd.id === 'warden') {
-      // голова стража поворачивается вместе с лучом
       spin = this.build(function (add) {
         add(S(0.55, 8, 6), metal, 0, 0, 0);
         add(C(0.16, 0.22, 0.9, 8), dark, 0.55, 0, 0, 0, 0, -HALF);
@@ -427,10 +396,6 @@ var Models = {
     return { main: main, spin: spin };
   },
 
-  // ---------- мелочь ----------
-
-  // Заначка: два ящика друг на друге и коробка сверху. Высокая стопка видна
-  // издалека, хоть в игре и нет высоты.
   crate: function () {
     var B = this.B;
     var box = function (add, y, s, ry, col) {
@@ -466,7 +431,6 @@ var Models = {
     return { base: base, head: head };
   },
 
-  // спутник-пила: диск с зубьями, по кромке светится
   blade: function () {
     var M = this, C = M.C, B = M.B;
     return this.build(function (add) {
@@ -480,7 +444,6 @@ var Models = {
     });
   },
 
-  // бочка с горючим: красная, с желтой полосой, издалека видно, что опасно
   xbarrel: function () {
     var C = this.C;
     return this.build(function (add) {
@@ -493,7 +456,6 @@ var Models = {
     });
   },
 
-  // мелкий хлам на земле: не мешает ходить, но делает из пола свалку
   prop: function (kind) {
     var M = this, B = M.B, C = M.C, T = M.T;
     return this.build(function (add) {
@@ -515,7 +477,6 @@ var Models = {
       } else if (kind === 'rock') {
         add(new THREE.DodecahedronGeometry(0.8), '#ffffff', 0, 0.3, 0, 0.3, 0.5, 0.2, 1.2, 0.6, 1);
       } else if (kind === 'bush') {
-        // сухой куст: несколько комков зелени разного оттенка
         var bush = ['#7f8a48', '#99904f', '#6c7a3e', '#a39a5c'];
         for (var b = 0; b < 6; b++) {
           var ba = b / 6 * Math.PI * 2;
@@ -530,7 +491,6 @@ var Models = {
             Math.cos(ga) * 0.2, 0.5, Math.sin(ga) * 0.2, Math.sin(ga) * 0.4, 0, Math.cos(ga) * 0.4);
         }
       } else if (kind === 'yucca') {
-        // юкка: кривой ствол и колючие шапки, силуэт видно издалека
         add(C(0.16, 0.24, 2.2, 6), '#7a5f44', 0, 1.1, 0, 0, 0, 0.08);
         add(C(0.1, 0.14, 1.0, 5), '#7a5f44', 0.35, 2.0, 0, 0, 0, -0.7);
         var crowns = [[0.1, 2.3, 0], [0.75, 2.45, 0]];
@@ -548,7 +508,6 @@ var Models = {
           add(C(0.05, 0.09, 1.1, 5), '#8a7764', br[t][0], br[t][1], br[t][2] * 0.5, br[t][2], 0, br[t][3]);
         }
       } else if (kind === 'pole') {
-        // столб старой линии: высокий, тонкий, с перекладиной
         add(C(0.18, 0.24, 10, 6), '#6e5a44', 0, 5, 0);
         add(B(2.4, 0.22, 0.22), '#6e5a44', 0, 9.2, 0);
         add(B(1.6, 0.18, 0.18), '#6e5a44', 0, 8.4, 0, 0, 0, 0.12);

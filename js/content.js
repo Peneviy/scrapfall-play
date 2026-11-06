@@ -63,15 +63,15 @@ var Content = {
   skins: [
     { id: 'rust', cost: 0, ru: { n: 'Ржавчина', d: 'Заводской окрас.' }, en: { n: 'Rust', d: 'Factory paint.' }, body: '#c9713a', trim: '#ffd27d', trail: '#f0a24a' },
     { id: 'reef', cost: 800, ru: { n: 'Риф', d: 'Бирюза и соль.' }, en: { n: 'Reef', d: 'Teal and salt.' }, body: '#3fa38f', trim: '#a9f2dd', trail: '#6fe3c3' },
-    { id: 'void', cost: 2200, ru: { n: 'Пустота', d: 'Фиолетовый, как элитники.' }, en: { n: 'Void', d: 'Purple, like the elites.' }, body: '#8b4bd6', trim: '#e0b3ff', trail: '#a24bd6' },
+    { id: 'void', cost: 2200, ru: { n: 'Пустота', d: 'Фиолетовый, как элитные машины.' }, en: { n: 'Void', d: 'Purple, like the elites.' }, body: '#8b4bd6', trim: '#e0b3ff', trail: '#a24bd6' },
     { id: 'ash', cost: 4500, ru: { n: 'Пепел', d: 'Черный с золотой окантовкой.' }, en: { n: 'Ash', d: 'Black with gold trim.' }, body: '#2b3138', trim: '#ffd27d', trail: '#ffe6a8' }
   ],
 
   upgrades: [
-    { id: 'dmg', ru: { n: 'Бронебой', d: '+8% урона всему твоему за уровень' }, en: { n: 'Piercer', d: '+8% damage to everything of yours per level' } },
+    { id: 'dmg', ru: { n: 'Бронебой', d: '+8% ко всему урону за каждый уровень' }, en: { n: 'Piercer', d: '+8% to all your damage per level' } },
     { id: 'hp', ru: { n: 'Пластины', d: '+10% здоровья за уровень' }, en: { n: 'Plating', d: '+10% health per level' } },
     { id: 'spd', ru: { n: 'Привод', d: '+3% скорости хода за уровень' }, en: { n: 'Drive', d: '+3% move speed per level' } },
-    { id: 'xp', ru: { n: 'Сканер', d: '+8% опыта: уровни в рейде приходят чаще' }, en: { n: 'Scanner', d: '+8% XP: levels come faster in a raid' } },
+    { id: 'xp', ru: { n: 'Сканер', d: '+8% опыта: в рейде он копится быстрее' }, en: { n: 'Scanner', d: '+8% XP: it builds up faster in a raid' } },
     { id: 'loot', ru: { n: 'Магнит', d: '+10% лома за рейд' }, en: { n: 'Magnet', d: '+10% scrap per raid' } },
     { id: 'cd', ru: { n: 'Затвор', d: '-5% времени между выстрелами' }, en: { n: 'Bolt', d: '-5% time between shots' } },
     { id: 'radius', ru: { n: 'Резонатор', d: '+7% радиуса взрывов, колец и аур' }, en: { n: 'Resonator', d: '+7% radius of blasts, rings and auras' } },

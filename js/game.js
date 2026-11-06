@@ -152,6 +152,7 @@ var Game = {
     Save.addCoins(this.payout);
     PF.lbSubmit(this.res.score);
     PF.reportScore(this.res.score);
+    Metrics.run(this.res);
   },
 
   quit: function () {

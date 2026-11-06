@@ -88,6 +88,7 @@ var View3D = {
     var pitch = cfg.pitch * Math.PI / 180, half = cfg.fov * Math.PI / 360;
     var dist = groundH * Math.sin(pitch) / (2 * Math.tan(half)) * cfg.zoom;
     this.off = new THREE.Vector3(0, Math.sin(pitch) * dist, Math.cos(pitch) * dist);
+    if (this.scene.fog) { this.scene.fog.near = dist * 1.35; this.scene.fog.far = dist * 3.45; }
     this.ppu = h / (2 * dist * Math.tan(half));
     cam.position.copy(this.off);
     cam.lookAt(0, 0, 0);

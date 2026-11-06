@@ -1,7 +1,8 @@
 var CFG = {
-  version: '0.20.15',
+  version: '0.20.25',
   platform: 'pikabu',
   debug: false,
+  metrics: { url: 'https://scrapfall-metrics.peneviy.workers.dev/e', dev: '' },
 
   view: { targetH: 760, targetW: 560, minScale: 0.5, maxScale: 1.35, camLerp: 6, zoomMin: 0.85, zoomMax: 1.18 },
   view3d: { fov: 34, pitch: 56, zoom: 0.92, fog: '#dcb98f', ground: '#c9a06c', day: 420 },

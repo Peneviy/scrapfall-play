@@ -28,7 +28,14 @@ var Snd = {
     this.master = c.createGain();
     this.master.gain.value = this.muted ? 0 : 0.85;
     this.comp.connect(this.master);
-    this.master.connect(c.destination);
+    this.lim = c.createDynamicsCompressor();
+    this.lim.threshold.value = -3;
+    this.lim.knee.value = 0;
+    this.lim.ratio.value = 20;
+    this.lim.attack.value = 0.001;
+    this.lim.release.value = 0.1;
+    this.master.connect(this.lim);
+    this.lim.connect(c.destination);
     this.sfxGain = c.createGain();
     this.sfxGain.gain.value = 0.55;
     this.sfxGain.connect(this.comp);
@@ -232,7 +239,7 @@ var Snd = {
     this.route(out, { bus: o.bus || this.musGain, verb: o.verb });
   },
 
-  gaps: { hit: 0.085, kill: 0.06, shot: 0.05, shotBig: 0.09, boom: 0.13, pick: 0.045, coin: 0.05, aggro: 25, barrel: 0.3 },
+  gaps: { hit: 0.085, kill: 0.06, shot: 0.05, shotBig: 0.09, boom: 0.13, splash: 0.09, crate: 0.05, crateBreak: 0.06, pick: 0.045, coin: 0.05, aggro: 25, barrel: 0.3 },
   last: {},
   recent: [],
   pickN: 0,
@@ -285,7 +292,22 @@ var Snd = {
       case 'boom':
         this.burst({ brown: true, type: 'lowpass', f0: 1700, f1: 110, dur: 0.75, vol: 0.95, shape: this.soft, verb: 0.55 });
         this.osc({ type: 'sine', f0: 72, f1: 27, dur: 0.6, vol: 0.6 });
-        this.burst({ t: now + 0.05, f0: 3000, f1: 900, q: 0.7, dur: 0.25, vol: 0.12 });
+        this.burst({ t: now + 0.05, f0: 1400, f1: 400, q: 0.5, dur: 0.18, vol: 0.06, shape: this.soft });
+        break;
+      case 'splash':
+        this.burst({ brown: true, type: 'lowpass', f0: 900 * r, f1: 120, dur: 0.26, vol: 0.38, shape: this.soft, verb: 0.18 });
+        this.osc({ type: 'sine', f0: 95 * r, f1: 36, dur: 0.22, vol: 0.26 });
+        break;
+      case 'crate':
+        this.burst({ type: 'bandpass', f0: 1500 * r, f1: 600, q: 1.2, dur: 0.045, vol: 0.14, shape: this.soft });
+        this.osc({ type: 'sine', f0: 220 * r, f1: 120, dur: 0.05, vol: 0.08 });
+        break;
+      case 'crateBreak':
+        this.burst({ brown: true, type: 'lowpass', f0: 1200 * r, f1: 300, dur: 0.12, vol: 0.3, shape: this.soft, verb: 0.2 });
+        this.osc({ type: 'sine', f0: 160 * r, f1: 70, dur: 0.14, vol: 0.18 });
+        for (k = 0; k < 3; k++) {
+          this.burst({ t: now + 0.015 + k * 0.03 + Math.random() * 0.012, type: 'bandpass', f0: 2200 + Math.random() * 1200, q: 2.5, dur: 0.025, vol: 0.09 });
+        }
         break;
       case 'hurt':
         this.osc({ type: 'sawtooth', f0: 150, f1: 65, dur: 0.2, vol: 0.2, lp: 1100, shape: this.soft });

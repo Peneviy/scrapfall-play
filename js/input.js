@@ -34,6 +34,7 @@ var Input = {
       if (!code) return;
       self.keys[code] = true;
       if (code === 'Space' || code === 'ShiftLeft') self.dashWanted = true;
+      if (code === 'Escape' && UI.escapeScreen()) return;
       if (code === 'Escape' || code === 'KeyP') UI.togglePause();
       if (code === 'Tab') { e.preventDefault(); UI.toggleAim(); }
       if (code === 'Digit1' || code === 'Digit2' || code === 'Digit3') UI.pickByKey(+code.charAt(5) - 1);

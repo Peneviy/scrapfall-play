@@ -144,13 +144,13 @@ var World = {
   hitCrate: function (c, dmg) {
     c.hp -= dmg;
     c.hit = 0.1;
-    if (c.hp > 0) { Snd.play('hit'); return; }
+    if (c.hp > 0) { Snd.play('crate'); return; }
     if (c.ex) { this.explode(c); return; }
     c.dead = true;
     FX.blast(c.x, c.y, 40, '#ffcf7a');
     FX.burst(c.x, c.y, 14, '#c9a06a', 200, 0.5, 3);
     FX.ring(c.x, c.y, 6, 60, '#ffd27d', 0.3, 2);
-    Snd.play('boom');
+    Snd.play('crateBreak');
     this.drop(c.x, c.y, c.loot);
   },
 

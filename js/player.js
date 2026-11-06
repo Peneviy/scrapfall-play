@@ -363,7 +363,7 @@ var Player = {
     FX.ring(x, y, radius * 0.25, radius, '#ffb35c', 0.3, 3);
     FX.burst(x, y, 6, '#f0a24a', 220, 0.4, 3);
     FX.blast(x, y, radius);
-    Snd.play('boom');
+    Snd.play('splash');
     var near = [];
     Game.grid.query(x, y, radius, near);
     for (var i = 0; i < near.length; i++) {

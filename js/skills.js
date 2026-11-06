@@ -167,7 +167,7 @@ var Skills = {
     },
     {
       id: 'spore', max: 2, w: 4, rar: 'leg', ic: '☁', col: '#7ee08a',
-      ru: { n: 'СПОРЫ', d: 'Элитники и боссы оставляют ядовитое облако' },
+      ru: { n: 'СПОРЫ', d: 'Элитные машины и боссы оставляют ядовитое облако' },
       en: { n: 'SPORES', d: 'Elites and bosses leave a poison cloud behind' },
       apply: function (p) { p.st.spore += 1; },
       at: function (l) { return I18N.t('at_spore', { n: 120 + (l + 1) * 40 }); },

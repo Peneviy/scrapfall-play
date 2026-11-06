@@ -211,6 +211,11 @@ var PF = {
       });
       if (gp.ads && gp.ads.isAdblockEnabled) this.setAdsOff('adblock');
       gp.ads.on('fullscreen:close', function (ok) { self._gpFsOk = !!ok; });
+      if (gp.sounds) {
+        if (gp.sounds.isMuted) this._setMute(true);
+        gp.sounds.on('mute', function () { self._setMute(true); });
+        gp.sounds.on('unmute', function () { self._setMute(false); });
+      }
       if (gp.player && gp.player.ready) {
         gp.player.ready.then(function () {
           try {
@@ -272,6 +277,12 @@ var PF = {
   },
 
   _consolation: function () { this.noFill++; return this.noFill >= 2; },
+
+  setSound: function (on) {
+    try {
+      if (this.gpush && this.gpush.sounds) { if (on) this.gpush.sounds.unmute(); else this.gpush.sounds.mute(); }
+    } catch (e) {}
+  },
 
   loadingDone: function () {
     try {

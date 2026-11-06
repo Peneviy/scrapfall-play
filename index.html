@@ -38,7 +38,7 @@
     <div id="skillStrip"></div>
     <div id="abilityBar" class="ability-bar">
       <div class="ab" id="abDash"><i>SPACE</i><span data-i18n="keyDash">Рывок</span><u id="abDashCd"></u></div>
-      <button class="ab act" id="abAim"><i>TAB</i><span id="abAimText">Прицел: авто</span></button>
+      <button class="ab act" id="abAim"><i>TAB</i><span id="abAimText" data-i18n="aimAuto">Прицел: авто</span></button>
       <div class="ab dim"><i>P</i><span data-i18n="keyPause">Пауза</span></div>
     </div>
   </div>
@@ -142,9 +142,13 @@
 <div id="scrPause" class="screen overlay hidden">
   <div class="scr-title" data-i18n="pause">Пауза</div>
   <div id="pauseSkills" class="pause-skills"></div>
+  <div class="pause-mix">
+    <label class="sw"><span data-i18n="sfx">Звук</span><input type="checkbox" id="pauseSfx" checked></label>
+    <label class="sw"><span data-i18n="music">Музыка</span><input type="checkbox" id="pauseMusic" checked></label>
+  </div>
   <div class="menu-btns">
     <button id="btnResume" class="big-btn" data-i18n="resume">Продолжить</button>
-    <button id="btnAimMode" class="btn">Прицел: авто</button>
+    <button id="btnAimMode" class="btn" data-i18n="aimAuto">Прицел: авто</button>
     <button id="btnQuit" class="btn" data-i18n="quit">Бросить рейд</button>
   </div>
 </div>
@@ -181,6 +185,7 @@
 <script src="js/lang/pt.js"></script>
 <script src="js/icons.js"></script>
 <script src="js/platform.js"></script>
+<script src="js/metrics.js"></script>
 <script src="js/save.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/input.js"></script>

@@ -55,8 +55,12 @@ var UI = {
     this.el('setMusic').checked = !!set.music;
     this.el('setShake').checked = !!set.shake;
     this.el('setLow').checked = !!set.low;
-    this.el('setSfx').onchange = function () { set.sfx = this.checked ? 1 : 0; Snd.setSfx(set.sfx); Save.flush(true); };
-    this.el('setMusic').onchange = function () { set.music = this.checked ? 1 : 0; Snd.setMusic(set.music); Save.flush(true); };
+    this.el('pauseSfx').checked = !!set.sfx;
+    this.el('pauseMusic').checked = !!set.music;
+    this.el('setSfx').onchange = function () { self.setSound('sfx', this.checked); };
+    this.el('setMusic').onchange = function () { self.setSound('music', this.checked); };
+    this.el('pauseSfx').onchange = function () { self.setSound('sfx', this.checked); };
+    this.el('pauseMusic').onchange = function () { self.setSound('music', this.checked); };
     this.el('setShake').onchange = function () { set.shake = this.checked ? 1 : 0; Save.flush(true); };
     this.el('setLow').onchange = function () { set.low = this.checked ? 1 : 0; Save.flush(true); };
 
@@ -96,7 +100,9 @@ var UI = {
   },
 
   syncAim: function () {
-    var txt = I18N.t(Save.data.set.aim === 'mouse' ? 'aimMouse' : 'aimAuto');
+    var key = Save.data.set.aim === 'mouse' ? 'aimMouse' : 'aimAuto', txt = I18N.t(key);
+    this.el('abAimText').setAttribute('data-i18n', key);
+    this.el('btnAimMode').setAttribute('data-i18n', key);
     this.el('abAimText').textContent = txt;
     this.el('btnAimMode').textContent = txt;
   },
@@ -199,6 +205,24 @@ var UI = {
     this.refreshMenu();
   },
 
+  setSound: function (kind, on) {
+    var set = Save.data.set;
+    set[kind] = on ? 1 : 0;
+    if (kind === 'sfx') Snd.setSfx(set.sfx); else Snd.setMusic(set.music);
+    this.el('setSfx').checked = !!set.sfx; this.el('pauseSfx').checked = !!set.sfx;
+    this.el('setMusic').checked = !!set.music; this.el('pauseMusic').checked = !!set.music;
+    PF.setSound(set.sfx || set.music);
+    Save.flush(true);
+  },
+
+  escapeScreen: function () {
+    var ids = ['scrShop', 'scrBoard', 'scrSettings'];
+    for (var i = 0; i < ids.length; i++) {
+      if (!this.el(ids[i]).classList.contains('hidden')) { this.show('scrMenu'); this.refreshMenu(); return true; }
+    }
+    return false;
+  },
+
   togglePause: function () {
     if (!Game.running || Game.over) return;
     if (!this.el('scrLevel').classList.contains('hidden')) return;
@@ -209,6 +233,8 @@ var UI = {
     } else {
       Game.pause(true);
       this.renderPauseSkills();
+      this.el('pauseSfx').checked = !!Save.data.set.sfx;
+      this.el('pauseMusic').checked = !!Save.data.set.music;
       this.el('scrPause').classList.remove('hidden');
       this.el('hud').classList.add('hidden');
     }

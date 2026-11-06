@@ -54,6 +54,7 @@
       document.addEventListener('visibilitychange', function () { if (!document.hidden) unlock(); });
 
       progress(1);
+      Metrics.session();
       setTimeout(function () {
         if (!Save.data.runs) {
           UI.startRun();

@@ -299,6 +299,28 @@ var UI = {
       this.barBoss = null;
     }
 
+    var sb = this.el('stageBar');
+    if (boss || !Game.flags) sb.classList.add('hidden');
+    else {
+      sb.classList.remove('hidden');
+      var t0 = Game.stageT0, t1 = Math.max(Game.nextBoss, t0 + 1), left = t1 - Game.time;
+      this.el('stageFill').style.width = U.clamp((Game.time - t0) / (t1 - t0) * 100, 0, 100) + '%';
+      var fsig = Game.stageN + ':' + Math.round(t1) + ':' + Game.flags.map(function (f) { return f.done ? 1 : 0; }).join('');
+      if (fsig !== this.flagSig) {
+        this.flagSig = fsig;
+        this.el('stageNow').textContent = Game.stageN;
+        this.el('stageNext').textContent = Game.stageN + 1;
+        this.el('stageFlags').innerHTML = Game.flags.map(function (f) {
+          return '<u class="' + (f.done ? 'done' : '') + '" style="left:' + U.clamp((f.at - t0) / (t1 - t0) * 100, 0, 100).toFixed(1) + '%"></u>';
+        }).join('');
+      }
+      var soon = left <= 10 || Game.bossCount() > 0;
+      var goal = soon ? I18N.t('stageBossNear') : I18N.t('stageGoal', { t: U.time(left) });
+      if (goal !== this.goalText) { this.goalText = goal; this.el('stageGoal').textContent = goal; }
+      sb.classList.toggle('soon', soon);
+      sb.classList.toggle('intro', Game.stageN === 1 && Game.time < 5);
+    }
+
     var sig = '';
     for (var k in p.skills) sig += k + p.skills[k];
     if (sig !== this.skillSig) {
@@ -314,8 +336,12 @@ var UI = {
   },
 
   bossBanner: function (name, incoming) {
+    this.banner(I18N.t(incoming ? 'bossIn' : 'bossOut'), name);
+  },
+
+  banner: function (kind, name) {
     var b = this.el('bossBanner');
-    this.el('bannerKind').textContent = I18N.t(incoming ? 'bossIn' : 'bossOut');
+    this.el('bannerKind').textContent = kind;
     this.el('bannerName').textContent = name;
     b.classList.remove('hidden');
     b.style.animation = 'none';

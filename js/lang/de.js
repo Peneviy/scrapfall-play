@@ -54,6 +54,8 @@ I18N.add('de', {
     dps: 'Schaden {d} · Rate {r}/s · Reichweite {g}',
     bossIn: 'Im Anmarsch',
     bossOut: 'Erledigt',
+    stageGoal: 'Überlebe. Boss in {t}', stageBossNear: 'Boss im Anmarsch',
+    waveKind: 'Welle', waveElite: 'Elitetrupp', waveHeavy: 'Schwergewicht', wavePack: 'Schwarm',
     tabTrophies: 'Trophäen',
     bossesStat: 'Bosse',
     trophyNone: 'Noch nicht getroffen',

@@ -54,6 +54,8 @@ I18N.add('pt', {
     dps: 'Dano {d} · cadência {r}/s · alcance {g}',
     bossIn: 'Chegando',
     bossOut: 'Vencido',
+    stageGoal: 'Sobreviva. Chefe em {t}', stageBossNear: 'O chefe está chegando',
+    waveKind: 'Onda', waveElite: 'Esquadrão de elite', waveHeavy: 'Peso pesado', wavePack: 'Enxame',
     tabTrophies: 'Troféus',
     bossesStat: 'Chefes',
     trophyNone: 'Ainda não encontrou',

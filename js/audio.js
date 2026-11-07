@@ -369,6 +369,13 @@ var Snd = {
         this.burst({ brown: true, type: 'lowpass', f0: 1100, f1: 160, dur: 0.4, vol: 0.45, shape: this.soft, verb: 0.25 });
         this.osc({ type: 'sine', f0: 85, f1: 40, dur: 0.3, vol: 0.25 });
         break;
+      case 'wave':
+        [[110, 0], [146.8, 0.2]].forEach(function (n) {
+          self.osc({ t: now + n[1], type: 'sawtooth', f0: n[0], dur: 0.3, vol: 0.16, atk: 0.03, lp: 700, lp1: 1200, verb: 0.35 });
+          self.osc({ t: now + n[1], type: 'square', f0: n[0] / 2, dur: 0.3, vol: 0.07, atk: 0.04, lp: 260 });
+        });
+        this.osc({ type: 'sine', f0: 60, f1: 38, dur: 0.5, vol: 0.28 });
+        break;
       case 'aggro':
         this.osc({ type: 'sawtooth', f0: 90, f1: 45, dur: 1.1, vol: 0.3 });
         break;

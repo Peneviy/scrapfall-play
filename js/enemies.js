@@ -85,6 +85,7 @@ var Enemies = {
       UI.bossBanner(I18N.name(b.bd), true);
       this.announceUnlock();
     }
+    this.flagTick();
     if (Game.spawnT > 0) return;
 
     var min = this.spawnMin();
@@ -122,6 +123,62 @@ var Enemies = {
         if (e) { e.hp *= 0.6; e.maxHp = e.hp; }
       }
     }
+  },
+
+  newStage: function () {
+    var s = CFG.stage;
+    Game.stageN = (Game.stageN || 0) + 1;
+    Game.stageT0 = Game.time;
+    if (Game.stageN === 1) {
+      Game.flags = s.first.map(function (f) {
+        return { at: f.at, elites: f.elites, escort: f.escort, kind: 'elite', done: false };
+      });
+    } else {
+      var at = Game.time + Math.max(10, Game.nextBoss - Game.time) * s.mid;
+      Game.flags = [{ at: at, kind: Game.stageN % 2 === 0 ? 'heavy' : 'pack', done: false }];
+    }
+  },
+
+  flagTick: function () {
+    var fl = Game.flags;
+    if (!fl) return;
+    for (var i = 0; i < fl.length; i++) {
+      var f = fl[i];
+      if (f.done || Game.time < f.at) continue;
+      f.done = true;
+      if (Game.time - f.at < 3) this.flagWave(f);
+    }
+  },
+
+  flagPool: function () {
+    var out = [], defs = this.defs;
+    for (var k in defs) {
+      var d = defs[k];
+      if (k === 'boss' || d.nest || Game.time < d.from) continue;
+      if (d.fromBoss && Game.bossIndex < d.fromBoss) continue;
+      out.push(k);
+    }
+    out.sort(function (a, b) { return defs[b].hp - defs[a].hp; });
+    return out.length ? out : ['grunt'];
+  },
+
+  flagWave: function (f) {
+    var p = Game.player, pool = this.flagPool(), a = Math.random() * Math.PI * 2;
+    var d = this.ringMin() + 40, bx = p.x + Math.cos(a) * d, by = p.y + Math.sin(a) * d;
+    var elites = [], esc, swarm = 6, name = 'waveElite', i, e;
+    var at = function (j) { return pool[Math.min(j, pool.length - 1)]; };
+    if (f.kind === 'heavy') { elites = [at(0)]; esc = 4; name = 'waveHeavy'; }
+    else if (f.kind === 'pack') { elites = [at(1), at(2)]; esc = 12; swarm = 12; name = 'wavePack'; }
+    else { for (i = 0; i < f.elites; i++) elites.push(at(i)); esc = f.escort; }
+    for (i = 0; i < elites.length; i++) {
+      e = this.spawn(elites[i], bx + U.rand(-50, 50), by + U.rand(-50, 50), true);
+      if (e && i === 0) e.flagLoot = true;
+    }
+    for (i = 0; i < esc; i++) {
+      this.spawn(i < swarm ? 'swarm' : this.pickType(), bx + U.rand(-110, 110), by + U.rand(-110, 110), false);
+    }
+    Snd.play('wave');
+    UI.banner(I18N.t('waveKind'), I18N.t(name));
   },
 
   spawnGroup: function (min) {
@@ -363,6 +420,7 @@ var Enemies = {
       Game.spawnCloud(e.x, e.y, 120 + pl.st.spore * 40, 14 * pl.st.spore * pl.st.dmg);
     }
     Game.spawnGem(e.x, e.y, e.xp);
+    if (e.flagLoot) World.drop(e.x, e.y, U.pick(['rage', 'haste', 'shield', 'heal']));
     if (U.chance(Game.player.st.vamp)) Game.spawnHeal(e.x, e.y);
 
     if (e.def.split && !e.splitChild) {
@@ -384,6 +442,7 @@ var Enemies = {
         UI.bossBanner(I18N.name(e.bd), false);
       }
       Game.nextBoss = Math.max(Game.nextBoss, Game.time + CFG.boss.grace);
+      Enemies.newStage();
       Player.grantLevel(Game.player);
       var restored = false;
       if (Game.reviveLeft < CFG.ads.revivePerRun) {

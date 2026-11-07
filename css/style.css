@@ -298,6 +298,25 @@ canvas#game3d{position:fixed;inset:0;width:100%;height:100%;display:block}
 .bb-track{height:14px;padding:3px;background:var(--hazard);box-shadow:0 2px 4px rgba(0,0,0,.5)}
 .bb-track i{display:block;height:100%;width:100%;transition:width .15s linear;
   background:repeating-linear-gradient(90deg,transparent 0 9%,rgba(0,0,0,.3) 9% 10%),linear-gradient(180deg,#ff7a5c,#b8301a)}
+.stage-bar{margin-top:8px;max-width:420px;width:100%}
+.sb-goal{text-align:center;font-size:15px;font-weight:500;letter-spacing:.03em;color:var(--bone2);margin-bottom:5px;
+  text-shadow:0 1px 3px #000,0 0 4px #000;transition:font-size .4s}
+.stage-bar.intro .sb-goal{font-size:21px;color:#fff}
+.stage-bar.soon .sb-goal{color:var(--paint);animation:pulse .5s ease-in-out infinite alternate}
+.sb-row{display:flex;align-items:center;gap:7px}
+.sb-num{min-width:24px;height:22px;line-height:22px;padding:0 4px;text-align:center;font-size:14px;font-weight:700;
+  color:#1d150b;background:var(--teal);clip-path:polygon(0 0,calc(100% - 6px) 0,100% 6px,100% 100%,0 100%)}
+.sb-num.next{background:var(--paint)}
+.sb-track{position:relative;flex:1;height:10px;background:rgba(20,14,9,.75);
+  box-shadow:inset 0 1px 2px rgba(0,0,0,.6),0 0 0 1px rgba(0,0,0,.5)}
+.sb-track i{display:block;height:100%;width:0;
+  background:repeating-linear-gradient(90deg,transparent 0 10px,rgba(0,0,0,.25) 10px 12px),linear-gradient(180deg,#f4bd4c,#b8741a)}
+.sb-track u{position:absolute;top:-10px;width:3px;height:20px;margin-left:-1px;background:var(--bone2);box-shadow:0 0 2px #000}
+.sb-track u:after{content:"";position:absolute;left:3px;top:0;width:11px;height:9px;background:var(--red);
+  clip-path:polygon(0 0,100% 50%,0 100%)}
+.sb-track u.done{background:var(--bone3)}
+.sb-track u.done:after{background:var(--bone3)}
+@media (max-width:640px){.stage-bar,.boss-bar{max-width:calc(100% - 112px)}}
 .boss-banner{position:fixed;left:50%;top:22%;transform:translateX(-50%);z-index:55;text-align:center;
   pointer-events:none;animation:bannerIn .35s ease-out}
 .boss-banner b{display:block;font-size:15px;letter-spacing:.3em;color:var(--bone2);text-transform:uppercase;

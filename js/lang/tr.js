@@ -54,6 +54,8 @@ I18N.add('tr', {
     dps: 'Hasar {d} · hız {r}/sn · menzil {g}',
     bossIn: 'Yaklaşıyor',
     bossOut: 'Geçildi',
+    stageGoal: 'Hayatta kal. Boss {t} sonra', stageBossNear: 'Boss geliyor',
+    waveKind: 'Dalga', waveElite: 'Seçkin birlik', waveHeavy: 'Ağır sıklet', wavePack: 'Sürü',
     tabTrophies: 'Ganimetler',
     bossesStat: 'Bosslar',
     trophyNone: 'Henüz karşılaşmadın',

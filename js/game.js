@@ -76,6 +76,8 @@ var Game = {
     this.player.x = 0; this.player.y = 0;
     this.cam.x = 0; this.cam.y = 0;
     Enemies.opening();
+    this.stageN = 0;
+    Enemies.newStage();
 
     this.over = false;
     this.paused = false;

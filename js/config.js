@@ -1,5 +1,5 @@
 var CFG = {
-  version: '0.20.26',
+  version: '0.20.27',
   platform: 'pikabu',
   debug: false,
   metrics: { url: 'https://scrapfall-metrics.peneviy.workers.dev/e', dev: '' },
@@ -35,10 +35,11 @@ var CFG = {
   },
   spawn: { interval: 1.35, distMin: 520, distMax: 760, packChance: 0.18,
            batchPerMin: 0.7, batchMax: 5, minInterval: 0.3,
-           opening: { grunt: 8, runner: 3, swarm: 5 }, plateau: 0.7, rampT: 15,
+           opening: { grunt: 11, runner: 4, swarm: 8 }, plateau: 1.15, rampT: 10,
            lvlPace: 16, adaptUntil: 210, adaptPerLvl: 0.15, adaptMax: 0.6 },
   walls: { patience: 1.2, slide: 0.45 },
   boss: { first: 150, every: 130, grace: 35, leash: 1500, engage: 900, regen: 0.05 },
+  stage: { first: [{ at: 45, elites: 2, escort: 8 }, { at: 100, elites: 3, escort: 12 }], mid: 0.5 },
   elite: { after: 90, chance: 0.06 },
 
   coins: { timeBonus: 0.5, lvlBonus: 5, waveBonus: 12 },

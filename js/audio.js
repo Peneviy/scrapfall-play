@@ -100,9 +100,9 @@ var Snd = {
   },
 
   curve: function (k) {
-    var n = 1024, a = new Float32Array(n);
+    var n = 1025, a = new Float32Array(n);
     for (var i = 0; i < n; i++) {
-      var x = i * 2 / n - 1;
+      var x = i * 2 / (n - 1) - 1;
       a[i] = (1 + k) * x / (1 + k * Math.abs(x));
     }
     return a;
@@ -144,9 +144,9 @@ var Snd = {
   },
 
   route: function (node, o) {
-    var out = node;
+    var out = node, ws = null;
     if (o.shape) {
-      var ws = this.ctx.createWaveShaper();
+      ws = this.ctx.createWaveShaper();
       ws.curve = o.shape;
       out.connect(ws);
       out = ws;
@@ -158,6 +158,7 @@ var Snd = {
       out.connect(s);
       s.connect(this.verbSend);
     }
+    return ws;
   },
 
   burst: function (o) {
@@ -173,8 +174,9 @@ var Snd = {
     this.env(g.gain, t, o.vol, o.dur, o.atk);
     src.connect(f);
     f.connect(g);
-    this.route(g, o);
+    var ws = this.route(g, o);
     src.start(t, Math.random() * 0.5, o.dur + 0.05);
+    if (ws) src.onended = function () { ws.disconnect(); };
   },
 
   osc: function (o) {
@@ -197,9 +199,10 @@ var Snd = {
       g.connect(f);
       out = f;
     }
-    this.route(out, o);
+    var ws = this.route(out, o);
     osc.start(t);
     osc.stop(t + o.dur + 0.05);
+    if (ws) osc.onended = function () { ws.disconnect(); };
   },
 
   pluck: function (o) {
@@ -235,11 +238,12 @@ var Snd = {
       post.gain.value = o.post || 0.3;
       lp.connect(post);
       out = post;
+      src.onended = function () { ws.disconnect(); };
     }
     this.route(out, { bus: o.bus || this.musGain, verb: o.verb });
   },
 
-  gaps: { hit: 0.085, kill: 0.06, shot: 0.05, shotBig: 0.09, boom: 0.13, splash: 0.09, crate: 0.05, crateBreak: 0.06, pick: 0.045, coin: 0.05, aggro: 25, barrel: 0.3 },
+  gaps: { hit: 0.11, kill: 0.09, shot: 0.05, shotBig: 0.09, boom: 0.13, splash: 0.22, crate: 0.05, crateBreak: 0.06, pick: 0.045, coin: 0.05, aggro: 25, barrel: 0.3 },
   last: {},
   recent: [],
   pickN: 0,
@@ -249,8 +253,10 @@ var Snd = {
   duck: function () {
     if (!this.sfxGain) return;
     var n = Game.running ? Game.enemies.length : 0;
-    var k = 1 / (1 + n / 120);
-    this.sfxGain.gain.value = 0.55 * Math.max(0.32, k);
+    var v = 0.55 * Math.max(0.32, 1 / (1 + n / 120));
+    if (Math.abs(v - (this.duckV || 0)) < 0.01) return;
+    this.duckV = v;
+    this.sfxGain.gain.setTargetAtTime(v, this.ctx.currentTime, 0.12);
   },
 
   play: function (name) {
@@ -263,7 +269,7 @@ var Snd = {
       this.last[name] = now;
     }
     while (this.recent.length && now - this.recent[0] > 0.1) this.recent.shift();
-    if (this.recent.length > 14 && name !== 'boss' && name !== 'level' && name !== 'over') return;
+    if (this.recent.length >= 9 && name !== 'boss' && name !== 'level' && name !== 'over') return;
     this.recent.push(now);
 
     var r = 1 + (Math.random() - 0.5) * 0.14;
@@ -282,7 +288,7 @@ var Snd = {
         this.burst({ brown: true, type: 'lowpass', f0: 1000, f1: 350, dur: 0.035, vol: 0.05 });
         break;
       case 'kill':
-        this.burst({ brown: true, type: 'lowpass', f0: 1300 * r, f1: 260, dur: 0.11, vol: 0.2, shape: this.soft });
+        this.burst({ brown: true, type: 'lowpass', f0: 1300 * r, f1: 260, dur: 0.11, vol: 0.32 });
         this.osc({ type: 'sine', f0: 240 * r, f1: 60, dur: 0.1, vol: 0.14 });
         for (k = 0; k < 2; k++) {
           this.osc({ t: now + 0.04 + k * 0.045 + Math.random() * 0.015, type: 'sine',
@@ -295,8 +301,8 @@ var Snd = {
         this.burst({ t: now + 0.05, f0: 1400, f1: 400, q: 0.5, dur: 0.18, vol: 0.06, shape: this.soft });
         break;
       case 'splash':
-        this.burst({ brown: true, type: 'lowpass', f0: 900 * r, f1: 120, dur: 0.26, vol: 0.38, shape: this.soft, verb: 0.18 });
-        this.osc({ type: 'sine', f0: 95 * r, f1: 36, dur: 0.22, vol: 0.26 });
+        this.burst({ brown: true, type: 'lowpass', f0: 900 * r, f1: 140, dur: 0.18, vol: 0.3, verb: 0.12 });
+        this.osc({ type: 'sine', f0: 95 * r, f1: 40, dur: 0.16, vol: 0.18 });
         break;
       case 'crate':
         this.burst({ type: 'bandpass', f0: 1500 * r, f1: 600, q: 1.2, dur: 0.045, vol: 0.14, shape: this.soft });
@@ -542,7 +548,7 @@ var Snd = {
 
     var lowSteps = night ? [0, 8] : [0, 6, 8, 14];
     if (lowSteps.indexOf(b) >= 0) this.tom(t, 62, b === 0 ? 0.55 : 0.4, M);
-    if (b % 2 === 0 || (L >= 3 && !night)) this.shaker(t, b % 4 === 0 ? 0.05 : 0.03, M);
+    if (b % 2 === 0 || (L >= 3 && !night)) this.shaker(t, b % 4 === 0 ? 0.02 : 0.012, M);
     if (b === 0 || b === 8 || (L >= 2 && (b === 6 || b === 14))) {
       this.osc({ t: t, type: 'triangle', f0: root, dur: night ? 0.7 : 0.35, vol: 0.32, lp: 260, bus: M });
     }

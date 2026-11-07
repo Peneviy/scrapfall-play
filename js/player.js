@@ -22,7 +22,7 @@ var Player = {
         xp: m.xp,
         count: 0, spread: 0, pierce: 0, splash: 0, ricochet: 0, chain: 0,
         crit: 0.05, arcs: 0, orbit: 0, turret: 0, frost: 0, thorns: 0, vamp: 0,
-        nova: 0, tether: 0, spore: 0, siphon: 0, burn: 0, turretLife: 0,
+        nova: 0, tether: 0, spore: 0, siphon: 0, burn: 0, turretLife: 0, grab: 0,
         dashCd: CFG.player.dashCd, armor: ch.armor,
         radius: m.radius, tech: m.tech
       },
@@ -200,7 +200,6 @@ var Player = {
         p.novaCd = 6;
         var nr = (180 + p.st.nova * 70) * p.st.radius;
         FX.ring(p.x, p.y, 20, nr, CFG.col.ally, 0.5, 5);
-        Snd.play('boom');
         var hit = [];
         Game.grid.query(p.x, p.y, nr, hit);
         for (var n = 0; n < hit.length; n++) {

@@ -119,6 +119,13 @@ var Skills = {
       at: function (l) { return I18N.t('at_magnet', { n: Math.round((Math.pow(1.4, l + 1) - 1) * 100) }); },
     },
     {
+      id: 'grab', def: true, max: 2, w: 7, rar: 'common', ic: '⊙', col: '#ffd27d',
+      ru: { n: 'Длинные руки', d: 'Лом, аптечки и баффы с земли сами летят к тебе' },
+      en: { n: 'Long Arms', d: 'Scrap, medkits and buffs on the ground fly to you' },
+      apply: function (p) { p.st.grab += 1; },
+      at: function (l) { return I18N.t('at_grab', { n: 70 + (l + 1) * 80 }); },
+    },
+    {
       id: 'frost', def: true, max: 2, w: 6, rar: 'rare', ic: '❄', col: '#7ec8ff',
       syn: ['burn', 'thorns', 'nova'],
       ru: { n: 'Морозильник', d: 'Враги рядом двигаются на 25% медленнее' },

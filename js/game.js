@@ -322,6 +322,7 @@ var Game = {
       var h = this.heals[i];
       h.life -= dt;
       if (h.life <= 0) { this.heals.splice(i, 1); continue; }
+      if (p.st.grab > 0 && p.hp < p.st.maxHp) this.pull(h, p, dt);
       if (U.dist2(h.x, h.y, p.x, p.y) < (p.r + h.r + 6) * (p.r + h.r + 6)) {
         p.heal(p.st.maxHp * 0.07);
         FX.text(p.x, p.y - 20, '+' + Math.round(p.st.maxHp * 0.07), CFG.col.heal, 15);
@@ -338,12 +339,21 @@ var Game = {
       d.life -= dt;
       d.bob += dt * 3;
       if (d.life <= 0) { this.drops.splice(i, 1); continue; }
+      if (p.st.grab > 0 && !(d.t === 'heal' && p.hp >= p.st.maxHp)) this.pull(d, p, dt);
       var rr = p.r + d.r + 8;
       if (U.dist2(d.x, d.y, p.x, p.y) > rr * rr) continue;
       if (d.t === 'heal' && p.hp >= p.st.maxHp) continue;
       this.applyDrop(d);
       this.drops.splice(i, 1);
     }
+  },
+
+  pull: function (o, p, dt) {
+    var R = 70 + 80 * p.st.grab, d = U.dist(o.x, o.y, p.x, p.y);
+    if (d >= R || d < 1) return;
+    var sp = 380 * (1 - d / R) + 160, a = U.angleTo(o.x, o.y, p.x, p.y);
+    o.x += Math.cos(a) * sp * dt;
+    o.y += Math.sin(a) * sp * dt;
   },
 
   applyDrop: function (d) {

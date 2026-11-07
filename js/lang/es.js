@@ -26,7 +26,7 @@ I18N.add('es', {
     lowAuto: 'Equipo lento: sombras desactivadas, puedes volver a activarlas en ajustes',
     at_rapid: 'cadencia: +{n}%', at_heavy: 'daño total: +{n}%', at_crit: 'prob. de crítico: {n}%',
     at_orbit: 'fragmentos: {n}', at_turret: 'torretas: hasta {n}', at_chain: 'saltos: {n}', at_boots: 'velocidad: +{n}%',
-    at_plate: 'vida total: +{n}', at_regen: 'cura {n} por segundo', at_magnet: 'radio de recogida: +{n}%', at_grab: 'alcance: {n}',
+    at_plate: 'vida total: +{n}', at_regen: 'cura {n} por segundo', at_magnet: 'radio de recogida: +{n}%, XP: +{x}%', at_grab: 'alcance de recogida: {n}',
     at_frost: 'radio de frío: {n}', at_thorns: 'radio de retroceso: {n}', at_vamp: 'prob. de botiquín: {n}%',
     at_dash: 'recarga del impulso: -{n}%', at_nova: 'radio del anillo: {n}', at_tether: 'daño del rayo: x{n}',
     at_spore: 'radio de la nube: {n}', at_siphon: 'cada 20.ª baja devuelve {n}% de vida',

@@ -26,7 +26,7 @@ I18N.add('tr', {
     lowAuto: 'Yavaş cihaz: gölgeler kapatıldı, ayarlardan geri açabilirsin',
     at_rapid: 'atış hızı: +%{n}', at_heavy: 'toplam hasar: +%{n}', at_crit: 'kritik şansı: %{n}',
     at_orbit: 'parça: {n}', at_turret: 'taret: en çok {n}', at_chain: 'sıçrama: {n}', at_boots: 'hız: +%{n}',
-    at_plate: 'toplam can: +{n}', at_regen: 'saniyede {n} iyileştirir', at_magnet: 'toplama yarıçapı: +%{n}', at_grab: 'menzil: {n}',
+    at_plate: 'toplam can: +{n}', at_regen: 'saniyede {n} iyileştirir', at_magnet: 'toplama yarıçapı: +%{n}, tecrübe: +%{x}', at_grab: 'toplama menzili: {n}',
     at_frost: 'soğuk yarıçapı: {n}', at_thorns: 'tepme yarıçapı: {n}', at_vamp: 'ilk yardım şansı: %{n}',
     at_dash: 'atılma bekleme: -%{n}', at_nova: 'halka yarıçapı: {n}', at_tether: 'ışın hasarı: x{n}',
     at_spore: 'bulut yarıçapı: {n}', at_siphon: 'her 20. öldürme %{n} can geri verir',

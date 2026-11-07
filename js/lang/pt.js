@@ -26,7 +26,7 @@ I18N.add('pt', {
     lowAuto: 'Dispositivo lento: sombras desligadas, dá para religar nas opções',
     at_rapid: 'cadência: +{n}%', at_heavy: 'dano total: +{n}%', at_crit: 'chance de crítico: {n}%',
     at_orbit: 'estilhaços: {n}', at_turret: 'torretas: até {n}', at_chain: 'saltos: {n}', at_boots: 'velocidade: +{n}%',
-    at_plate: 'vida total: +{n}', at_regen: 'cura {n} por segundo', at_magnet: 'raio de coleta: +{n}%', at_grab: 'alcance: {n}',
+    at_plate: 'vida total: +{n}', at_regen: 'cura {n} por segundo', at_magnet: 'raio de coleta: +{n}%, XP: +{x}%', at_grab: 'alcance de coleta: {n}',
     at_frost: 'raio de frio: {n}', at_thorns: 'raio do repelão: {n}', at_vamp: 'chance de kit médico: {n}%',
     at_dash: 'recarga do impulso: -{n}%', at_nova: 'raio do anel: {n}', at_tether: 'dano do raio: x{n}',
     at_spore: 'raio da nuvem: {n}', at_siphon: 'cada 20º abate devolve {n}% de vida',

@@ -93,7 +93,7 @@ var Skills = {
       ru: { n: 'Подошвы', d: '+8% скорости хода' },
       en: { n: 'Soles', d: '+8% move speed' },
       apply: function (p) { p.st.speed *= 1.08; },
-      at: function (l) { return I18N.t('at_boots', { n: Math.round((Math.pow(1.1, l + 1) - 1) * 100) }); },
+      at: function (l) { return I18N.t('at_boots', { n: Math.round((Math.pow(1.08, l + 1) - 1) * 100) }); },
     },
     {
       id: 'plate', def: true, max: 5, w: 11, rar: 'common', ic: '⬟', col: '#7ee08a',
@@ -116,7 +116,7 @@ var Skills = {
       ru: { n: 'Улов', d: '+40% радиуса подбора, +12% опыта' },
       en: { n: 'Haul', d: '+40% pickup radius, +12% XP' },
       apply: function (p) { p.st.pickup *= 1.4; p.st.xp *= 1.12; },
-      at: function (l) { return I18N.t('at_magnet', { n: Math.round((Math.pow(1.4, l + 1) - 1) * 100) }); },
+      at: function (l) { return I18N.t('at_magnet', { n: Math.round((Math.pow(1.4, l + 1) - 1) * 100), x: Math.round((Math.pow(1.12, l + 1) - 1) * 100) }); },
     },
     {
       id: 'grab', def: true, max: 2, w: 7, rar: 'common', ic: '⊙', col: '#ffd27d',

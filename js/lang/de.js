@@ -26,7 +26,7 @@ I18N.add('de', {
     lowAuto: 'Schwacher Rechner: Schatten aus, in den Einstellungen wieder einschaltbar',
     at_rapid: 'Feuerrate: +{n}%', at_heavy: 'Gesamtschaden: +{n}%', at_crit: 'Kritchance: {n}%',
     at_orbit: 'Trümmer: {n}', at_turret: 'Geschütze: bis zu {n}', at_chain: 'Sprünge: {n}', at_boots: 'Tempo: +{n}%',
-    at_plate: 'Leben gesamt: +{n}', at_regen: 'heilt {n} pro Sekunde', at_magnet: 'Sammelradius: +{n}%', at_grab: 'Reichweite: {n}',
+    at_plate: 'Leben gesamt: +{n}', at_regen: 'heilt {n} pro Sekunde', at_magnet: 'Sammelradius: +{n}%, XP: +{x}%', at_grab: 'Sammelreichweite: {n}',
     at_frost: 'Kälteradius: {n}', at_thorns: 'Rückstoßradius: {n}', at_vamp: 'Medkit-Chance: {n}%',
     at_dash: 'Dash-Abklingzeit: -{n}%', at_nova: 'Ringradius: {n}', at_tether: 'Strahlschaden: x{n}',
     at_spore: 'Wolkenradius: {n}', at_siphon: 'jeder 20. Kill gibt {n}% Leben zurück',

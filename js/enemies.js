@@ -172,10 +172,13 @@ var Enemies = {
     else { for (i = 0; i < f.elites; i++) elites.push(at(i)); esc = f.escort; }
     for (i = 0; i < elites.length; i++) {
       e = this.spawn(elites[i], bx + U.rand(-50, 50), by + U.rand(-50, 50), true);
-      if (e && i === 0) e.flagLoot = true;
+      if (!e) continue;
+      e.wave = true;
+      if (i === 0) e.flagLoot = true;
     }
     for (i = 0; i < esc; i++) {
-      this.spawn(i < swarm ? 'swarm' : this.pickType(), bx + U.rand(-110, 110), by + U.rand(-110, 110), false);
+      e = this.spawn(i < swarm ? 'swarm' : this.pickType(), bx + U.rand(-110, 110), by + U.rand(-110, 110), false);
+      if (e) e.wave = true;
     }
     Snd.play('wave');
     UI.banner(I18N.t('waveKind'), I18N.t(name));
@@ -441,7 +444,7 @@ var Enemies = {
         Save.flush(true);
         UI.bossBanner(I18N.name(e.bd), false);
       }
-      Game.nextBoss = Math.max(Game.nextBoss, Game.time + CFG.boss.grace);
+      Game.nextBoss = Game.time + U.clamp(Game.nextBoss - Game.time, CFG.boss.grace, CFG.boss.graceMax);
       Enemies.newStage();
       Player.grantLevel(Game.player);
       var restored = false;

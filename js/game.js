@@ -554,8 +554,12 @@ var Game = {
       if (o.boss) {
         ctx.fillStyle = o.bd ? o.bd.trim : '#f0a24a';
         ctx.fillRect(mx - 3, my - 3, 6, 6);
+      } else if (o.elite || o.wave) {
+        ctx.fillStyle = '#e45cff';
+        var s = o.elite ? 4 : 3;
+        ctx.fillRect(mx - s / 2, my - s / 2, s, s);
       } else {
-        ctx.fillStyle = o.elite ? '#a24bd6' : '#c9563a';
+        ctx.fillStyle = '#c9563a';
         ctx.fillRect(mx - 1, my - 1, 2, 2);
       }
     }

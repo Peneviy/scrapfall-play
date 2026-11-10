@@ -192,6 +192,25 @@ var UI = {
     if (hold || !Save.data.hintSeen) this.showCtrlHint();
   },
 
+  crash: function () {
+    try { Snd.mute(true); } catch (e) {}
+    try { this.hideAll(); } catch (e) {}
+    var el = this.el('crashScreen');
+    if (!el) return;
+    el.classList.remove('hidden');
+    try { I18N.apply(); } catch (e) {}
+    var go = function () {
+      el.onclick = null;
+      try {
+        if (Game.running && !Game.settled) Game.settle();
+        if (Game.running && !Game.committed) Game.commit();
+        Save.flush(true);
+      } catch (e) {}
+      setTimeout(function () { location.reload(); }, 400);
+    };
+    el.onclick = go;
+  },
+
   holdStart: function () {
     var self = this;
     Game.hold = true;

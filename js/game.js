@@ -748,7 +748,21 @@ var Game = {
   frame: function (ts) {
     var self = this;
     requestAnimationFrame(function (t) { self.frame(t); });
+    if (this.broken) return;
+    try {
+      this.tick(ts);
+      this.errRun = 0;
+    } catch (e) {
+      this.errRun = (this.errRun || 0) + 1;
+      Metrics.error(e, 'frame');
+      if (this.errRun >= 30) {
+        this.broken = true;
+        UI.crash();
+      }
+    }
+  },
 
+  tick: function (ts) {
     var dt = (ts - this.lastTs) / 1000;
     this.lastTs = ts;
     if (!(dt > 0)) return;

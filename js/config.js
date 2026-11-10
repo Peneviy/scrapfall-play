@@ -1,5 +1,5 @@
 var CFG = {
-  version: '0.20.32',
+  version: '0.20.33',
   platform: 'pikabu',
   debug: false,
   metrics: { url: 'https://scrapfall-metrics.peneviy.workers.dev/e', dev: '' },

@@ -29,6 +29,14 @@ var Metrics = {
     document.addEventListener('visibilitychange', function () { if (document.hidden) self.flush(true); });
     window.addEventListener('pagehide', function () { self.flush(true); });
     window.addEventListener('online', function () { self.fails = 0; self.flush(); });
+    window.addEventListener('error', function (ev) {
+      if (!ev || !ev.filename || /Script error/i.test(ev.message || '')) return;
+      self.error(ev.error || { message: ev.message, stack: ev.filename + ':' + ev.lineno + ':' + ev.colno }, 'win');
+    });
+    window.addEventListener('unhandledrejection', function (ev) {
+      var r = ev && ev.reason;
+      if (r && r.stack && /\/js\/[\w.-]+\.js/.test(r.stack)) self.error(r, 'promise');
+    });
   },
 
   _id: function () { return Math.random().toString(36).slice(2, 10) + Date.now().toString(36); },
@@ -51,6 +59,27 @@ var Metrics = {
     this.push({
       t: 'r', d: Math.round(res.time || 0), k: res.kills | 0, l: res.level | 0,
       p: (Save.data && Save.data.prestige) | 0, s: res.score | 0
+    });
+  },
+
+  errSeen: {},
+  errN: 0,
+  error: function (e, where) {
+    if (!this.url || this.errN >= 5) return;
+    var msg = String((e && e.message) || e || '?').slice(0, 120);
+    var at = '', st = e && e.stack ? String(e.stack).split('\n') : [];
+    for (var i = 0; i < st.length; i++) {
+      var m = st[i].match(/([\w.-]+\.(?:js|html)):(\d+):(\d+)/);
+      if (m) { at = m[1] + ':' + m[2] + ':' + m[3]; break; }
+    }
+    var key = msg + '@' + at;
+    if (this.errSeen[key]) return;
+    this.errSeen[key] = 1;
+    this.errN++;
+    var g = window.Game || {};
+    this.push({
+      t: 'x', m: msg, w: (String(where || '') + ' ' + at).trim().slice(0, 60),
+      g: Math.round(g.time || 0), l: (g.player && g.player.level) | 0
     });
   },
 

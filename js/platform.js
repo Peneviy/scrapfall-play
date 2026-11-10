@@ -375,6 +375,18 @@ var PF = {
     setTimeout(go, 500);
   },
 
+  _backInGame: function (cb) {
+    var t0 = Date.now(), evs = ['pointerdown', 'keydown'];
+    var off = function () { evs.forEach(function (ev) { window.removeEventListener(ev, h, true); }); };
+    var h = function () {
+      if (Date.now() - t0 < 1500) return;
+      off();
+      cb();
+    };
+    evs.forEach(function (ev) { window.addEventListener(ev, h, true); });
+    var self = this, iv = setInterval(function () { if (!self.adRunning) { clearInterval(iv); off(); } }, 1000);
+  },
+
   showFullscreen: function (done, where) {
     done = done || function () {};
     if (!this.canFullscreen(where)) { done(false); return; }
@@ -384,8 +396,12 @@ var PF = {
       self._adEnd();
       done(!!shown);
     };
-    var pass = this._guard(function () { raw(false); }, CFG.ads.timeout);
+    var pass = this._guard(function () {
+      Metrics.error({ message: 'ad fullscreen timeout' }, 'ad ' + self.kind);
+      raw(false);
+    }, this.pkb ? 240 : CFG.ads.timeout);
     var finish = function (shown) { if (pass()) raw(shown); };
+    if (this.pkb) this._backInGame(function () { finish(false); });
     this._adStart(!!this.cg);
 
     if (this.ysdk) {

@@ -54,7 +54,6 @@ var UI = {
     this.el('setSfx').checked = !!set.sfx;
     this.el('setMusic').checked = !!set.music;
     this.el('setShake').checked = !!set.shake;
-    this.el('setLow').checked = !!set.low;
     this.el('pauseSfx').checked = !!set.sfx;
     this.el('pauseMusic').checked = !!set.music;
     this.el('setSfx').onchange = function () { self.setSound('sfx', this.checked); };
@@ -67,11 +66,12 @@ var UI = {
     this.el('setVol').onchange = function () { self.setVol(this.value / 100, true); };
     this.el('pauseVol').onchange = function () { self.setVol(this.value / 100, true); };
     this.el('setShake').onchange = function () { set.shake = this.checked ? 1 : 0; Save.flush(true); };
-    this.el('setLow').onchange = function () {
-      set.low = this.checked ? 1 : 0;
-      if (View3D.on) View3D.setLow(!!set.low);
-      Save.flush(true);
-    };
+    Quality.start(View3D.weak);
+    var qb = document.querySelectorAll('#setQ .btn');
+    for (var qi = 0; qi < qb.length; qi++) {
+      qb[qi].onclick = function () { Quality.choose(this.getAttribute('data-q')); self.markQ(); };
+    }
+    this.markQ();
     this.el('setDashL').checked = !!set.dashL;
     this.el('setDashL').onchange = function () { set.dashL = this.checked ? 1 : 0; Input.dashSide(); Save.flush(true); };
 
@@ -116,6 +116,11 @@ var UI = {
     this.el('btnAimMode').setAttribute('data-i18n', key);
     this.el('abAimText').textContent = txt;
     this.el('btnAimMode').textContent = txt;
+  },
+
+  markQ: function () {
+    var qb = document.querySelectorAll('#setQ .btn');
+    for (var i = 0; i < qb.length; i++) qb[i].classList.toggle('active', qb[i].getAttribute('data-q') === Save.data.set.q);
   },
 
   markLang: function () {
@@ -331,6 +336,7 @@ var UI = {
     this.el('coinText').textContent = U.num(Game.runCoins);
     this.el('killText').textContent = Game.kills;
     this.el('scoreText').textContent = U.num(Game.finalScore()) + ' ' + I18N.t('scoreShort');
+    LB.tick();
     this.el('hpFill').style.width = U.clamp(p.hp / p.st.maxHp * 100, 0, 100) + '%';
     this.el('hpText').textContent = Math.ceil(p.hp) + ' / ' + Math.round(p.st.maxHp);
 
@@ -558,6 +564,7 @@ var UI = {
       (sp.bosses ? '<div><span>' + I18N.t('breakBosses') + '</span><b>' + U.num(sp.bosses) + '</b></div>' : '') +
       '<div><span>' + I18N.t('breakTime') + '</span><b>' + U.num(sp.time) + '</b></div>';
     this.el('ovNewBest').classList.toggle('hidden', res.score <= Save.data.best.score);
+    LB.over(res);
     this.el('btnRevive').classList.toggle('hidden', Game.reviveLeft <= 0);
     this.el('btnDouble').classList.remove('hidden');
     this.syncAdButtons();
@@ -850,6 +857,7 @@ var UI = {
     list.innerHTML = '';
     this.el('btnAuth').classList.toggle('hidden', !PF.needAuthForBoard());
 
+    if (LB.on) { LB.board(list); return; }
     if (PF.kind !== 'yandex' || !PF.lb) {
       var b = Save.data.best;
       list.innerHTML = '<div class="board-row"><span class="nm">' +

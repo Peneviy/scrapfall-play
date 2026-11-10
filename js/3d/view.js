@@ -37,25 +37,24 @@ var View3D = {
     this.sunDir = new THREE.Vector3(-0.6, 1.25, 0.45).normalize();
     s.add(sun);
     s.add(sun.target);
-    if (Save.data && !Save.data.set.low && !Save.data.lowAuto && this.weakGpu(r)) {
-      Save.data.set.low = 1;
-      Save.data.lowAuto = 1;
-    }
-    this.shadowsOn = !(Save.data && Save.data.set.low);
-    if (this.shadowsOn) {
-      r.shadowMap.enabled = true;
-      r.shadowMap.type = THREE.PCFSoftShadowMap;
-      sun.castShadow = true;
-      sun.shadow.mapSize.set(2048, 2048);
-      sun.shadow.bias = -0.0006;
-      sun.shadow.normalBias = 0.6;
-    }
+    this.weak = this.weakGpu(r);
+    if (Save.data) Quality.start(this.weak);
+    var lvl = Quality.level();
+    r.shadowMap.type = THREE.PCFSoftShadowMap;
+    sun.shadow.mapSize.set(Quality.shadowSize(lvl), Quality.shadowSize(lvl));
+    sun.shadow.bias = -0.0006;
+    sun.shadow.normalBias = 0.6;
+    this.shadowsOn = lvl > 0;
+    r.shadowMap.enabled = this.shadowsOn;
+    sun.castShadow = this.shadowsOn;
 
     this.matLit = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
     this.matGlow = new THREE.MeshBasicMaterial({ vertexColors: true });
     this.matFlat = new THREE.MeshBasicMaterial({ color: 0xffffff });
     this.matTint = new THREE.MeshLambertMaterial({ color: 0xffffff, vertexColors: true, flatShading: true });
 
+    if (this.walls) for (var wi = 0; wi < this.walls.length; wi++) this.walls[wi].mesh3 = null;
+    this.halos = null;
     this.buildGround();
     this.buildBatches();
     this.buildAtmos();
@@ -65,6 +64,7 @@ var View3D = {
     this.pl = null;
     this.decoKey = '';
     this.decoCache = {};
+    this.decoBatches = null;
 
     this._v = new THREE.Vector3();
     this._ndc = new THREE.Vector2();
@@ -137,9 +137,7 @@ var View3D = {
   resize: function (w, h, dpr) {
     if (!this.on) return;
     this.w = w; this.h = h;
-    var low = Save.data && Save.data.set.low;
-    var lr = low && Save.data.lowRes;
-    this.renderer.setPixelRatio(lr ? 0.75 : (low ? 1 : Math.min(dpr || 1, 1.75)));
+    this.renderer.setPixelRatio(Quality.pixelRatio(Quality.level(), dpr));
     this.renderer.setSize(w, h, false);
 
     var cfg = CFG.view3d;
@@ -348,7 +346,6 @@ var View3D = {
       new THREE.MeshLambertMaterial({ color: 0xffffff, flatShading: true }), 90, true));
     this.shockwalls = add(View3D.makeWalls(60));
     this._c = new THREE.Color();
-    this.crates.glow = add(new View3D.Batch(crate.glow, this.matGlow, 80, false, this.crates));
 
     this.props = {};
     var kinds = ['tire', 'barrel', 'barrelDown', 'plate', 'pipe', 'rock', 'bush', 'grass', 'yucca', 'deadtree', 'pole', 'sign'];
@@ -442,7 +439,7 @@ var View3D = {
 
     var t = this.tile;
     this.ground.position.set(Math.round(cx / t) * t, 0, Math.round(cy / t) * t);
-    var snap = this.radius * 2.1 / 2048;
+    var snap = this.radius * 2.1 / this.sun.shadow.mapSize.x;
     var sx = Math.round(cx / snap) * snap, sy = Math.round(cy / snap) * snap;
     this.sun.target.position.set(sx, 0, sy);
     this.sun.position.set(sx + this.sunDir.x * 1500, this.sunDir.y * 1500, sy + this.sunDir.z * 1500);
@@ -451,7 +448,7 @@ var View3D = {
     for (var i = 0; i < this.batches.length; i++) this.batches[i].begin();
 
     this.syncDeco(cx, cy);
-    this.syncWalls();
+    this.syncWalls(cx, cy);
     this.syncCrates();
     this.syncEnemies();
     this.syncBosses(dt);
@@ -559,7 +556,7 @@ var View3D = {
     this.camera.updateMatrixWorld();
     var t = this.tile;
     this.ground.position.set(Math.round(cx / t) * t, 0, Math.round(cy / t) * t);
-    var snap = this.radius * 2.1 / 2048;
+    var snap = this.radius * 2.1 / this.sun.shadow.mapSize.x;
     var sx = Math.round(cx / snap) * snap, sy = Math.round(cy / snap) * snap;
     this.sun.target.position.set(sx, 0, sy);
     this.sun.position.set(sx + this.sunDir.x * 1500, this.sunDir.y * 1500, sy + this.sunDir.z * 1500);
@@ -568,7 +565,7 @@ var View3D = {
     this.forceT = undefined;
     for (i = 0; i < this.batches.length; i++) this.batches[i].begin();
     this.syncDeco(cx, cy);
-    this.syncWalls();
+    this.syncWalls(cx, cy);
     this.syncCrates();
     for (i = 0; i < this.batches.length; i++) this.batches[i].end();
     this.renderer.render(this.scene, this.camera);
@@ -580,15 +577,17 @@ var View3D = {
     var x0 = Math.floor((cx - 1500) / b), x1 = Math.floor((cx + 1500) / b);
     var y0 = Math.floor((cy - 1300) / b), y1 = Math.floor((cy + 1700) / b);
     var key = x0 + ':' + x1 + ':' + y0 + ':' + y1;
-    if (key !== this.decoKey) {
-      this.decoKey = key;
-      var list = [];
-      for (var gx = x0; gx <= x1; gx++) for (var gy = y0; gy <= y1; gy++) list.push(this.deco(gx, gy));
-      this.decoList = list;
-      var keys = Object.keys(this.decoCache);
-      if (keys.length > 200) this.decoCache = {};
-    }
+    if (key === this.decoKey) return;
+    this.decoKey = key;
+    var list = [];
+    for (var gx = x0; gx <= x1; gx++) for (var gy = y0; gy <= y1; gy++) list.push(this.deco(gx, gy));
+    this.decoList = list;
+    var keys = Object.keys(this.decoCache);
+    if (keys.length > 200) this.decoCache = {};
+    var stat = this.decoBatches || (this.decoBatches = [this.decals, this.lines].concat(
+      Object.keys(this.props).map(function (k) { return this.props[k]; }, this)));
     var i, j, d;
+    for (i = 0; i < stat.length; i++) stat[i].base = stat[i].n = 0;
     for (i = 0; i < this.decoList.length; i++) {
       var c = this.decoList[i];
       for (j = 0; j < c.stains.length; j++) {
@@ -611,6 +610,7 @@ var View3D = {
         }
       }
     }
+    for (i = 0; i < stat.length; i++) { stat[i].base = stat[i].n; stat[i].fresh = true; }
   },
 
   deco: function (cx, cy) {
@@ -684,15 +684,20 @@ var View3D = {
     return res;
   },
 
-  syncWalls: function () {
-    var near = World.near, i;
+  syncWalls: function (cx, cy) {
+    var near = World.near, i, built = 0, seen = this.radius + 250;
     var frame = this.frameNo = (this.frameNo || 0) + 1;
     for (i = 0; i < near.length; i++) {
       var w = near[i];
       if (!w.mesh3) {
+        if (built > 0) {
+          var dx = Math.max(w.x - cx, 0, cx - w.x - w.w), dy = Math.max(w.y - cy, 0, cy - w.y - w.h);
+          if (dx * dx + dy * dy > seen * seen) continue;
+        }
         w.mesh3 = this.wallMesh(w);
         this.scene.add(w.mesh3);
         this.walls.push(w);
+        built++;
       }
       w.frame3 = frame;
     }
@@ -707,12 +712,15 @@ var View3D = {
   },
 
   wallMesh: function (w) {
-    var M = Models, B = M.B, C = M.C;
+    var M = Models, B = M.fastBox;
+    var C = function (rt, rb, h, n) {
+      return M.tpl('C' + rt + ',' + rb + ',' + h + ',' + n, function () { return M.C(rt, rb, h, n); });
+    };
     var r = World.rng(Math.floor(w.x), Math.floor(w.y));
     var long = Math.max(w.w, w.h), short = Math.min(w.w, w.h);
     var alongX = w.w >= w.h;
     var style = r();
-    var mdl = M.build(function (add) {
+    var mdl = M.fast(function (add) {
       var put = add;
       var container = function (cx, y0, len, dep, hgt, col, yaw) {
         var c = Math.cos(yaw), s = Math.sin(yaw);
@@ -744,7 +752,7 @@ var View3D = {
           container((r() - 0.5) * long * 0.12, hgt + 1, long * 0.82, short * 0.95, hgt * 0.95,
             cols[Math.floor(r() * cols.length)], (r() - 0.5) * 0.1);
         } else if (r() < 0.6) {
-          put(M.T(9, 3.6, 5, 10), '#1f1c1a', (r() - 0.5) * long * 0.5, hgt + 3.6, 0, Math.PI / 2);
+          put(M.tpl('T9', function () { return M.T(9, 3.6, 5, 10); }), '#1f1c1a', (r() - 0.5) * long * 0.5, hgt + 3.6, 0, Math.PI / 2);
         }
       } else if (style < 0.5) {
         var carCols = ['#6b2f2a', '#2f5560', '#8a6a2f', '#4a4f58', '#3f5a3a', '#7a5a3a'];
@@ -782,7 +790,7 @@ var View3D = {
         }
         if (r() < 0.55) {
           var mx = (r() - 0.5) * long * 0.4, mh = 90 + r() * 50;
-          put(C(1.4, 2.2, mh, 6), '#5d5752', mx, mh / 2, 0);
+          put(M.C(1.4, 2.2, mh, 6), '#5d5752', mx, mh / 2, 0);
           put(B(26, 2, 2), '#5d5752', mx, mh - 6, 0);
           put(B(12, 8, 0.6), '#a8402c', mx + 8, mh - 14, 0, 0, 0, 0.1);
         }
@@ -842,7 +850,7 @@ var View3D = {
   },
 
   syncEnemies: function () {
-    var list = Game.enemies, t = Game.time, d = this._dummy;
+    var list = Game.enemies, t = Game.time;
     var white = Models.color('#ffffff'), elite = Models.color('#c48cff'), purple = Models.color('#a24bd6');
     for (var i = 0; i < list.length; i++) {
       var e = list[i];
@@ -852,12 +860,9 @@ var View3D = {
       var ph = t * (e.def.heavy ? 7 : 11) + e.phase;
       var hover = e.type === 'swarm' ? r * 0.5 + Math.sin(ph * 0.7) * r * 0.15 : 0;
       var hop = e.type === 'nest' ? 0 : Math.abs(Math.sin(ph)) * r * 0.1;
-      d.position.set(e.x, hover + hop, e.y);
-      d.rotation.set(Math.sin(ph) * 0.07, -e.ang, e.type === 'nest' ? 0 : Math.cos(ph * 2) * 0.03);
-      if (e.type === 'nest') d.rotation.y = e.phase;
-      d.scale.set(r, r, r);
-      d.updateMatrix();
-      var k = b.putM(d.matrix);
+      var nest = e.type === 'nest';
+      var k = b.putR(e.x, hover + hop, e.y, Math.sin(ph) * 0.07, nest ? e.phase : -e.ang,
+        nest ? 0 : Math.cos(ph * 2) * 0.03, r);
       if (k < 0) continue;
       if (e.flash > 0) b.tint(k, white, 6);
       else if (e.elite) b.tint(k, elite, 1);
@@ -1170,23 +1175,24 @@ var View3D = {
     }
   },
 
-  setLow: function (on) {
+  setQuality: function (lvl) {
     if (!this.on) return;
-    Save.data.set.low = on ? 1 : 0;
-    if (!on) Save.data.lowRes = 0;
-    var cb = document.getElementById('setLow');
-    if (cb) cb.checked = !!on;
-    this.shadowsOn = !on;
-    this.renderer.shadowMap.enabled = !on;
-    this.sun.castShadow = !on;
+    var sh = this.sun.shadow, size = Quality.shadowSize(lvl), on = lvl > 0;
+    if (sh.mapSize.x !== size) {
+      sh.mapSize.set(size, size);
+      if (sh.map) { sh.map.dispose(); sh.map = null; }
+    }
+    if (on === this.shadowsOn) return;
+    this.shadowsOn = on;
+    this.renderer.shadowMap.enabled = on;
+    this.sun.castShadow = on;
     this.scene.traverse(function (o) {
       var m = o.material;
       if (!m) return;
       if (m.length) { for (var i = 0; i < m.length; i++) m[i].needsUpdate = true; }
       else m.needsUpdate = true;
     });
-    this.shadows.k = on ? 1 : 0.55;
-    Game.resize();
+    this.shadows.k = on ? 0.55 : 1;
   },
 
   halo: function (x, h, y, r, col, a) {
@@ -1406,19 +1412,79 @@ var View3D = {
     }
     ctx.save();
     ctx.textAlign = 'center';
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = 'rgba(0,0,0,.7)';
+    var fs = -1;
     for (i = 0; i < FX.texts.length; i++) {
       var t = FX.texts[i];
       this.toScreen(t.x, t.y, 28, s);
       ctx.globalAlpha = U.clamp(t.life / 0.8, 0, 1);
-      ctx.font = '900 ' + t.s + 'px Verdana, sans-serif';
-      ctx.lineWidth = 3;
-      ctx.strokeStyle = 'rgba(0,0,0,.7)';
+      if (t.s !== fs) { fs = t.s; ctx.font = '900 ' + fs + 'px Verdana, sans-serif'; }
       ctx.strokeText(t.t, s.x, s.y);
       ctx.fillStyle = t.c;
       ctx.fillText(t.t, s.x, s.y);
     }
     ctx.restore();
     ctx.globalAlpha = 1;
+  }
+};
+
+var Quality = {
+  start: function (weak) {
+    var s = Save.data, set = s.set;
+    if (!set.q) {
+      if (set.low && !s.lowAuto) set.q = 'low';
+      else if (!set.low && s.lowAuto) set.q = 'high';
+      else {
+        set.q = 'auto';
+        if (set.low) s.qLevel = s.lowRes ? -1 : 0;
+      }
+    }
+    if (set.q === 'auto' && s.qLevel === undefined) s.qLevel = weak ? 0 : 2;
+    this.sync();
+  },
+
+  level: function () {
+    var s = Save.data;
+    if (!s || !s.set.q || s.set.q === 'high') return 2;
+    if (s.set.q === 'low') return 0;
+    return s.qLevel === undefined ? 2 : s.qLevel;
+  },
+
+  sync: function () {
+    var s = Save.data, l = this.level();
+    s.set.low = l <= 0 ? 1 : 0;
+    s.lowRes = l < 0 ? 1 : 0;
+  },
+
+  shadowSize: function (l) { return l >= 2 ? 2048 : 1024; },
+  pixelRatio: function (l, dpr) {
+    if (l < 0) return 0.75;
+    if (l === 0) return 1;
+    return Math.min(dpr || 1, l === 1 ? 1.25 : 1.75);
+  },
+
+  apply: function () {
+    this.sync();
+    View3D.setQuality(this.level());
+    Game.resize();
+  },
+
+  choose: function (q) {
+    var s = Save.data;
+    s.set.q = q;
+    if (q === 'auto') s.qLevel = View3D.weak ? 0 : 2;
+    this.apply();
+    Save.flush(true);
+  },
+
+  down: function () {
+    var s = Save.data, l = this.level();
+    if (s.set.q !== 'auto' || l <= -1) return false;
+    s.qLevel = l - 1;
+    this.apply();
+    Save.flush(false);
+    return true;
   }
 };
 
@@ -1451,11 +1517,13 @@ View3D.Batch = function (geo, mat, max, colored, shareWith) {
   }
   this.max = max;
   this.n = 0;
+  this.base = 0;
+  this.fresh = false;
   this.mesh.count = 0;
 };
 
 View3D.Batch.prototype = {
-  begin: function () { this.n = 0; },
+  begin: function () { this.n = this.base; },
 
   put: function (x, y, z, ang, sx, sy, sz) {
     if (this.n >= this.max) return -1;
@@ -1464,6 +1532,23 @@ View3D.Batch.prototype = {
     a[o] = c * sx; a[o + 1] = 0; a[o + 2] = s * sx; a[o + 3] = 0;
     a[o + 4] = 0; a[o + 5] = sy; a[o + 6] = 0; a[o + 7] = 0;
     a[o + 8] = -s * sz; a[o + 9] = 0; a[o + 10] = c * sz; a[o + 11] = 0;
+    a[o + 12] = x; a[o + 13] = y; a[o + 14] = z; a[o + 15] = 1;
+    return this.n++;
+  },
+
+  putR: function (x, y, z, ax, ay, az, k) {
+    if (this.n >= this.max) return -1;
+    var c1 = Math.cos(ax / 2), c2 = Math.cos(ay / 2), c3 = Math.cos(az / 2);
+    var s1 = Math.sin(ax / 2), s2 = Math.sin(ay / 2), s3 = Math.sin(az / 2);
+    var qx = s1 * c2 * c3 + c1 * s2 * s3, qy = c1 * s2 * c3 - s1 * c2 * s3;
+    var qz = c1 * c2 * s3 - s1 * s2 * c3, qw = c1 * c2 * c3 + s1 * s2 * s3;
+    var x2 = qx + qx, y2 = qy + qy, z2 = qz + qz;
+    var xx = qx * x2, xy = qx * y2, xz = qx * z2, yy = qy * y2, yz = qy * z2, zz = qz * z2;
+    var wx = qw * x2, wy = qw * y2, wz = qw * z2;
+    var o = this.n * 16, a = this.m;
+    a[o] = (1 - (yy + zz)) * k; a[o + 1] = (xy + wz) * k; a[o + 2] = (xz - wy) * k; a[o + 3] = 0;
+    a[o + 4] = (xy - wz) * k; a[o + 5] = (1 - (xx + zz)) * k; a[o + 6] = (yz + wx) * k; a[o + 7] = 0;
+    a[o + 8] = (xz + wy) * k; a[o + 9] = (yz - wx) * k; a[o + 10] = (1 - (xx + yy)) * k; a[o + 11] = 0;
     a[o + 12] = x; a[o + 13] = y; a[o + 14] = z; a[o + 15] = 1;
     return this.n++;
   },
@@ -1481,12 +1566,22 @@ View3D.Batch.prototype = {
   },
 
   end: function () {
-    var n = this.follow ? this.follow.n : this.n;
-    this.mesh.count = n;
-    if (!this.follow) this.mesh.instanceMatrix.needsUpdate = true;
-    if (this.c) this.mesh.instanceColor.needsUpdate = true;
-    if (this.extra) for (var i = 0; i < this.extra.length; i++) this.extra[i].needsUpdate = true;
+    var n = this.follow ? this.follow.n : this.n, mesh = this.mesh;
+    mesh.count = n;
+    mesh.visible = n > 0;
+    var from = this.fresh ? 0 : this.base;
+    this.fresh = false;
+    if (n <= from) return;
+    if (!this.follow) View3D.upload(mesh.instanceMatrix, from, n);
+    if (this.c) View3D.upload(mesh.instanceColor, from, n);
+    if (this.extra) for (var i = 0; i < this.extra.length; i++) View3D.upload(this.extra[i], from, n);
   }
+};
+
+View3D.upload = function (attr, from, n) {
+  attr.clearUpdateRanges();
+  attr.addUpdateRange(from * attr.itemSize, (n - from) * attr.itemSize);
+  attr.needsUpdate = true;
 };
 
 View3D.makeDiscs = function (max, blending, order, tilt) {

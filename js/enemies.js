@@ -51,7 +51,8 @@ var Enemies = {
       atkCd: 0, shootCd: U.rand(1, 2.5), aim: 0, charge: 0, chargeAng: 0, shield: 0, slide: 0,
       slowT: 0, flash: 0, elite: !!elite,
       coins: d.coins, xp: d.xp,
-      phase: Math.random() * 6.28, burstCd: 4, summonCd: 8, boss: type === 'boss'
+      phase: Math.random() * 6.28, burstCd: 4, summonCd: 8, boss: type === 'boss',
+      stuckT: 0, aggro: false, wave: false, flagLoot: false, orbCd: 0, areaCd: 0
     };
     if (elite) {
       e.hp *= 3.2; e.maxHp = e.hp;
@@ -207,9 +208,10 @@ var Enemies = {
   },
 
   update: function (dt) {
-    var p = Game.player, list = Game.enemies, near = [];
-    Game.grid.clear();
-    for (var i = 0; i < list.length; i++) Game.grid.insert(list[i]);
+    var p = Game.player, list = Game.enemies, grid = Game.grid;
+    grid.clear();
+    for (var i = 0; i < list.length; i++) grid.insert(list[i]);
+    var lost = this.ringMax() * 1.3, offscreen = Game.viewRadius() * 1.1;
 
     for (i = list.length - 1; i >= 0; i--) {
       var e = list[i];
@@ -224,12 +226,12 @@ var Enemies = {
       e.ang = Math.atan2(dy, dx);
       if (e.elite && !e.aggro && d < 380) { e.aggro = true; Snd.play('aggro'); }
 
-      if (d > this.ringMax() * 1.3 && !e.boss) {
+      if (d > lost && !e.boss) {
         var np = U.ring(p.x, p.y, this.ringMin(), this.ringMax());
         e.x = np.x; e.y = np.y;
         continue;
       }
-      if (d > Game.viewRadius() * 1.1) sp *= 1.3;
+      if (d > offscreen) sp *= 1.3;
 
       if (e.boss) {
         this.bossAI(e, dt, d);
@@ -274,18 +276,25 @@ var Enemies = {
         e.vy = (dy / d) * sp;
       }
 
-      Game.grid.query(e.x, e.y, e.r * 2.2, near);
-      for (var j = 0; j < near.length; j++) {
-        var o = near[j];
-        if (o === e || o.dead) continue;
-        var ox = e.x - o.x, oy = e.y - o.y;
-        var od2 = ox * ox + oy * oy;
-        var minD = e.r + o.r;
-        if (od2 < minD * minD && od2 > 0.01) {
-          var od = Math.sqrt(od2);
-          var push = (minD - od) / minD * 60;
-          e.vx += (ox / od) * push;
-          e.vy += (oy / od) * push;
+      var gc = grid.cell, qr = e.r * 2.2;
+      var gx1 = Math.floor((e.x + qr) / gc), gy0 = Math.floor((e.y - qr) / gc), gy1 = Math.floor((e.y + qr) / gc);
+      for (var gx = Math.floor((e.x - qr) / gc); gx <= gx1; gx++) {
+        for (var gy = gy0; gy <= gy1; gy++) {
+          var bk = grid.bucket(gx, gy);
+          if (!bk) continue;
+          for (var j = 0; j < bk.length; j++) {
+            var o = bk[j];
+            if (o === e || o.dead) continue;
+            var ox = e.x - o.x, oy = e.y - o.y;
+            var od2 = ox * ox + oy * oy;
+            var minD = e.r + o.r;
+            if (od2 < minD * minD && od2 > 0.01) {
+              var od = Math.sqrt(od2);
+              var push = (minD - od) / minD * 60;
+              e.vx += (ox / od) * push;
+              e.vy += (oy / od) * push;
+            }
+          }
         }
       }
 

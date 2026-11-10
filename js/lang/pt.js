@@ -12,6 +12,7 @@ I18N.add('pt', {
     prestigeDone: 'Rank de prestígio {r}. Inimigos mais bravos, mais sucata.',
     auth: 'Entre para aparecer no ranking',
     sfx: 'Som', music: 'Música', shake: 'Tremor de câmera', lowfx: 'Menos efeitos',
+    quality: 'Qualidade', qAuto: 'Auto', qHigh: 'Alta', qLow: 'Baixa',
     lvlUp: 'Nível', reroll: 'Outras cartas',
     pause: 'Pausa', resume: 'Continuar', quit: 'Desistir',
     over: 'Incursão falhou', score: 'Pontos', survived: 'Sobreviveu', killed: 'Abates',

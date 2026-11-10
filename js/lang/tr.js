@@ -12,6 +12,7 @@ I18N.add('tr', {
     prestigeDone: 'Prestij rütbesi {r}. Düşmanlar daha azgın, hurda daha bol.',
     auth: 'Sıralamaya girmek için giriş yap',
     sfx: 'Ses', music: 'Müzik', shake: 'Ekran sarsıntısı', lowfx: 'Daha az efekt',
+    quality: 'Kalite', qAuto: 'Otomatik', qHigh: 'Yüksek', qLow: 'Düşük',
     lvlUp: 'Seviye', reroll: 'Başka kartlar',
     pause: 'Duraklatıldı', resume: 'Devam', quit: 'Baskını bırak',
     over: 'Baskın başarısız', score: 'Puan', survived: 'Dayandın', killed: 'Öldürülen',

@@ -7,6 +7,7 @@ var World = {
 
   reset: function () {
     this.chunks = {};
+    this.nChunks = 0;
     this.near.length = 0;
     this.crates.length = 0;
   },
@@ -70,6 +71,7 @@ var World = {
       }
     }
     this.chunks[key] = c;
+    this.nChunks = (this.nChunks || 0) + 1;
     return c;
   },
 
@@ -86,11 +88,11 @@ var World = {
         for (var j = 0; j < c.crates.length; j++) if (!c.crates[j].dead) this.crates.push(c.crates[j]);
       }
     }
-    var keys = Object.keys(this.chunks);
-    if (keys.length > 220) {
+    if (this.nChunks > 220) {
+      var keys = Object.keys(this.chunks);
       for (var k = 0; k < keys.length; k++) {
         var p = keys[k].split(':');
-        if (Math.abs(p[0] - x / b) > 6 || Math.abs(p[1] - y / b) > 6) delete this.chunks[keys[k]];
+        if (Math.abs(p[0] - x / b) > 6 || Math.abs(p[1] - y / b) > 6) { delete this.chunks[keys[k]]; this.nChunks--; }
       }
     }
   },
@@ -116,8 +118,10 @@ var World = {
   },
 
   resolve: function (o) {
+    var rr = o.r + 1;
     for (var i = 0; i < this.near.length; i++) {
       var w = this.near[i];
+      if (o.x + rr < w.x || o.x - rr > w.x + w.w || o.y + rr < w.y || o.y - rr > w.y + w.h) continue;
       var cx = U.clamp(o.x, w.x, w.x + w.w);
       var cy = U.clamp(o.y, w.y, w.y + w.h);
       var dx = o.x - cx, dy = o.y - cy;

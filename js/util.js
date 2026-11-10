@@ -57,13 +57,22 @@ var U = {
 function HashGrid(cell) {
   this.cell = cell || 96;
   this.map = new Map();
+  this.used = [];
 }
-HashGrid.prototype.clear = function () { this.map.clear(); };
+HashGrid.prototype.clear = function () {
+  for (var i = 0; i < this.used.length; i++) this.used[i].length = 0;
+  this.used.length = 0;
+  if (this.map.size > 4096) this.map.clear();
+};
 HashGrid.prototype.insert = function (obj) {
   var cx = Math.floor(obj.x / this.cell), cy = Math.floor(obj.y / this.cell);
-  var k = cx + ':' + cy, bucket = this.map.get(k);
+  var k = ((cx & 0x7fff) << 15) | (cy & 0x7fff), bucket = this.map.get(k);
   if (!bucket) { bucket = []; this.map.set(k, bucket); }
+  if (!bucket.length) this.used.push(bucket);
   bucket.push(obj);
+};
+HashGrid.prototype.bucket = function (cx, cy) {
+  return this.map.get(((cx & 0x7fff) << 15) | (cy & 0x7fff));
 };
 HashGrid.prototype.query = function (x, y, r, out) {
   out.length = 0;
@@ -72,7 +81,7 @@ HashGrid.prototype.query = function (x, y, r, out) {
   var y0 = Math.floor((y - r) / c), y1 = Math.floor((y + r) / c);
   for (var cx = x0; cx <= x1; cx++) {
     for (var cy = y0; cy <= y1; cy++) {
-      var b = this.map.get(cx + ':' + cy);
+      var b = this.bucket(cx, cy);
       if (!b) continue;
       for (var i = 0; i < b.length; i++) out.push(b[i]);
     }

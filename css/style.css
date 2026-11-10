@@ -213,6 +213,10 @@ canvas#game3d{position:fixed;inset:0;width:100%;height:100%;display:block}
 .sw.vol input{flex:1;width:auto;min-width:90px;margin:0 12px;cursor:pointer}
 .sw.vol b{min-width:42px;text-align:right;font-weight:600;color:var(--paint);font-variant-numeric:tabular-nums}
 .lang-row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.sw.q-sw{flex-wrap:wrap;gap:8px}
+.q-row{display:flex;gap:5px;margin-left:auto}
+.btn.q{padding:6px 9px;font-size:12px;letter-spacing:.05em}
+.btn.q.active{color:#1d150b;background:var(--noise),linear-gradient(180deg,#f4bd4c,var(--paint2))}
 .btn.lang.active{color:#1d150b;background:var(--noise),linear-gradient(180deg,#f4bd4c,var(--paint2))}
 .ver{text-align:center;color:var(--bone3);font-size:12px;letter-spacing:.1em}
 

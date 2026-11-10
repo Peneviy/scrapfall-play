@@ -42,6 +42,7 @@ var Game = {
     this.scale = U.clamp(Math.min(h / CFG.view.targetH, w / CFG.view.targetW) * zoom,
       CFG.view.minScale, CFG.view.maxScale);
     View3D.resize(w, h, this.dpr);
+    this.redraw = true;
   },
 
   zoomBy: function (dir) {
@@ -90,6 +91,7 @@ var Game = {
     Snd.musicStop();
     PF.banner(false);
     PF.gameplayStart();
+    LB.runStart();
   },
 
   pause: function (v) {
@@ -156,6 +158,7 @@ var Game = {
     PF.lbSubmit(this.res.score);
     PF.reportScore(this.res.score);
     Metrics.run(this.res);
+    LB.submit(this.res);
   },
 
   quit: function () {
@@ -773,9 +776,9 @@ var Game = {
     var live = this.running && !this.paused && !this.hold;
     if (live && View3D.on) this.watchPerf(dt);
 
+    var steps = 0;
     if (live) {
       this.acc += dt;
-      var steps = 0;
       while (this.acc >= this.fixed && steps < 5) {
         this.update(this.fixed);
         this.acc -= this.fixed;
@@ -784,34 +787,26 @@ var Game = {
       if (steps === 5) this.acc = 0;
       UI.updateHud();
     }
-    if (this.running) this.render();
-    else if (View3D.on) View3D.idle();
+    if (this.running) {
+      if (!live || steps > 0 || this.redraw) this.render();
+      this.redraw = false;
+    } else if (View3D.on) View3D.idle();
     Snd.music();
   },
 
   perf: { t: 0, n: 0, bad: 0 },
   watchPerf: function (dt) {
-    var p = this.perf, s = Save.data;
+    var p = this.perf;
     p.t += dt; p.n++;
     if (p.t < 2) return;
     var avg = p.t / p.n;
     p.t = 0; p.n = 0;
-    if (!s.set.low && !s.lowAuto) {
-      p.bad = avg > 0.025 ? p.bad + 1 : 0;
-      if (p.bad < 2) return;
-      p.bad = 0;
-      s.lowAuto = 1;
-      View3D.setLow(true);
-      Save.flush(false);
-      UI.toast(I18N.t('lowAuto'));
-    } else if (s.set.low && !s.lowRes) {
-      p.bad = avg > 0.038 ? p.bad + 1 : 0;
-      if (p.bad < 2) return;
-      p.bad = 0;
-      s.lowRes = 1;
-      Save.flush(false);
-      this.resize();
-    }
+    var l = Quality.level();
+    if (Save.data.set.q !== 'auto' || l < 0) { p.bad = 0; return; }
+    p.bad = avg > (l > 0 ? 0.025 : 0.038) ? p.bad + 1 : 0;
+    if (p.bad < 2) return;
+    p.bad = 0;
+    if (Quality.down() && l === 1) UI.toast(I18N.t('lowAuto'));
   },
 
   run: function () {

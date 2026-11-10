@@ -12,6 +12,7 @@ I18N.add('de', {
     prestigeDone: 'Prestige-Rang {r}. Fiesere Gegner, fettere Beute.',
     auth: 'Einloggen, um in die Rangliste zu kommen',
     sfx: 'Sound', music: 'Musik', shake: 'Bildschirmwackeln', lowfx: 'Weniger Effekte',
+    quality: 'Qualität', qAuto: 'Auto', qHigh: 'Hoch', qLow: 'Niedrig',
     lvlUp: 'Level', reroll: 'Andere Karten',
     pause: 'Pause', resume: 'Weiter', quit: 'Raid abbrechen',
     over: 'Raid gescheitert', score: 'Punkte', survived: 'Überlebt', killed: 'Kills',

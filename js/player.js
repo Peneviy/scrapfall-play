@@ -402,7 +402,7 @@ var Player = {
       if (t.cd <= 0) {
         t.cd = 0.5;
         Game.bullets.push({
-          dead: false,
+          dead: false, fresh: false,
           x: t.x, y: t.y,
           vx: Math.cos(t.ang) * 560, vy: Math.sin(t.ang) * 560,
           r: 3.5, dmg: 9 * p.st.dmg * p.st.tech, crit: false, c: CFG.col.tech,

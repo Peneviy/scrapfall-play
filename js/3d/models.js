@@ -32,6 +32,85 @@ var Models = {
     };
   },
 
+  fast: function (fn) {
+    var M = this, acc = this._accs || (this._accs = [this._acc(), this._acc()]);
+    acc[0].len = acc[1].len = 0;
+    var m = new THREE.Matrix4(), nm = new THREE.Matrix3(), q = new THREE.Quaternion(), e = new THREE.Euler();
+    var p = new THREE.Vector3(), s = new THREE.Vector3();
+    var unit = this._unitBox || (this._unitBox = this.tpl('box', function () { return new THREE.BoxGeometry(2, 2, 2); }));
+    var boxP = this._boxP || (this._boxP = new Float32Array(unit.p.length));
+    var add = function (geo, hex, x, y, z, rx, ry, rz, sx, sy, sz, lit) {
+      var src = geo, tmp = null;
+      if (geo.isBufferGeometry) {
+        tmp = geo.index ? geo.toNonIndexed() : geo;
+        src = { p: tmp.attributes.position.array, n: tmp.attributes.normal.array };
+      } else if (!geo.p) {
+        var hw = geo.w / 2, hh = geo.h / 2, hd = geo.d / 2, up = unit.p;
+        for (var j = 0; j < up.length; j += 3) {
+          boxP[j] = up[j] * hw; boxP[j + 1] = up[j + 1] * hh; boxP[j + 2] = up[j + 2] * hd;
+        }
+        src = { p: boxP, n: unit.n };
+      }
+      e.set(rx || 0, ry || 0, rz || 0);
+      q.setFromEuler(e);
+      p.set(x || 0, y || 0, z || 0);
+      s.set(sx || 1, sy === undefined ? (sx || 1) : sy, sz === undefined ? (sx || 1) : sz);
+      m.compose(p, q, s);
+      nm.getNormalMatrix(m);
+      M._emit(acc[lit === 'glow' ? 1 : 0], src.p, src.n, m.elements, nm.elements, M.color(hex));
+      if (tmp) { tmp.dispose(); if (tmp !== geo) geo.dispose(); }
+    };
+    fn(add);
+    return { geo: this._geo(acc[0]), glow: this._geo(acc[1]) };
+  },
+
+  fastBox: function (w, h, d) { return { w: w, h: h, d: d }; },
+
+  _tpl: {},
+  tpl: function (key, make) {
+    var t = this._tpl[key];
+    if (!t) {
+      var g = make(), ni = g.index ? g.toNonIndexed() : g;
+      t = this._tpl[key] = { p: ni.attributes.position.array, n: ni.attributes.normal.array };
+      g.dispose();
+    }
+    return t;
+  },
+
+  _acc: function () { return { p: new Float32Array(1 << 15), n: new Float32Array(1 << 15), c: new Float32Array(1 << 15), len: 0 }; },
+
+  _emit: function (a, sp, sn, e, E, c) {
+    var need = a.len + sp.length;
+    if (need > a.p.length) {
+      var size = a.p.length * 2;
+      while (size < need) size *= 2;
+      ['p', 'n', 'c'].forEach(function (k) { var b = new Float32Array(size); b.set(a[k]); a[k] = b; });
+    }
+    var P = a.p, N = a.n, C = a.c, o = a.len;
+    for (var k = 0; k < sp.length; k += 3, o += 3) {
+      var x = sp[k], y = sp[k + 1], z = sp[k + 2];
+      var w = 1 / (e[3] * x + e[7] * y + e[11] * z + e[15]);
+      P[o] = (e[0] * x + e[4] * y + e[8] * z + e[12]) * w;
+      P[o + 1] = (e[1] * x + e[5] * y + e[9] * z + e[13]) * w;
+      P[o + 2] = (e[2] * x + e[6] * y + e[10] * z + e[14]) * w;
+      x = sn[k]; y = sn[k + 1]; z = sn[k + 2];
+      var nx = E[0] * x + E[3] * y + E[6] * z, ny = E[1] * x + E[4] * y + E[7] * z, nz = E[2] * x + E[5] * y + E[8] * z;
+      var inv = 1 / (Math.sqrt(nx * nx + ny * ny + nz * nz) || 1);
+      N[o] = nx * inv; N[o + 1] = ny * inv; N[o + 2] = nz * inv;
+      C[o] = c.r; C[o + 1] = c.g; C[o + 2] = c.b;
+    }
+    a.len = o;
+  },
+
+  _geo: function (a) {
+    if (!a.len) return null;
+    var g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(a.p.slice(0, a.len), 3));
+    g.setAttribute('normal', new THREE.BufferAttribute(a.n.slice(0, a.len), 3));
+    g.setAttribute('color', new THREE.BufferAttribute(a.c.slice(0, a.len), 3));
+    return g;
+  },
+
   shade: function (hex, k) {
     return '#' + new THREE.Color(hex).multiplyScalar(k).getHexString();
   },

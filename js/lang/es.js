@@ -12,6 +12,7 @@ I18N.add('es', {
     prestigeDone: 'Rango de prestigio {r}. Enemigos más duros, más botín.',
     auth: 'Inicia sesión para entrar en el ranking',
     sfx: 'Sonido', music: 'Música', shake: 'Temblor de cámara', lowfx: 'Menos efectos',
+    quality: 'Calidad', qAuto: 'Auto', qHigh: 'Alta', qLow: 'Baja',
     lvlUp: 'Nivel', reroll: 'Otras cartas',
     pause: 'Pausa', resume: 'Seguir', quit: 'Abandonar',
     over: 'Incursión fallida', score: 'Puntos', survived: 'Aguantaste', killed: 'Bajas',

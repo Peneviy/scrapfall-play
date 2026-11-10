@@ -77,6 +77,7 @@ I18N.add('tr', {
     hintMove: 'sür', hintDrag: 'sürmek için ekranda parmağını kaydır', hintAuto: 'kendi ateş eder, en yakına nişan alır',
     keyPause: 'Duraklat',
     lvlMax: 'Dolu',
+    upNeed: '{n} eksik',
     stack: 'Seviye {n}/{m}',
     newSkill: 'Yeni',
     hpFull: 'Can dolu',

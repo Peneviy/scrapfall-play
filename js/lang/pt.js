@@ -77,6 +77,7 @@ I18N.add('pt', {
     hintMove: 'dirigir', hintDrag: 'arraste na tela para dirigir', hintAuto: 'atira sozinha no inimigo mais próximo',
     keyPause: 'Pausa',
     lvlMax: 'No máximo',
+    upNeed: 'faltam {n}',
     stack: 'Nível {n}/{m}',
     newSkill: 'Novo',
     hpFull: 'Vida cheia',

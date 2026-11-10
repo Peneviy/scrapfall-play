@@ -77,6 +77,7 @@ I18N.add('de', {
     hintMove: 'fahren', hintDrag: 'zum Fahren über den Bildschirm ziehen', hintAuto: 'schießt von selbst auf den nächsten Gegner',
     keyPause: 'Pause',
     lvlMax: 'Maximum',
+    upNeed: 'fehlen {n}',
     stack: 'Stufe {n}/{m}',
     newSkill: 'Neu',
     hpFull: 'Leben ist voll',

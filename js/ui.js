@@ -159,6 +159,7 @@ var UI = {
     this.el('menuPrestige').textContent = d.prestige;
     this.el('menuCoins').textContent = U.num(d.coins);
     this.el('menuBosses').textContent = Bosses.defeated() + ' / ' + Bosses.list.length;
+    this.renderQuickUp();
 
     var ch = Content.char(d.char), gun = Content.gun(d.gun);
     this.el('heroName').textContent = I18N.name(ch);
@@ -655,6 +656,47 @@ var UI = {
     View3D.thumb(c, 'car', charId, skinId, -0.5, false, gunId);
   },
 
+  buyUpgrade: function (id) {
+    if ((Save.data.up[id] || 0) >= Save.upMax) return false;
+    if (Save.upBuy(id)) { Snd.play('buy'); return true; }
+    Snd.play('deny');
+    this.toast(I18N.t('noCoins'));
+    return false;
+  },
+
+  quickUp: ['dmg', 'hp', 'xp', 'loot', 'cd'],
+
+  renderQuickUp: function () {
+    var box = this.el('quickUp'), self = this;
+    if (!box) return;
+    box.innerHTML = '';
+    for (var i = 0; i < this.quickUp.length; i++) {
+      (function (u) {
+        if (!u) return;
+        var lvl = Save.data.up[u.id] || 0, max = lvl >= Save.upMax;
+        var cost = max ? 0 : Save.upCost(u.id), need = cost - Save.data.coins;
+        var dots = '';
+        for (var k = 0; k < Save.upMax; k++) dots += '<i class="' + (k < lvl ? 'on' : '') + '"></i>';
+        var b = document.createElement('button');
+        b.className = 'qu ' + (max ? 'max' : (need <= 0 ? 'can' : 'poor'));
+        b.title = I18N.desc(u);
+        b.innerHTML = '<span class="qu-ic">' + Icons.svg(u.id, 22) + '</span>' +
+          '<b>' + I18N.name(u) + '</b>' +
+          '<span class="lvl-dots">' + dots + '</span>' +
+          (max ? '<em>' + I18N.t('lvlMax') + '</em>'
+            : '<em class="coin">' + U.num(cost) + '</em>' +
+              (need > 0 ? '<s data-short="-' + U.num(need) + '">' + I18N.t('upNeed', { n: U.num(need) }) + '</s>' : ''));
+        b.onclick = function () {
+          if (max || !self.buyUpgrade(u.id)) return;
+          self.refreshMenu();
+          var nb = self.el('quickUp').children[self.quickUp.indexOf(u.id)];
+          if (nb) nb.classList.add('bought');
+        };
+        box.appendChild(b);
+      })(Content.upgrades.filter(function (x) { return x.id === self.quickUp[i]; })[0]);
+    }
+  },
+
   renderUpgrades: function (list) {
     var self = this;
     for (var i = 0; i < Content.upgrades.length; i++) {
@@ -671,9 +713,7 @@ var UI = {
           '<div class="lvl-dots">' + dots + '</div>' +
           '<div class="price">' + (max ? I18N.t('lvlMax') : cost) + '</div>';
         div.onclick = function () {
-          if (max) return;
-          if (Save.upBuy(u.id)) { Snd.play('buy'); self.renderShop(); }
-          else { Snd.play('deny'); self.toast(I18N.t('noCoins')); }
+          if (self.buyUpgrade(u.id)) self.renderShop();
         };
         list.appendChild(div);
       })(Content.upgrades[i]);

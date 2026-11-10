@@ -20,7 +20,7 @@ I18N.add('de', {
     buy: 'Kaufen', equip: 'Wählen', equipped: 'Aktiv', owned: 'Gekauft',
     noCoins: 'Nicht genug Schrott',
     adFail: 'Werbung gerade nicht verfügbar',
-    adClosed: 'Belohnung nur fürs Ansehen bis zum Ende', focusGate: 'Klick ins Spiel, um weiterzumachen', volume: 'Lautstärke',
+    adClosed: 'Belohnung nur fürs Ansehen bis zum Ende', focusGate: 'Klicken zum Weitermachen', focusGateTouch: 'Tippen zum Weitermachen', volume: 'Lautstärke',
     adBlocked: 'Werbeblocker ist an, Werbeboni sind aus',
     at_split: 'Kugeln pro Salve: {n}', at_triple0: 'ein Schuss nach hinten kommt dazu', at_triple1: 'Schüsse nach hinten und zur Seite',
     at_splash: 'Sprengradius: {n}', at_pierce: 'durchschlägt Ziele: {n}', at_ricochet: 'Abpraller: {n}',

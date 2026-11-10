@@ -7,7 +7,7 @@
 <script>window.onPkbLoad=function(ok){window.PKB_LOADED=ok!==false;if(window.PF&&PF.onPkbLoad)PF.onPkbLoad(window.PKB_LOADED);};</script><script async src="https://games.pikabu.ru/sdk/sdk.js" onload="onPkbLoad(true)" onerror="onPkbLoad(false)"></script>
 <title>SCRAPFALL</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230a1216'/%3E%3Ccircle cx='16' cy='16' r='9' fill='%23f0a24a'/%3E%3Ccircle cx='16' cy='16' r='4' fill='%230a1216'/%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/style.css?v=0.20.34">
 </head>
 <body>
 
@@ -82,7 +82,6 @@
   </div>
   <div class="menu-btns">
     <button id="btnPlay" class="big-btn" data-i18n="play">В РЕЙД</button>
-    <div id="quickUp" class="quick-up"></div>
     <div class="btn-row">
       <button id="btnShop" class="btn" data-icon="hangar"><span data-i18n="shop">Ангар</span></button>
       <button id="btnModules" class="btn with-ic"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.6"/><circle cx="18" cy="20" r="1.6"/><path d="M2 3h3l3 12h11l2-8H7"/></svg><span data-i18n="modules">Магазин</span></button>
@@ -90,6 +89,7 @@
       <button id="btnSettings" class="btn icon with-ic" title="settings"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
     </div>
     <button id="btnFreeCoins" class="btn ad-btn" data-icon="crate"><i class="ad-tag">AD</i> <span data-i18n="freeCoins">Ящик с ломом</span></button>
+    <div id="quickUp" class="quick-up"></div>
   </div>
 </div>
 
@@ -192,31 +192,31 @@
 </div>
 <div id="focusGate" class="focus-gate hidden"><span data-i18n="focusGate">Кликни по игре, чтобы продолжить</span></div>
 
-<script src="js/lib/three.min.js"></script>
-<script src="js/config.js"></script>
-<script src="js/util.js"></script>
-<script src="js/i18n.js"></script>
-<script src="js/lang/tr.js"></script>
-<script src="js/lang/de.js"></script>
-<script src="js/lang/es.js"></script>
-<script src="js/lang/pt.js"></script>
-<script src="js/icons.js"></script>
-<script src="js/platform.js"></script>
-<script src="js/metrics.js"></script>
-<script src="js/save.js"></script>
-<script src="js/audio.js"></script>
-<script src="js/input.js"></script>
-<script src="js/fx.js"></script>
-<script src="js/world.js"></script>
-<script src="js/content.js"></script>
-<script src="js/bosses.js"></script>
-<script src="js/skills.js"></script>
-<script src="js/enemies.js"></script>
-<script src="js/player.js"></script>
-<script src="js/3d/models.js"></script>
-<script src="js/3d/view.js"></script>
-<script src="js/game.js"></script>
-<script src="js/ui.js"></script>
-<script src="js/main.js"></script>
+<script src="js/lib/three.min.js?v=0.20.34"></script>
+<script src="js/config.js?v=0.20.34"></script>
+<script src="js/util.js?v=0.20.34"></script>
+<script src="js/i18n.js?v=0.20.34"></script>
+<script src="js/lang/tr.js?v=0.20.34"></script>
+<script src="js/lang/de.js?v=0.20.34"></script>
+<script src="js/lang/es.js?v=0.20.34"></script>
+<script src="js/lang/pt.js?v=0.20.34"></script>
+<script src="js/icons.js?v=0.20.34"></script>
+<script src="js/platform.js?v=0.20.34"></script>
+<script src="js/metrics.js?v=0.20.34"></script>
+<script src="js/save.js?v=0.20.34"></script>
+<script src="js/audio.js?v=0.20.34"></script>
+<script src="js/input.js?v=0.20.34"></script>
+<script src="js/fx.js?v=0.20.34"></script>
+<script src="js/world.js?v=0.20.34"></script>
+<script src="js/content.js?v=0.20.34"></script>
+<script src="js/bosses.js?v=0.20.34"></script>
+<script src="js/skills.js?v=0.20.34"></script>
+<script src="js/enemies.js?v=0.20.34"></script>
+<script src="js/player.js?v=0.20.34"></script>
+<script src="js/3d/models.js?v=0.20.34"></script>
+<script src="js/3d/view.js?v=0.20.34"></script>
+<script src="js/game.js?v=0.20.34"></script>
+<script src="js/ui.js?v=0.20.34"></script>
+<script src="js/main.js?v=0.20.34"></script>
 </body>
 </html>

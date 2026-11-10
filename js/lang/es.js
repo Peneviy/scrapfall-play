@@ -20,7 +20,7 @@ I18N.add('es', {
     buy: 'Comprar', equip: 'Elegir', equipped: 'En uso', owned: 'Tuyo',
     noCoins: 'No hay chatarra suficiente',
     adFail: 'Anuncio no disponible ahora',
-    adClosed: 'Recompensa solo si lo ves hasta el final', focusGate: 'Haz clic en el juego para continuar', volume: 'Volumen',
+    adClosed: 'Recompensa solo si lo ves hasta el final', focusGate: 'Haz clic para continuar', focusGateTouch: 'Toca para continuar', volume: 'Volumen',
     adBlocked: 'Hay un bloqueador de anuncios, los bonus por anuncios están apagados',
     at_split: 'balas por ráfaga: {n}', at_triple0: 'añade un disparo hacia atrás', at_triple1: 'disparos atrás y a los lados',
     at_splash: 'radio de explosión: {n}', at_pierce: 'atraviesa objetivos: {n}', at_ricochet: 'rebotes: {n}',

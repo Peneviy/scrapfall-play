@@ -20,7 +20,7 @@ I18N.add('tr', {
     buy: 'Satın al', equip: 'Seç', equipped: 'Aktif', owned: 'Sende',
     noCoins: 'Hurda yetmiyor',
     adFail: 'Reklam şu an yok',
-    adClosed: 'Ödül sadece sonuna kadar izleyince', focusGate: 'Devam etmek için oyuna tıkla', volume: 'Ses düzeyi',
+    adClosed: 'Ödül sadece sonuna kadar izleyince', focusGate: 'Devam etmek için tıkla', focusGateTouch: 'Devam etmek için dokun', volume: 'Ses düzeyi',
     adBlocked: 'Reklam engelleyici açık, reklam bonusları kapalı',
     at_split: 'seride mermi: {n}', at_triple0: 'geriye bir atış eklenir', at_triple1: 'geriye ve yanlara atış',
     at_splash: 'patlama yarıçapı: {n}', at_pierce: 'delip geçtiği hedef: {n}', at_ricochet: 'sekme: {n}',

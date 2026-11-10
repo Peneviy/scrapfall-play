@@ -20,7 +20,7 @@ I18N.add('pt', {
     buy: 'Comprar', equip: 'Escolher', equipped: 'Em uso', owned: 'Seu',
     noCoins: 'Sucata insuficiente',
     adFail: 'Anúncio indisponível agora',
-    adClosed: 'Recompensa só assistindo até o fim', focusGate: 'Clique no jogo para continuar', volume: 'Volume',
+    adClosed: 'Recompensa só assistindo até o fim', focusGate: 'Clique para continuar', focusGateTouch: 'Toque para continuar', volume: 'Volume',
     adBlocked: 'Bloqueador de anúncios ativo, bônus por anúncio desligados',
     at_split: 'balas por rajada: {n}', at_triple0: 'adiciona um tiro para trás', at_triple1: 'tiros para trás e para os lados',
     at_splash: 'raio da explosão: {n}', at_pierce: 'atravessa alvos: {n}', at_ricochet: 'ricochetes: {n}',

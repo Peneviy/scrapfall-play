@@ -503,6 +503,9 @@ var UI = {
       if (Input.touch || !document.hasFocus || document.hasFocus()) return;
       if (!Game.running || Game.paused || Game.over) return;
       var g = self.el('focusGate');
+      var sp = g.querySelector('span');
+      if (sp) sp.setAttribute('data-i18n', Input.isTouch() ? 'focusGateTouch' : 'focusGate');
+      I18N.apply();
       Game.pause(true);
       g.classList.remove('hidden');
       var done = function () {

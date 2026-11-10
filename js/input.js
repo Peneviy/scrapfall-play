@@ -26,6 +26,11 @@ var Input = {
     this.stick.id = -1;
   },
 
+  reset: function () {
+    this.clear();
+    this.dashWanted = false;
+  },
+
   init: function (canvas) {
     var self = this;
 
@@ -54,6 +59,8 @@ var Input = {
 
     window.addEventListener('focus', function () { self.clear(); });
     window.addEventListener('blur', function () { self.clear(); });
+    document.addEventListener('visibilitychange', function () { self.clear(); });
+    window.addEventListener('pagehide', function () { self.clear(); });
 
     canvas.addEventListener('mousemove', function (e) { self.mouse.x = e.clientX; self.mouse.y = e.clientY; });
     canvas.addEventListener('mousedown', function () { self.mouse.down = true; });
@@ -116,6 +123,9 @@ var Input = {
   },
 
   update: function () {
+    if (document.hasFocus && !document.hasFocus()) {
+      for (var kk in this.keys) { if (this.keys[kk]) { this.keys = {}; break; } }
+    }
     var mx = 0, my = 0;
     if (this.keys['KeyW'] || this.keys['ArrowUp']) my -= 1;
     if (this.keys['KeyS'] || this.keys['ArrowDown']) my += 1;

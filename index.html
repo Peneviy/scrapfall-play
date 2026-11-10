@@ -12,7 +12,7 @@
 <body>
 
 <canvas id="game3d"></canvas>
-<canvas id="game"></canvas>
+<canvas id="game" tabindex="-1"></canvas>
 
 <div id="hud" class="hidden">
   <div class="hud-top">
@@ -130,6 +130,7 @@
   <div class="settings-list">
     <label class="sw"><span data-i18n="sfx">Звук</span><input type="checkbox" id="setSfx" checked></label>
     <label class="sw"><span data-i18n="music">Музыка</span><input type="checkbox" id="setMusic" checked></label>
+    <label class="sw vol"><span data-i18n="volume">Громкость</span><input type="range" id="setVol" min="0" max="100" step="5" value="70"><b id="setVolText">70%</b></label>
     <label class="sw"><span data-i18n="shake">Тряска камеры</span><input type="checkbox" id="setShake" checked></label>
     <label class="sw"><span data-i18n="lowfx">Меньше эффектов</span><input type="checkbox" id="setLow"></label>
     <div class="lang-row"></div>
@@ -149,6 +150,7 @@
   <div class="pause-mix">
     <label class="sw"><span data-i18n="sfx">Звук</span><input type="checkbox" id="pauseSfx" checked></label>
     <label class="sw"><span data-i18n="music">Музыка</span><input type="checkbox" id="pauseMusic" checked></label>
+    <label class="sw vol"><span data-i18n="volume">Громкость</span><input type="range" id="pauseVol" min="0" max="100" step="5" value="70"><b id="pauseVolText">70%</b></label>
   </div>
   <div class="menu-btns">
     <button id="btnResume" class="big-btn" data-i18n="resume">Продолжить</button>
@@ -178,6 +180,7 @@
 <div id="bossBanner" class="boss-banner hidden"><b id="bannerKind"></b><span id="bannerName"></span></div>
 <div id="toast" class="toast hidden"></div>
 <div id="adCover" class="ad-cover hidden"><div class="ad-spin"></div></div>
+<div id="focusGate" class="focus-gate hidden"><span data-i18n="focusGate">Кликни по игре, чтобы продолжить</span></div>
 
 <script src="js/lib/three.min.js"></script>
 <script src="js/config.js"></script>

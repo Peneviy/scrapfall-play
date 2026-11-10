@@ -61,6 +61,11 @@ var UI = {
     this.el('setMusic').onchange = function () { self.setSound('music', this.checked); };
     this.el('pauseSfx').onchange = function () { self.setSound('sfx', this.checked); };
     this.el('pauseMusic').onchange = function () { self.setSound('music', this.checked); };
+    this.syncVol();
+    this.el('setVol').oninput = function () { self.setVol(this.value / 100, false); };
+    this.el('pauseVol').oninput = function () { self.setVol(this.value / 100, false); };
+    this.el('setVol').onchange = function () { self.setVol(this.value / 100, true); };
+    this.el('pauseVol').onchange = function () { self.setVol(this.value / 100, true); };
     this.el('setShake').onchange = function () { set.shake = this.checked ? 1 : 0; Save.flush(true); };
     this.el('setLow').onchange = function () { set.low = this.checked ? 1 : 0; Save.flush(true); };
 
@@ -125,6 +130,10 @@ var UI = {
     for (var i = 0; i < this.screens.length; i++) this.el(this.screens[i]).classList.add('hidden');
   },
 
+  adToast: function (why) {
+    this.toast(I18N.t(why === 'closed' ? 'adClosed' : 'adFail'));
+  },
+
   toast: function (text) {
     var t = this.el('toast');
     t.textContent = text;
@@ -167,6 +176,7 @@ var UI = {
 
   startRun: function () {
     Snd.unlock();
+    Input.reset();
     this.hideAll();
     this.el('hud').classList.remove('hidden');
     Game.start();
@@ -215,6 +225,20 @@ var UI = {
     Save.flush(true);
   },
 
+  setVol: function (v, done) {
+    var set = Save.data.set;
+    set.vol = Math.round(U.clamp(v, 0, 1) * 100) / 100;
+    Snd.setVol(set.vol);
+    this.syncVol();
+    if (done) { Save.flush(true); Snd.play('coin'); }
+  },
+
+  syncVol: function () {
+    var v = Save.data.set.vol, pct = Math.round((v === undefined ? 0.7 : v) * 100);
+    this.el('setVol').value = pct; this.el('pauseVol').value = pct;
+    this.el('setVolText').textContent = pct + '%'; this.el('pauseVolText').textContent = pct + '%';
+  },
+
   escapeScreen: function () {
     var ids = ['scrShop', 'scrBoard', 'scrSettings'];
     for (var i = 0; i < ids.length; i++) {
@@ -226,6 +250,7 @@ var UI = {
   togglePause: function () {
     if (!Game.running || Game.over) return;
     if (!this.el('scrLevel').classList.contains('hidden')) return;
+    Input.reset();
     if (Game.paused) {
       this.el('scrPause').classList.add('hidden');
       this.el('hud').classList.remove('hidden');
@@ -362,6 +387,7 @@ var UI = {
       return;
     }
     Game.pause(true);
+    Input.reset();
     Snd.play('level');
     this.el('lvlNum').textContent = Game.player.level;
     this.el('hud').classList.add('hidden');
@@ -401,6 +427,7 @@ var UI = {
   },
 
   pickCard: function (skill) {
+    Input.reset();
     Player.take(Game.player, skill);
     Snd.play('buy');
     this.el('scrLevel').classList.add('hidden');
@@ -415,8 +442,33 @@ var UI = {
     }
   },
 
+  afterAd: function () {
+    var self = this;
+    clearTimeout(this.gateT);
+    this.gateT = setTimeout(function () {
+      if (Input.touch || !document.hasFocus || document.hasFocus()) return;
+      if (!Game.running || Game.paused || Game.over) return;
+      var g = self.el('focusGate');
+      Game.pause(true);
+      g.classList.remove('hidden');
+      var done = function () {
+        window.removeEventListener('focus', done);
+        g.removeEventListener('pointerdown', done);
+        g.classList.add('hidden');
+        PF.refocus();
+        Input.reset();
+        var overlay = !self.el('scrPause').classList.contains('hidden') ||
+          !self.el('scrLevel').classList.contains('hidden');
+        if (Game.running && Game.paused && !Game.over && !overlay) Game.pause(false);
+      };
+      window.addEventListener('focus', done);
+      g.addEventListener('pointerdown', done);
+    }, 700);
+  },
+
   resumeAfterCards: function () {
     if (Game.over) return;
+    Input.reset();
     this.el('hud').classList.remove('hidden');
     Game.pause(false);
   },
@@ -428,12 +480,13 @@ var UI = {
       Game.rerollsLeft--;
       self.renderCards(Skills.roll(Game.player, 3));
       self.el('btnReroll').disabled = Game.rerollsLeft <= 0;
-    }, function () {
-      self.toast(I18N.t('adFail'));
+    }, function (why) {
+      self.adToast(why);
     });
   },
 
   showGameOver: function () {
+    Input.reset();
     var res = Game.settle();
     this.el('hud').classList.add('hidden');
     this.el('scrLevel').classList.add('hidden');
@@ -459,12 +512,13 @@ var UI = {
     if (Game.reviveLeft <= 0) { this.toast(I18N.t('reviveOut')); return; }
     PF.showRewarded(function () {
       Game.reviveLeft--;
+      Input.reset();
       self.el('scrOver').classList.add('hidden');
       self.el('hud').classList.remove('hidden');
       Game.unsettle();
       Game.revive();
-    }, function () {
-      self.toast(I18N.t('adFail'));
+    }, function (why) {
+      self.adToast(why);
     });
   },
 
@@ -475,8 +529,8 @@ var UI = {
       self.el('ovCoins').textContent = U.num(Game.payout);
       self.el('btnDouble').classList.add('hidden');
       Snd.play('coin');
-    }, function () {
-      self.toast(I18N.t('adFail'));
+    }, function (why) {
+      self.adToast(why);
     });
   },
 
@@ -701,8 +755,11 @@ var UI = {
     this.el('btnAuth').classList.toggle('hidden', !PF.needAuthForBoard());
 
     if (PF.kind !== 'yandex' || !PF.lb) {
+      var b = Save.data.best;
       list.innerHTML = '<div class="board-row"><span class="nm">' +
-        I18N.t('boardLocal', { n: U.num(Save.data.best.score) }) + '</span></div>';
+        I18N.t('boardLocal', { n: U.num(b.score) }) + '</span></div>' +
+        (b.score ? '<div class="board-row me"><span class="nm">' + I18N.t('survived') + '</span><span class="sc">' + U.time(b.time) + '</span></div>' +
+          '<div class="board-row me"><span class="nm">' + I18N.t('lvlUp') + '</span><span class="sc">' + b.level + '</span></div>' : '');
       return;
     }
 
@@ -740,8 +797,8 @@ var UI = {
       Snd.play('coin');
       self.toast(I18N.t('rewardCoins', { n: amount }));
       self.refreshMenu();
-    }, function () {
-      self.toast(I18N.t('adFail'));
+    }, function (why) {
+      self.adToast(why);
     });
   }
 };

@@ -182,6 +182,8 @@ canvas#game3d{position:fixed;inset:0;width:100%;height:100%;display:block}
 .sw{display:flex;justify-content:space-between;align-items:center;font-size:17px;letter-spacing:.06em;
   text-transform:uppercase;border-bottom:1px solid rgba(0,0,0,.35);padding-bottom:10px}
 .sw input{width:22px;height:22px;accent-color:var(--paint)}
+.sw.vol input{flex:1;width:auto;min-width:90px;margin:0 12px;cursor:pointer}
+.sw.vol b{min-width:42px;text-align:right;font-weight:600;color:var(--paint);font-variant-numeric:tabular-nums}
 .lang-row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
 .btn.lang.active{color:#1d150b;background:var(--noise),linear-gradient(180deg,#f4bd4c,var(--paint2))}
 .ver{text-align:center;color:var(--bone3);font-size:12px;letter-spacing:.1em}
@@ -215,8 +217,9 @@ canvas#game3d{position:fixed;inset:0;width:100%;height:100%;display:block}
   letter-spacing:.06em;text-shadow:0 1px 2px #000,0 0 3px #000}
 .pause-skills{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;max-width:min(92vw,640px);margin:0 auto 16px;max-height:40vh;overflow:auto}
 .pause-skills:empty{display:none}
-.pause-mix{display:flex;gap:28px;justify-content:center;margin:0 auto 14px}
+.pause-mix{display:flex;flex-wrap:wrap;gap:10px 28px;justify-content:center;margin:0 auto 14px;max-width:min(92vw,420px)}
 .pause-mix .sw{gap:10px}
+.pause-mix .sw.vol{flex-basis:100%;gap:0}
 .ps{display:grid;grid-template-columns:auto 1fr auto;column-gap:6px;align-items:center;width:min(44vw,200px);padding:6px 9px;
   background:rgba(20,14,8,.78);border:1px solid rgba(255,235,200,.18);border-radius:6px;font-size:12px;text-align:left}
 .ps i{font-style:normal;font-size:16px}
@@ -290,15 +293,20 @@ canvas#game3d{position:fixed;inset:0;width:100%;height:100%;display:block}
   background:radial-gradient(circle,#0d0906 0 55%,transparent 56%),repeating-conic-gradient(var(--paint) 0 20deg,#1d150b 20deg 40deg);
   animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
+#game:focus{outline:none}
+.focus-gate{position:fixed;inset:0;z-index:70;display:flex;align-items:center;justify-content:center;
+  background:rgba(13,9,6,.55);cursor:pointer}
+.focus-gate span{font-size:22px;font-weight:600;letter-spacing:.06em;color:var(--paint);text-align:center;padding:14px 22px;
+  background:var(--plate);clip-path:var(--cut);text-shadow:0 1px 3px #000;animation:pulse .8s ease-in-out infinite alternate}
 
-.boss-bar{margin-top:10px;max-width:540px;align-self:center;width:100%}
+.boss-bar{margin:10px auto 0;max-width:min(540px,calc(100% - 2 * clamp(92px,16vw,132px) - 16px));width:100%}
 .bb-name{display:flex;justify-content:space-between;font-size:15px;font-weight:600;
   letter-spacing:.16em;text-transform:uppercase;color:var(--paint);margin-bottom:3px;
   text-shadow:0 1px 3px #000}
 .bb-track{height:14px;padding:3px;background:var(--hazard);box-shadow:0 2px 4px rgba(0,0,0,.5)}
 .bb-track i{display:block;height:100%;width:100%;transition:width .15s linear;
   background:repeating-linear-gradient(90deg,transparent 0 9%,rgba(0,0,0,.3) 9% 10%),linear-gradient(180deg,#ff7a5c,#b8301a)}
-.stage-bar{margin-top:8px;max-width:420px;width:100%}
+.stage-bar{margin:8px auto 0;max-width:min(420px,calc(100% - 2 * clamp(92px,16vw,132px) - 16px));width:100%}
 .sb-goal{text-align:center;font-size:15px;font-weight:500;letter-spacing:.03em;color:var(--bone2);margin-bottom:5px;
   text-shadow:0 1px 3px #000,0 0 4px #000;transition:font-size .4s}
 .stage-bar.intro .sb-goal{font-size:21px;color:#fff}
@@ -316,7 +324,7 @@ canvas#game3d{position:fixed;inset:0;width:100%;height:100%;display:block}
   clip-path:polygon(0 0,100% 50%,0 100%)}
 .sb-track u.done{background:var(--bone3)}
 .sb-track u.done:after{background:var(--bone3)}
-@media (max-width:640px){.stage-bar,.boss-bar{max-width:calc(100% - 112px)}}
+@media (max-width:479px){.stage-bar,.boss-bar{margin-left:0;max-width:calc(100% - 112px)}}
 .boss-banner{position:fixed;left:50%;top:22%;transform:translateX(-50%);z-index:55;text-align:center;
   pointer-events:none;animation:bannerIn .35s ease-out}
 .boss-banner b{display:block;font-size:15px;letter-spacing:.3em;color:var(--bone2);text-transform:uppercase;

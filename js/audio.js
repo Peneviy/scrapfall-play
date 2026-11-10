@@ -8,6 +8,8 @@ var Snd = {
   on: true,
   musicOn: true,
   musVol: 0.5,
+  vol: 0.7,
+  outGain: 0.85,
   muted: false,
   adMuted: false,
   pfMuted: false,
@@ -26,7 +28,7 @@ var Snd = {
     this.comp.attack.value = 0.004;
     this.comp.release.value = 0.2;
     this.master = c.createGain();
-    this.master.gain.value = this.muted ? 0 : 0.85;
+    this.master.gain.value = this.muted ? 0 : this.outGain * this.vol;
     this.comp.connect(this.master);
     this.lim = c.createDynamicsCompressor();
     this.lim.threshold.value = -3;
@@ -57,6 +59,11 @@ var Snd = {
   },
 
   setSfx: function (v) { this.on = !!v; },
+  setVol: function (v) {
+    var n = +v;
+    this.vol = n >= 0 ? Math.min(1, n) : 0.7;
+    this.applyMute();
+  },
   setMusic: function (v) {
     this.musicOn = !!v;
     if (this.musGain) this.musGain.gain.value = v ? this.musVol : 0;
@@ -81,7 +88,7 @@ var Snd = {
     var m = this.adMuted || this.pfMuted || this.bgMuted;
     this.muted = m;
     if (!this.ctx) return;
-    this.master.gain.value = m ? 0 : 0.85;
+    this.master.gain.value = m ? 0 : this.outGain * this.vol;
   },
 
   buildBuffers: function () {

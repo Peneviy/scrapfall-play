@@ -22,8 +22,10 @@
 
       Snd.setSfx(Save.data.set.sfx);
       Snd.setMusic(Save.data.set.music);
+      Snd.setVol(Save.data.set.vol);
 
       PF.onAdStart = function () {
+        Input.reset();
         if (Game.running && !Game.paused) { Game.wasPausedByAd = true; Game.pause(true); }
       };
       PF.onAdSound = function (on) { Snd.mute(!on); };
@@ -35,6 +37,8 @@
         UI.syncAdButtons();
       };
       PF.onAdEnd = function () {
+        Input.reset();
+        UI.afterAd();
         if (Game.wasPausedByAd && !Game.over) {
           Game.wasPausedByAd = false;
           var overlayOpen = !document.getElementById('scrLevel').classList.contains('hidden') ||

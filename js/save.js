@@ -20,7 +20,7 @@ var Save = {
       up: { dmg: 0, hp: 0, spd: 0, xp: 0, loot: 0, cd: 0, radius: 0, tech: 0 },
       bosses: {},
       prestige: 0,
-      set: { sfx: 1, music: 1, shake: 1, low: 0, lang: null, aim: 'auto', zoom: 1 }
+      set: { sfx: 1, music: 1, shake: 1, low: 0, lang: null, aim: 'auto', zoom: 1, vol: 0.7 }
     };
   },
 

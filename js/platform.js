@@ -358,7 +358,21 @@ var PF = {
   _adEnd: function () {
     this.adRunning = false;
     this._sound(true);
+    this.refocus();
     if (this.onAdEnd) this.onAdEnd();
+  },
+
+  refocus: function () {
+    var go = function () {
+      try { window.focus(); } catch (e) {}
+      try {
+        var c = document.getElementById('game');
+        if (c && c.focus) c.focus({ preventScroll: true });
+      } catch (e) {}
+    };
+    go();
+    setTimeout(go, 120);
+    setTimeout(go, 500);
   },
 
   showFullscreen: function (done, where) {
@@ -433,19 +447,21 @@ var PF = {
     onFail = onFail || function () {};
     if (this.adRunning || !this.canReward()) { onFail(); return; }
     if (this.adsOff === 'basic' || this.adsOff === 'free') { onReward(); return; }
-    var self = this, rewarded = false;
+    var self = this, rewarded = false, shown = false;
     this._adStart(!!this.cg);
     var raw = function () {
+      if (shown || rewarded) self.lastFullscreen = self.now();
       self._adEnd();
-      if (rewarded) onReward(); else onFail();
+      if (rewarded) onReward(); else onFail(shown ? 'closed' : 'none');
     };
-    var pass = this._guard(function () { rewarded = false; raw(); }, CFG.ads.rewardTimeout);
+    var pass = this._guard(function () { rewarded = false; raw(); }, this.pkb ? 240 : CFG.ads.rewardTimeout);
     var finish = function () { if (pass()) raw(); };
 
     if (this.ysdk) {
       try {
         this.ysdk.adv.showRewardedVideo({
           callbacks: {
+            onOpen: function () { shown = true; },
             onRewarded: function () { rewarded = true; },
             onClose: finish,
             onError: function () { rewarded = false; finish(); }
@@ -457,7 +473,7 @@ var PF = {
     if (this.cg) {
       try {
         this.cg.ad.requestAd('rewarded', {
-          adStarted: function () { self._sound(false); },
+          adStarted: function () { shown = true; self._sound(false); },
           adFinished: function () { rewarded = true; finish(); },
           adError: function (err) {
             self._cgError(err);
@@ -474,6 +490,7 @@ var PF = {
       try {
         prw.canShow().then(function (ok) { return ok ? prw.show() : { rendered: false, reward: false }; })
           .then(function (r) {
+            if (r && r.rendered) shown = true;
             if (r && r.reward) { self.noFill = 0; rewarded = true; finish(); }
             else if (r && r.rendered) { rewarded = false; finish(); }
             else pkFail();
@@ -508,14 +525,15 @@ var PF = {
       return;
     }
     if (this.net) {
-      this._netAd('reward', function (shown, got) {
+      this._netAd('reward', function (seen, got) {
+        if (seen) shown = true;
         if (got) { self.noFill = 0; rewarded = true; }
-        else rewarded = shown ? false : self._consolation();
+        else rewarded = seen ? false : self._consolation();
         finish();
       });
       return;
     }
-    this._fakeAd(function () { rewarded = true; finish(); }, 1.5);
+    this._fakeAd(function () { shown = true; rewarded = true; finish(); }, 1.5);
   },
 
   _fakeAd: function (cb, sec) {
@@ -535,7 +553,10 @@ var PF = {
     } catch (e) {}
   },
 
+  noSave: (function () { try { return /[?&]nosave=1/.test(location.search); } catch (e) { return false; } })(),
+
   save: function (data) {
+    if (this.noSave) return;
     try { localStorage.setItem('scrapfall_save', JSON.stringify(data)); } catch (e) {}
     if (this.player && this.player.setData) {
       try { this.player.setData({ sf: data }, false); } catch (e) {}

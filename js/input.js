@@ -31,8 +31,17 @@ var Input = {
     this.dashWanted = false;
   },
 
+  isTouch: function () {
+    return this.touch || !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+  },
+
+  markTouch: function () {
+    document.documentElement.classList.add('touch');
+  },
+
   init: function (canvas) {
     var self = this;
+    if (this.isTouch()) this.markTouch();
 
     window.addEventListener('keydown', function (e) {
       var code = self.codeOf(e);
@@ -74,16 +83,32 @@ var Input = {
     var dash = document.getElementById('dashBtn');
     dash.addEventListener('touchstart', function (e) { e.preventDefault(); self.dashWanted = true; }, { passive: false });
     dash.addEventListener('mousedown', function (e) { e.preventDefault(); self.dashWanted = true; });
+    this.dashSide();
   },
+
+  dashSide: function () {
+    var b = document.getElementById('dashBtn');
+    if (b) b.classList.toggle('left', !!(Save.data && Save.data.set.dashL));
+  },
+
+  tap: { end: 0, x: 0, y: 0, t0: 0 },
 
   onTouchStart: function (e) {
     this.touch = true;
+    this.markTouch();
     document.getElementById('dashBtn').classList.remove('hidden');
     if (!Game.running || Game.paused) return;
     e.preventDefault();
+    var now = performance.now();
     for (var i = 0; i < e.changedTouches.length; i++) {
       var t = e.changedTouches[i];
       if (this.stick.active) continue;
+      var tp = this.tap;
+      if (tp.end && now - tp.end < 280 && Math.abs(t.clientX - tp.x) < 70 && Math.abs(t.clientY - tp.y) < 70) {
+        this.dashWanted = true;
+        tp.end = 0;
+      }
+      tp.t0 = now;
       this.stick.active = true;
       this.stick.id = t.identifier;
       this.stick.ox = t.clientX;
@@ -107,6 +132,10 @@ var Input = {
   onTouchEnd: function (e) {
     for (var i = 0; i < e.changedTouches.length; i++) {
       if (e.changedTouches[i].identifier === this.stick.id) {
+        var s = this.stick, now = performance.now();
+        var moved = Math.abs(s.x - s.ox) + Math.abs(s.y - s.oy);
+        if (now - this.tap.t0 < 220 && moved < 16) { this.tap.end = now; this.tap.x = s.ox; this.tap.y = s.oy; }
+        else this.tap.end = 0;
         this.stick.active = false;
         this.stick.id = -1;
       }

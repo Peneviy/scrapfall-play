@@ -67,7 +67,13 @@ var UI = {
     this.el('setVol').onchange = function () { self.setVol(this.value / 100, true); };
     this.el('pauseVol').onchange = function () { self.setVol(this.value / 100, true); };
     this.el('setShake').onchange = function () { set.shake = this.checked ? 1 : 0; Save.flush(true); };
-    this.el('setLow').onchange = function () { set.low = this.checked ? 1 : 0; Save.flush(true); };
+    this.el('setLow').onchange = function () {
+      set.low = this.checked ? 1 : 0;
+      if (View3D.on) View3D.setLow(!!set.low);
+      Save.flush(true);
+    };
+    this.el('setDashL').checked = !!set.dashL;
+    this.el('setDashL').onchange = function () { set.dashL = this.checked ? 1 : 0; Input.dashSide(); Save.flush(true); };
 
     var row = document.querySelector('.lang-row');
     if (row) {
@@ -175,21 +181,38 @@ var UI = {
     I18N.apply();
   },
 
-  startRun: function () {
+  startRun: function (hold) {
     Snd.unlock();
     Input.reset();
     this.hideAll();
     this.el('hud').classList.remove('hidden');
     Game.start();
     this.updateHud();
-    if (!Save.data.hintSeen) this.showCtrlHint();
+    if (hold) this.holdStart();
+    if (hold || !Save.data.hintSeen) this.showCtrlHint();
+  },
+
+  holdStart: function () {
+    var self = this;
+    Game.hold = true;
+    var go = function () {
+      ['pointerdown', 'touchstart', 'keydown'].forEach(function (ev) {
+        window.removeEventListener(ev, go, true);
+      });
+      Game.hold = false;
+      self.el('ctrlHint').classList.remove('hold');
+    };
+    ['pointerdown', 'touchstart', 'keydown'].forEach(function (ev) {
+      window.addEventListener(ev, go, { capture: true, passive: true });
+    });
   },
 
   showCtrlHint: function () {
     var el = this.el('ctrlHint');
-    var touch = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+    var touch = Input.isTouch();
     el.classList.toggle('is-touch', touch);
     el.classList.toggle('is-pc', !touch);
+    el.classList.toggle('hold', !!Game.hold);
     el.classList.remove('hidden', 'fade');
     this.ctrlHintT = 0;
     this.ctrlHintMoved = 0;
@@ -370,6 +393,18 @@ var UI = {
     this.el('bannerKind').textContent = kind;
     this.el('bannerName').textContent = name;
     b.classList.remove('hidden');
+    var top = 0, bars = ['stageBar', 'bossBar'];
+    for (var i = 0; i < bars.length; i++) {
+      var bar = this.el(bars[i]);
+      if (bar && !bar.classList.contains('hidden')) top = Math.max(top, bar.getBoundingClientRect().bottom);
+    }
+    b.style.top = '';
+    if (top) {
+      var bh = b.offsetHeight, mid = window.innerHeight / 2;
+      top += 10;
+      if (top + bh > mid - 28 && mid + 40 + bh < window.innerHeight - 40) top = mid + 40;
+      b.style.top = Math.round(top) + 'px';
+    }
     b.style.animation = 'none';
     void b.offsetWidth;
     b.style.animation = '';
@@ -403,8 +438,7 @@ var UI = {
     var row = this.el('cardRow'), self = this;
     row.innerHTML = '';
     this.cards = cards;
-    var touch = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
-    row.classList.toggle('kb', !touch);
+    row.classList.toggle('kb', !Input.isTouch());
     for (var i = 0; i < cards.length; i++) {
       (function (s, n) {
         var lvl = Game.player.skills[s.id] || 0;

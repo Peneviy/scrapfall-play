@@ -32,7 +32,7 @@ var Game = {
 
   resize: function () {
     var w = window.innerWidth, h = window.innerHeight;
-    this.dpr = Math.min(window.devicePixelRatio || 1, 2);
+    this.dpr = Math.min(window.devicePixelRatio || 1, Save.data && Save.data.lowRes ? 1 : 2);
     this.w = w; this.h = h;
     this.canvas.width = Math.floor(w * this.dpr);
     this.canvas.height = Math.floor(h * this.dpr);
@@ -81,6 +81,7 @@ var Game = {
 
     this.over = false;
     this.paused = false;
+    this.hold = false;
     this.running = true;
     this.settled = false;
     this.committed = false;
@@ -753,17 +754,12 @@ var Game = {
     if (!(dt > 0)) return;
     if (dt > 0.25) dt = 0.25;
 
-    if (this.running && !this.paused && View3D.on && !Save.data.set.low && !Save.data.lowAuto) {
-      this.slowT = dt > 0.028 ? (this.slowT || 0) + dt : 0;
-      if (this.slowT > 3) {
-        Save.data.lowAuto = 1;
-        View3D.setLow(true);
-        Save.flush(false);
-        UI.toast(I18N.t('lowAuto'));
-      }
-    }
+    if (window.innerWidth !== this.w || window.innerHeight !== this.h) this.resize();
 
-    if (this.running && !this.paused) {
+    var live = this.running && !this.paused && !this.hold;
+    if (live && View3D.on) this.watchPerf(dt);
+
+    if (live) {
       this.acc += dt;
       var steps = 0;
       while (this.acc >= this.fixed && steps < 5) {
@@ -777,6 +773,31 @@ var Game = {
     if (this.running) this.render();
     else if (View3D.on) View3D.idle();
     Snd.music();
+  },
+
+  perf: { t: 0, n: 0, bad: 0 },
+  watchPerf: function (dt) {
+    var p = this.perf, s = Save.data;
+    p.t += dt; p.n++;
+    if (p.t < 2) return;
+    var avg = p.t / p.n;
+    p.t = 0; p.n = 0;
+    if (!s.set.low && !s.lowAuto) {
+      p.bad = avg > 0.025 ? p.bad + 1 : 0;
+      if (p.bad < 2) return;
+      p.bad = 0;
+      s.lowAuto = 1;
+      View3D.setLow(true);
+      Save.flush(false);
+      UI.toast(I18N.t('lowAuto'));
+    } else if (s.set.low && !s.lowRes) {
+      p.bad = avg > 0.038 ? p.bad + 1 : 0;
+      if (p.bad < 2) return;
+      p.bad = 0;
+      s.lowRes = 1;
+      Save.flush(false);
+      this.resize();
+    }
   },
 
   run: function () {

@@ -61,7 +61,7 @@
       Metrics.session();
       setTimeout(function () {
         if (!Save.data.runs) {
-          UI.startRun();
+          UI.startRun(true);
         } else {
           UI.show('scrMenu');
           UI.refreshMenu();

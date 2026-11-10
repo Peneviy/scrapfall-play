@@ -266,6 +266,9 @@ canvas#game3d{position:fixed;inset:0;width:100%;height:100%;display:block}
   box-shadow:0 3px 8px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;
   font-weight:700;font-size:14px;letter-spacing:.12em;color:var(--bone);pointer-events:auto}
 .touch-btn.cd{opacity:.35}
+.touch-btn.left{right:auto;left:22px;bottom:calc(env(safe-area-inset-bottom) + 104px)}
+.touch-only{display:none}
+.touch .sw.touch-only{display:flex}
 
 .lvl-title{font-size:24px;letter-spacing:.2em;text-transform:uppercase;color:var(--bone2);font-weight:600}
 .lvl-title b{color:var(--paint);font-size:32px}
@@ -357,7 +360,8 @@ canvas#game3d{position:fixed;inset:0;width:100%;height:100%;display:block}
   pointer-events:none;animation:bannerIn .35s ease-out}
 .boss-banner b{display:block;font-size:15px;letter-spacing:.3em;color:var(--bone2);text-transform:uppercase;
   font-weight:500;text-shadow:0 1px 3px #000}
-.boss-banner span{display:block;font-size:min(11vw,52px);font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+.boss-banner{width:max-content;max-width:94vw}
+.boss-banner span{display:block;font-size:min(8vw,52px,9vh);line-height:1.15;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
   color:var(--paint);text-shadow:0 0 1px var(--paint),0 0 24px rgba(232,171,47,.35),3px 4px 0 rgba(0,0,0,.6)}
 @keyframes bannerIn{from{opacity:0;transform:translateX(-50%) translateY(-14px)}to{opacity:1}}
 .trophy{filter:saturate(.3) brightness(.7)}
@@ -373,12 +377,19 @@ canvas#game3d{position:fixed;inset:0;width:100%;height:100%;display:block}
 .ab.dim{opacity:.6}
 .ctrl-hint{position:absolute;left:50%;top:60%;transform:translate(-50%,0);display:flex;flex-direction:column;align-items:center;gap:8px;
   padding:10px 16px;border-radius:12px;background:rgba(8,16,20,.6);border:1px solid rgba(255,255,255,.14);
-  font-size:13px;color:var(--txt);text-align:center;pointer-events:none;transition:opacity .5s;max-width:90vw}
+  font-size:13px;color:var(--txt);text-align:center;pointer-events:none;transition:opacity .5s;
+  width:max-content;max-width:90vw}
 .ctrl-hint.fade{opacity:0}
 .ctrl-hint .ch{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center}
 .ctrl-hint .pc,.ctrl-hint .touch{display:none}
 .ctrl-hint.is-pc .pc{display:flex}
 .ctrl-hint.is-touch .touch{display:flex}
+.ctrl-hint:not(.hold) .ch.go{display:none}
+.ctrl-hint .go{margin-top:2px;font-size:15px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--paint);animation:chGo 1.1s ease-in-out infinite}
+@keyframes chGo{50%{opacity:.45}}
+.touch .ability-bar{display:none}
+@media (pointer:coarse){.ability-bar{display:none}}
 .ctrl-hint b{display:inline-flex;gap:3px}
 .ctrl-hint i{font-style:normal;font-size:11px;font-weight:900;letter-spacing:.06em;color:#0c1a1f;background:#e8f3f5;border-radius:4px;padding:3px 6px;min-width:12px}
 .ctrl-hint .swipe{width:34px;height:34px;border-radius:50%;border:2px solid #e8f3f5;position:relative;overflow:visible}
@@ -442,4 +453,31 @@ canvas#game3d{position:fixed;inset:0;width:100%;height:100%;display:block}
   #scrMenu .btn{font-size:13px;padding:8px 12px}
   .quick-up{width:min(100%,420px)}
   .qu{padding:6px 3px 5px}
+}
+
+@media (max-height:520px) and (min-width:480px){
+  #scrLevel{gap:8px;padding-top:max(env(safe-area-inset-top),6px);padding-bottom:6px}
+  .lvl-title{font-size:17px}
+  .lvl-title b{font-size:22px}
+  .card-row{flex-wrap:nowrap;gap:8px;width:100%;max-width:760px}
+  .card{flex:1 1 0;width:auto;min-width:0;max-width:236px;min-height:0;padding:12px 10px 9px;gap:4px}
+  .card .ic{width:30px;height:30px;line-height:30px;font-size:18px}
+  .card h3{font-size:15px;letter-spacing:.03em}
+  .card p{font-size:12px;line-height:1.25}
+  .card .stack,.card .next{font-size:11px}
+  #btnReroll{padding:6px 12px;font-size:13px}
+  .ctrl-hint{flex-direction:row;flex-wrap:wrap;justify-content:center;top:auto;bottom:44px;
+    gap:3px 14px;padding:6px 14px;font-size:12px;max-width:calc(100% - 240px)}
+  .ctrl-hint .go{flex-basis:100%;justify-content:center;font-size:13px}
+}
+@media (max-width:479px){
+  .card-row{width:100%;gap:10px}
+  .card{width:min(100%,340px);min-height:0;padding:12px 12px 10px;
+    display:grid;grid-template-columns:auto 1fr;column-gap:12px;row-gap:4px;align-content:start}
+  .card .ic{grid-row:1/span 4;align-self:start}
+  .card h3{font-size:16px}
+}
+@media (max-height:340px) and (min-width:480px){
+  .card .next{display:none}
+  .card .ic{display:none}
 }

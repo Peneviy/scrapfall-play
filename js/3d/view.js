@@ -37,6 +37,10 @@ var View3D = {
     this.sunDir = new THREE.Vector3(-0.6, 1.25, 0.45).normalize();
     s.add(sun);
     s.add(sun.target);
+    if (Save.data && !Save.data.set.low && !Save.data.lowAuto && this.weakGpu(r)) {
+      Save.data.set.low = 1;
+      Save.data.lowAuto = 1;
+    }
     this.shadowsOn = !(Save.data && Save.data.set.low);
     if (this.shadowsOn) {
       r.shadowMap.enabled = true;
@@ -71,14 +75,71 @@ var View3D = {
     this._dummy.rotation.order = 'YXZ';
 
     this.on = true;
+    this.watchContext(canvas);
     return true;
+  },
+
+  gpuName: function (r) {
+    try {
+      var gl = r.getContext(), ext = gl.getExtension('WEBGL_debug_renderer_info');
+      return String(gl.getParameter(ext ? ext.UNMASKED_RENDERER_WEBGL : gl.RENDERER) || '');
+    } catch (e) { return ''; }
+  },
+
+  weakGpu: function (r) {
+    var n = this.gpuName(r);
+    this.gpu = n;
+    return /PowerVR|Mali-(4\d\d|T\d|G(31|51|52)\b)|Adreno[^0-9]*([34]\d\d|50\d)\b|SwiftShader|llvmpipe|Software/i.test(n);
+  },
+
+  watchContext: function (canvas) {
+    var self = this;
+    canvas.addEventListener('webglcontextlost', function (e) {
+      e.preventDefault();
+      self.lost = true;
+      if (Game.running && !Game.paused && !Game.over) UI.togglePause();
+      self.lostWait();
+    }, false);
+    canvas.addEventListener('webglcontextrestored', function () {
+      self.lost = false;
+      clearTimeout(self.lostT);
+      Game.resize();
+    }, false);
+  },
+
+  lostWait: function () {
+    var self = this;
+    clearTimeout(this.lostT);
+    this.lostT = setTimeout(function () {
+      if (!self.lost) return;
+      if (document.hidden) { self.lostWait(); return; }
+      self.rebuild();
+    }, 2500);
+  },
+
+  rebuild: function () {
+    var old = this.renderer.domElement, c = old.cloneNode(false);
+    old.parentNode.replaceChild(c, old);
+    try { this.renderer.dispose(); } catch (e) {}
+    this.on = false;
+    this.lost = false;
+    this.renderer = null;
+    if (this.init(c)) {
+      Game.resize();
+      return;
+    }
+    c.style.display = 'none';
+    Game.canvas.classList.remove('overlay');
+    Game.ctx = Game.canvas.getContext('2d');
+    Game.resize();
   },
 
   resize: function (w, h, dpr) {
     if (!this.on) return;
     this.w = w; this.h = h;
     var low = Save.data && Save.data.set.low;
-    this.renderer.setPixelRatio(low ? 1 : Math.min(dpr || 1, 1.75));
+    var lr = low && Save.data.lowRes;
+    this.renderer.setPixelRatio(lr ? 0.75 : (low ? 1 : Math.min(dpr || 1, 1.75)));
     this.renderer.setSize(w, h, false);
 
     var cfg = CFG.view3d;
@@ -1112,6 +1173,9 @@ var View3D = {
   setLow: function (on) {
     if (!this.on) return;
     Save.data.set.low = on ? 1 : 0;
+    if (!on) Save.data.lowRes = 0;
+    var cb = document.getElementById('setLow');
+    if (cb) cb.checked = !!on;
     this.shadowsOn = !on;
     this.renderer.shadowMap.enabled = !on;
     this.sun.castShadow = !on;

@@ -37,8 +37,8 @@ var UI = {
     this.el('btnPause').onclick = function () { self.togglePause(); };
     this.el('btnResume').onclick = function () { self.togglePause(); };
     this.el('btnQuit').onclick = function () { self.quitRun(); };
-    this.el('btnAimMode').onclick = function () { self.toggleAim(); };
-    this.el('abAim').onclick = function () { self.toggleAim(); };
+    this.el('btnAimMode').onclick = function () { self.toggleAim(); this.blur(); };
+    this.el('abAim').onclick = function () { self.toggleAim(); this.blur(); };
 
     this.el('btnReroll').onclick = function () { self.reroll(); };
     this.el('btnRevive').onclick = function () { self.revive(); };
@@ -195,6 +195,7 @@ var UI = {
     this.updateHud();
     if (hold) this.holdStart();
     if (hold || !Save.data.hintSeen) this.showCtrlHint();
+    else if (Save.data.set.aim === 'mouse' && !Input.isTouch()) this.toast(I18N.t('aimMouse') + ' (TAB)');
   },
 
   crash: function () {
@@ -377,8 +378,9 @@ var UI = {
     if (boss || !Game.flags) sb.classList.add('hidden');
     else {
       sb.classList.remove('hidden');
+      var waiting = Game.bossCount() > 0 ? Game.waitingBoss() : null;
       var t0 = Game.stageT0, t1 = Math.max(Game.nextBoss, t0 + 1), left = t1 - Game.time;
-      this.el('stageFill').style.width = U.clamp((Game.time - t0) / (t1 - t0) * 100, 0, 100) + '%';
+      this.el('stageFill').style.width = (waiting ? 100 : U.clamp((Game.time - t0) / (t1 - t0) * 100, 0, 100)) + '%';
       var fsig = Game.stageN + ':' + Math.round(t1) + ':' + Game.flags.map(function (f) { return f.done ? 1 : 0; }).join('');
       if (fsig !== this.flagSig) {
         this.flagSig = fsig;
@@ -388,8 +390,9 @@ var UI = {
           return '<u class="' + (f.done ? 'done' : '') + '" style="left:' + U.clamp((f.at - t0) / (t1 - t0) * 100, 0, 100).toFixed(1) + '%"></u>';
         }).join('');
       }
-      var soon = left <= 10 || Game.bossCount() > 0;
-      var goal = soon ? I18N.t('stageBossNear') : I18N.t('stageGoal', { t: U.time(left) });
+      var soon = left <= 10 || !!waiting;
+      var goal = waiting ? I18N.t('stageBossWait', { n: I18N.name(waiting.bd) })
+        : I18N.t('stageGoal', { t: U.time(Math.max(0, Math.ceil(left))) });
       if (goal !== this.goalText) { this.goalText = goal; this.el('stageGoal').textContent = goal; }
       sb.classList.toggle('soon', soon);
       sb.classList.toggle('intro', Game.stageN === 1 && Game.time < 5);

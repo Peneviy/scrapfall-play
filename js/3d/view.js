@@ -52,6 +52,9 @@ var View3D = {
     this.matGlow = new THREE.MeshBasicMaterial({ vertexColors: true });
     this.matFlat = new THREE.MeshBasicMaterial({ color: 0xffffff });
     this.matTint = new THREE.MeshLambertMaterial({ color: 0xffffff, vertexColors: true, flatShading: true });
+    this.matWallFade = [0.72, 0.5, 0.32].map(function (o) {
+      return new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true, transparent: true, opacity: o });
+    });
 
     if (this.walls) for (var wi = 0; wi < this.walls.length; wi++) this.walls[wi].mesh3 = null;
     this.halos = null;
@@ -145,6 +148,7 @@ var View3D = {
     cam.aspect = w / Math.max(1, h);
     var groundH = h / Game.scale;
     var pitch = cfg.pitch * Math.PI / 180, half = cfg.fov * Math.PI / 360;
+    this.tanPitch = Math.tan(pitch);
     var dist = groundH * Math.sin(pitch) / (2 * Math.tan(half)) * cfg.zoom;
     this.off = new THREE.Vector3(0, Math.sin(pitch) * dist, Math.cos(pitch) * dist);
     if (this.scene.fog) { this.scene.fog.near = dist * 1.35; this.scene.fog.far = dist * 3.45; }
@@ -449,6 +453,7 @@ var View3D = {
 
     this.syncDeco(cx, cy);
     this.syncWalls(cx, cy);
+    this.fadeWalls(dt);
     this.syncCrates();
     this.syncEnemies();
     this.syncBosses(dt);
@@ -711,6 +716,38 @@ var View3D = {
     }
   },
 
+  fadeWalls: function (dt) {
+    var p = Game.player, grid = Game.grid, gc = grid.cell, tp = this.tanPitch || 1.48;
+    for (var i = 0; i < this.walls.length; i++) {
+      var w = this.walls[i], g = w.mesh3;
+      if (!g) continue;
+      var u = g.userData, reach = Math.max(0, (u.h - 12) / tp);
+      var x0 = w.x - 18, x1 = w.x + w.w + 18, y0 = w.y - reach, y1 = w.y + w.h;
+      var hide = reach > 10 && p.x > x0 && p.x < x1 && p.y > y0 - 10 && p.y < y1;
+      if (!hide && reach > 24) {
+        var cx0 = Math.floor(x0 / gc), cx1 = Math.floor(x1 / gc), cy0 = Math.floor(y0 / gc), cy1 = Math.floor(y1 / gc);
+        for (var gx = cx0; gx <= cx1 && !hide; gx++) {
+          for (var gy = cy0; gy <= cy1 && !hide; gy++) {
+            var bk = grid.bucket(gx, gy);
+            if (!bk) continue;
+            for (var j = 0; j < bk.length; j++) {
+              var e = bk[j];
+              if (!e.dead && e.x > x0 && e.x < x1 && e.y > y0 && e.y < y1) { hide = true; break; }
+            }
+          }
+        }
+      }
+      if (hide) u.hold = 0.4;
+      else if (u.hold > 0) u.hold -= dt;
+      u.k += ((u.hold > 0 ? 1 : 0) - u.k) * Math.min(1, dt * 9);
+      var lvl = u.k > 0.75 ? 3 : (u.k > 0.45 ? 2 : (u.k > 0.15 ? 1 : 0));
+      if (lvl !== u.lvl) {
+        u.lvl = lvl;
+        u.main.material = lvl ? this.matWallFade[lvl - 1] : this.matLit;
+      }
+    }
+  },
+
   wallMesh: function (w) {
     var M = Models, B = M.fastBox;
     var C = function (rt, rb, h, n) {
@@ -818,6 +855,8 @@ var View3D = {
     var main = new THREE.Mesh(mdl.geo, this.matLit);
     main.castShadow = main.receiveShadow = true;
     g.add(main);
+    if (!mdl.geo.boundingBox) mdl.geo.computeBoundingBox();
+    g.userData = { main: main, h: mdl.geo.boundingBox.max.y, k: 0, lvl: 0, hold: 0 };
     if (mdl.glow) g.add(new THREE.Mesh(mdl.glow, this.matGlow));
     g.position.set(w.x + w.w / 2, 0, w.y + w.h / 2);
     if (!alongX) g.rotation.y = Math.PI / 2;
@@ -861,6 +900,12 @@ var View3D = {
       var hover = e.type === 'swarm' ? r * 0.5 + Math.sin(ph * 0.7) * r * 0.15 : 0;
       var hop = e.type === 'nest' ? 0 : Math.abs(Math.sin(ph)) * r * 0.1;
       var nest = e.type === 'nest';
+      var swell = nest && e.shootCd < 0.7 ? 1 - e.shootCd / 0.7 : 0;
+      if (swell > 0) {
+        r *= 1 + swell * 0.22 + Math.sin(t * 30) * 0.03 * swell;
+        var sg = this.glows.put(e.x, 1, e.y, 0, r * 2.4, 1, r * 2.4);
+        this.glows.disc(sg, Models.color(e.def.trim), 0, 1.4, 1, 0.6 * swell);
+      }
       var k = b.putR(e.x, hover + hop, e.y, Math.sin(ph) * 0.07, nest ? e.phase : -e.ang,
         nest ? 0 : Math.cos(ph * 2) * 0.03, r);
       if (k < 0) continue;
@@ -966,20 +1011,22 @@ var View3D = {
       this.glows.disc(gl, Models.color(bd.trim), 0, 2.2, 1, 0.35);
 
       if (bd.id === 'warden' && e.beamA !== undefined) {
+        var bw = Bosses.beamW;
         for (var bi = 0; bi < (e.beams || 1); bi++) {
           var ba = e.beamA + bi * Math.PI;
           var ex = e.x + Math.cos(ba) * e.beamLen, ey = e.y + Math.sin(ba) * e.beamLen;
-          var s1 = this.strips.line(e.x, e.y, ex, ey, 40, r * 1.75);
-          this.strips.strip(s1, Models.color(bd.trim), e.beamLen, 0, 1, 0.75);
-          var s2 = this.strips.line(e.x, e.y, ex, ey, 9, r * 1.75);
-          this.strips.strip(s2, Models.color('#ffe0ee'), e.beamLen, 0, 1, 0.9);
-          var s3 = this.lines.line(e.x, e.y, ex, ey, 36, 1.5);
-          this.lines.strip(s3, Models.color(bd.trim), e.beamLen, 0, 1, 0.35);
+          var s1 = this.strips.line(e.x, e.y, ex, ey, bw * 1.15, 13);
+          this.strips.strip(s1, Models.color(bd.trim), e.beamLen, 0, 1, 0.8);
+          var s2 = this.strips.line(e.x, e.y, ex, ey, 9, 13.5);
+          this.strips.strip(s2, Models.color('#ffe0ee'), e.beamLen, 0, 1, 0.95);
+          var s3 = this.lines.line(e.x, e.y, ex, ey, bw, 1.5);
+          this.lines.strip(s3, Models.color(bd.trim), e.beamLen, 0, 1, 0.45);
         }
       }
       if (e.aim > 0) {
-        var l = this.lines.line(e.x, e.y, e.x + Math.cos(e.chargeAng) * 700, e.y + Math.sin(e.chargeAng) * 700, 8, 2);
-        this.lines.strip(l, Models.color(bd.trim), 700, 24, 0, 0.6);
+        var al = bd.id === 'lancer' ? 250 : 700;
+        var l = this.lines.line(e.x, e.y, e.x + Math.cos(e.chargeAng) * al, e.y + Math.sin(e.chargeAng) * al, 8, 2);
+        this.lines.strip(l, Models.color(bd.trim), al, 24, 0, 0.6);
       }
       if (e.shield > 0) {
         var sr = this.rings.put(e.x, 3, e.y, 0, r + 14, 1, r + 14);
@@ -1251,9 +1298,11 @@ var View3D = {
       this.gems.tint(k, gem, 1.3);
       this.halo(g.x, y, g.y, g.r * 2.6, gem, 0.45);
     }
+    var full = Game.player && Game.player.hp >= Game.player.st.maxHp;
     for (i = 0; i < Game.heals.length; i++) {
       var h = Game.heals[i];
       if (h.life < 4 && Math.floor(h.life * 6) % 2 === 0) continue;
+      if (full) { this.heals.put(h.x, 5, h.y, 0.6, 3.6, 3.6, 3.6); continue; }
       this.heals.put(h.x, 9 + Math.sin(t * 3) * 2, h.y, t * 1.5, 5, 5, 5);
       this.halo(h.x, 9, h.y, 22, Models.color(CFG.col.heal), 0.6);
     }
@@ -1285,14 +1334,18 @@ var View3D = {
       var rf = this.glows.put(m.x, 1.2, m.y, 0, m.r, 1, m.r);
       this.glows.disc(rf, pink, 0, 0, 0.12 * (1 - m.t / 2.6) + 0.04, 1);
     }
-    var orange = Models.color('#ffb35c');
+    var shock = Models.color(CFG.col.shock);
     for (i = 0; i < Game.waves.length; i++) {
       var w = Game.waves[i];
-      var k = 1 - w.r / w.max;
-      var wr = this.rings.put(w.x, 2, w.y, 0, w.r, 1, w.r);
-      this.rings.disc(wr, orange, Math.min(0.5, 14 / w.r), 0, 0, k);
-      var wg = this.glows.put(w.x, 2, w.y, 0, w.r + 10, 1, w.r + 10);
-      this.glows.disc(wg, orange, Math.min(0.5, 30 / w.r), 0, 0, k * 0.5);
+      var k = Math.min(1, (1 - w.r / w.max) * 3);
+      var wr = this.rings.put(w.x, 2, w.y, 0, w.r + 22, 1, w.r + 22);
+      this.rings.disc(wr, shock, Math.min(0.9, 44 / (w.r + 22)), 0, 0, 0.62 * k);
+      var wc = this.rings.put(w.x, 2.4, w.y, 0, w.r + 3, 1, w.r + 3);
+      this.rings.disc(wc, white, Math.min(0.5, 6 / (w.r + 3)), 0, 0, 0.9 * k);
+      var wg = this.glows.put(w.x, 2, w.y, 0, w.r + 30, 1, w.r + 30);
+      this.glows.disc(wg, shock, Math.min(0.9, 60 / (w.r + 30)), 0, 0, 0.45 * k);
+      var ww = this.shockwalls.put(w.x, 0, w.y, 0, w.r, 26, w.r);
+      this.shockwalls.wall(ww, shock, 0.55 * k);
     }
     var green = Models.color(CFG.col.heal);
     for (i = 0; i < Game.clouds.length; i++) {
@@ -1330,7 +1383,7 @@ var View3D = {
       var rad = Math.max(2, U.lerp(r.r, r.r1, kk));
       var ri = this.rings.put(r.x, 2.2, r.y, 0, rad, 1, rad);
       this.rings.disc(ri, Models.color(r.c), Math.min(0.6, r.w * (1 - kk * 0.6) / rad), 0, 0, 1 - kk);
-      if (r.r1 >= 60) {
+      if (r.r1 >= 60 && !r.flat) {
         var wi = this.shockwalls.put(r.x, 0, r.y, 0, rad, Math.min(70, r.r1 * 0.32) * (1 - kk * 0.4), rad);
         this.shockwalls.wall(wi, Models.color(r.c), (1 - kk) * 0.6);
       }
@@ -1352,11 +1405,16 @@ var View3D = {
       var bl = FX.blasts[i];
       var k = 1 - bl.life / bl.max;
       var grow = k < 0.25 ? k / 0.25 : 1 - (k - 0.25) / 0.75 * 0.85;
-      var bs = bl.r * 0.32 * grow;
+      var bs = bl.r * (bl.pop ? 0.17 : 0.32) * grow;
       if (k < 0.4) c0.copy(hot).lerp(Models.color(bl.c), k / 0.4);
       else c0.copy(Models.color(bl.c)).lerp(ember, (k - 0.4) / 0.6);
       var fb = this.fireballs.put(bl.x, bs * 0.45, bl.y, k * 2, bs, bs * 0.85, bs);
       this.fireballs.tint(fb, c0, 1.3);
+      if (bl.pop) {
+        var pg = this.glows.put(bl.x, 1.4, bl.y, 0, bl.r * 0.55, 1, bl.r * 0.55);
+        this.glows.disc(pg, Models.color(bl.c), 0, 1.4, 1, 0.4 * (1 - k));
+        continue;
+      }
       if (k > 0.2) {
         var sk = (k - 0.2) / 0.8;
         for (var j = 0; j < 3; j++) {

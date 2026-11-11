@@ -22,9 +22,22 @@ var FX = {
 
   blast: function (x, y, r, color) {
     if (this.blasts.length > 30) this.blasts.shift();
-    this.blasts.push({ x: x, y: y, r: r, c: color || '#ffb35c', life: 0.45, max: 0.45 });
+    this.blasts.push({ x: x, y: y, r: r, c: color || '#ffb35c', life: 0.45, max: 0.45, pop: false });
     if (this.scorch.length > 40) this.scorch.shift();
     this.scorch.push({ x: x, y: y, r: r * 0.6, life: 9, a: Math.random() * 6.28 });
+  },
+
+  pop: function (x, y, r) {
+    var n = 0;
+    for (var i = this.blasts.length - 1; i >= 0; i--) {
+      var b = this.blasts[i];
+      if (!b.pop) continue;
+      if (++n >= 8) return false;
+      if (b.max - b.life < 0.12 && U.dist2(b.x, b.y, x, y) < r * r * 0.6) return false;
+    }
+    if (this.blasts.length > 30) this.blasts.shift();
+    this.blasts.push({ x: x, y: y, r: r, c: '#ffb35c', life: 0.3, max: 0.3, pop: true });
+    return true;
   },
 
   bolt: function (x1, y1, x2, y2, color) {
@@ -69,8 +82,8 @@ var FX = {
     }
   },
 
-  ring: function (x, y, r0, r1, color, life, width) {
-    this.rings.push({ x: x, y: y, r: r0, r1: r1, life: life || 0.35, max: life || 0.35, c: color, w: width || 3 });
+  ring: function (x, y, r0, r1, color, life, width, flat) {
+    this.rings.push({ x: x, y: y, r: r0, r1: r1, life: life || 0.35, max: life || 0.35, c: color, w: width || 3, flat: !!flat });
   },
 
   text: function (x, y, str, color, size) {

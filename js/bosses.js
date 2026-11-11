@@ -23,7 +23,7 @@ var Bosses = {
           e.t2 = U.rand(7, 10);
           for (var k = 0; k < 4; k++) {
             var a = Math.random() * 6.28;
-            Enemies.spawn('runner', e.x + Math.cos(a) * 80, e.y + Math.sin(a) * 80, false);
+            Enemies.summon('runner', e.x + Math.cos(a) * 80, e.y + Math.sin(a) * 80);
           }
           FX.burst(e.x, e.y, 14, e.bd.trim, 200, 0.5, 3);
         }
@@ -84,7 +84,7 @@ var Bosses = {
           e.t2 = U.rand(5, 7);
           for (var k = 0; k < 2; k++) {
             var a = Math.random() * 6.28;
-            var s = Enemies.spawn('spitter', e.x + Math.cos(a) * 110, e.y + Math.sin(a) * 110, false);
+            var s = Enemies.summon('spitter', e.x + Math.cos(a) * 110, e.y + Math.sin(a) * 110);
             if (s) s.speed *= 0.4;
           }
         }
@@ -125,12 +125,12 @@ var Bosses = {
     },
 
     {
-      id: 'hive', shape: 8, hpMul: 1.5, dmgMul: 0.8, speed: 26, r: 52,
+      id: 'hive', shape: 8, hpMul: 1.5, dmgMul: 0.8, speed: 32, r: 52,
       body: '#4a3a5c', trim: '#b79ad6',
       ru: { n: 'УЛЕЙ', d: 'Выбрасывает рой мелких тварей и прикрывается щитом, пока рожает' },
       en: { n: 'HIVE', d: 'Pumps out swarms and shields itself while breeding' },
       ai: function (e, dt, d) {
-        Bosses.approach(e, d, 340, 0.9, 0.3);
+        Bosses.approach(e, d, 300, 1, 0.6);
         e.t1 -= dt;
         if (e.shield > 0) e.shield -= dt;
         if (e.t1 <= 0) {
@@ -139,8 +139,8 @@ var Bosses = {
           FX.shake(4);
           Snd.play('shotBig');
           for (var k = 0; k < 9; k++) {
-            var a = Math.random() * 6.28;
-            Enemies.spawn('swarm', e.x + Math.cos(a) * 70, e.y + Math.sin(a) * 70, false);
+            var a = e.ang + U.rand(-1.1, 1.1), rr = U.rand(70, 120);
+            Enemies.summon('swarm', e.x + Math.cos(a) * rr, e.y + Math.sin(a) * rr);
           }
           FX.ring(e.x, e.y, e.r, e.r + 130, e.bd.trim, 0.7, 5);
         }
@@ -165,7 +165,7 @@ var Bosses = {
           var proj = px * bx + py * by;
           if (proj > 0 && proj < e.beamLen) {
             var perp = Math.abs(px * by - py * bx);
-            if (perp < 20) p.hurt(e.dmg * 0.6);
+            if (perp < Bosses.beamW / 2 + p.r * 0.5) p.hurt(e.dmg * 0.6);
           }
         }
         e.t1 -= dt;
@@ -197,9 +197,33 @@ var Bosses = {
     {
       id: 'lancer', shape: 4, hpMul: 1, dmgMul: 1.25, speed: 64, r: 38,
       body: '#40325c', trim: '#c0a8ff',
-      ru: { n: 'КОПЕЙЩИК', d: 'Кружит вокруг и бьет очередями точно в тебя' },
-      en: { n: 'LANCER', d: 'Circles around and fires aimed bursts' },
+      ru: { n: 'КОПЕЙЩИК', d: 'Кружит вокруг, бьет очередями на упреждение, вблизи делает выпад' },
+      en: { n: 'LANCER', d: 'Circles around, leads its bursts, lunges up close' },
       ai: function (e, dt, d) {
+        if (e.burst === undefined) { e.burst = 0; e.t2 = 0.8; }
+        if (e.charge > 0) {
+          e.charge -= dt;
+          e.vx = Math.cos(e.chargeAng) * 780;
+          e.vy = Math.sin(e.chargeAng) * 780;
+          FX.spray(e.x, e.y, e.chargeAng + Math.PI, 2, e.bd.trim, 220);
+          return;
+        }
+        if (e.aim > 0) {
+          e.aim -= dt;
+          e.vx = e.vy = 0;
+          e.chargeAng = U.turn(e.chargeAng, e.ang, 2.6 * dt);
+          if (e.aim <= 0) { e.charge = 0.3; Snd.play('dash'); }
+          return;
+        }
+        e.t2 -= dt;
+        if (d < 250 && e.t2 <= 0) {
+          e.t2 = U.rand(2.2, 3);
+          e.aim = 0.5;
+          e.chargeAng = e.ang;
+          FX.ring(e.x, e.y, e.r, e.r + 40, e.bd.trim, 0.5, 2);
+          return;
+        }
+
         var want = 340;
         var radial = d > want + 40 ? 1 : (d < want - 40 ? -1 : 0);
         var sp = e.speed;
@@ -208,12 +232,14 @@ var Bosses = {
 
         e.t1 -= dt;
         if (e.t1 <= 0) {
-          if (e.burst === undefined || e.burst <= 0) { e.burst = 3; e.t1 = U.rand(2.6, 3.6); }
+          if (e.burst <= 0) { e.burst = 3; e.t1 = U.rand(2.6, 3.6); }
           else { e.t1 = 0.14; }
           if (e.burst > 0) {
             e.burst--;
-            Game.spawnEnemyBullet(e.x, e.y, e.ang + U.rand(-0.04, 0.04), 470, e.dmg * 0.5,
-              e.bd.trim, { spear: true, pw: true, r: 5 });
+            var p = Game.player, fl = d / 470 * 0.7, sp2 = p.st.speed;
+            var a = U.angleTo(e.x, e.y, p.x + Input.move.x * sp2 * fl, p.y + Input.move.y * sp2 * fl);
+            Game.spawnEnemyBullet(e.x, e.y, a + U.rand(-0.04, 0.04), 470, e.dmg * 0.5,
+              e.bd.trim, { spear: true, pw: true, r: 6 });
             Snd.play('shot');
           }
         }
@@ -238,7 +264,7 @@ var Bosses = {
           e.t2 = U.rand(9, 13);
           for (var k = 0; k < 2; k++) {
             var a = Math.random() * 6.28;
-            Enemies.spawn('shellback', e.x + Math.cos(a) * 90, e.y + Math.sin(a) * 90, false);
+            Enemies.summon('shellback', e.x + Math.cos(a) * 90, e.y + Math.sin(a) * 90);
           }
         }
       }
@@ -290,6 +316,8 @@ var Bosses = {
     for (var i = 0; i < this.list.length; i++) if (Save.data.bosses[this.list[i].id]) n++;
     return n;
   },
+
+  beamW: 36,
 
   approach: function (e, d, want, farMul, nearMul) {
     var sp = e.speed * (d > want ? farMul : nearMul);
@@ -357,7 +385,7 @@ var Bosses = {
       ctx.save();
       ctx.globalAlpha = 0.5;
       ctx.strokeStyle = bd.trim;
-      ctx.lineWidth = 12;
+      ctx.lineWidth = Bosses.beamW;
       for (var bi = 0; bi < (e.beams || 1); bi++) {
         var ba = e.beamA + bi * Math.PI;
         ctx.beginPath();

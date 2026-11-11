@@ -175,6 +175,14 @@ var Game = {
     return n;
   },
 
+  waitingBoss: function () {
+    for (var i = 0; i < this.enemies.length; i++) {
+      var e = this.enemies[i];
+      if (e.boss && !e.dead && e.bd && e.state !== 'fight') return e;
+    }
+    return null;
+  },
+
   activeBoss: function () {
     var best = null, bd = 1e9;
     for (var i = 0; i < this.enemies.length; i++) {
@@ -328,7 +336,8 @@ var Game = {
       var h = this.heals[i];
       h.life -= dt;
       if (h.life <= 0) { this.heals.splice(i, 1); continue; }
-      if (p.st.grab > 0 && p.hp < p.st.maxHp) this.pull(h, p, dt);
+      if (p.hp >= p.st.maxHp) continue;
+      if (p.st.grab > 0) this.pull(h, p, dt);
       if (U.dist2(h.x, h.y, p.x, p.y) < (p.r + h.r + 6) * (p.r + h.r + 6)) {
         p.heal(p.st.maxHp * 0.07);
         FX.text(p.x, p.y - 20, '+' + Math.round(p.st.maxHp * 0.07), CFG.col.heal, 15);
@@ -355,9 +364,9 @@ var Game = {
   },
 
   pull: function (o, p, dt) {
-    var R = 70 + 80 * p.st.grab, d = U.dist(o.x, o.y, p.x, p.y);
+    var R = Math.max(70 + 80 * p.st.grab, p.st.pickup), d = U.dist(o.x, o.y, p.x, p.y);
     if (d >= R || d < 1) return;
-    var sp = 380 * (1 - d / R) + 160, a = U.angleTo(o.x, o.y, p.x, p.y);
+    var sp = 420 * (1 - d / R) + 260, a = U.angleTo(o.x, o.y, p.x, p.y);
     o.x += Math.cos(a) * sp * dt;
     o.y += Math.sin(a) * sp * dt;
   },
@@ -374,8 +383,8 @@ var Game = {
       FX.text(p.x, p.y - 26, '+' + Math.round(p.st.maxHp * 0.25), CFG.col.heal, 15);
       Snd.play('coin');
     } else {
-      if (d.t === 'shield') p.buffs.shield = 3;
-      else p.buffs[d.t] = 14;
+      if (d.t === 'shield') p.buffs.shield = Math.min(6, p.buffs.shield + 3);
+      else p.buffs[d.t] = Math.min(28, Math.max(0, p.buffs[d.t]) + 14);
       FX.ring(p.x, p.y, 10, 70, CFG.col.tech, 0.35, 3);
       FX.text(p.x, p.y - 26, I18N.t('buff_' + d.t), CFG.col.tech, 15);
       Snd.play('level');
@@ -456,9 +465,9 @@ var Game = {
     }
     for (i = 0; i < this.waves.length; i++) {
       var w = this.waves[i];
-      ctx.strokeStyle = '#ffb35c';
-      ctx.globalAlpha = 1 - w.r / w.max;
-      ctx.lineWidth = 9;
+      ctx.strokeStyle = CFG.col.shock;
+      ctx.globalAlpha = Math.min(1, (1 - w.r / w.max) * 3);
+      ctx.lineWidth = 30;
       ctx.beginPath();
       ctx.arc(w.x, w.y, w.r, 0, Math.PI * 2);
       ctx.stroke();

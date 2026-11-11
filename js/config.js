@@ -1,5 +1,5 @@
 var CFG = {
-  version: '0.20.36',
+  version: '0.20.37',
   platform: 'pikabu',
   debug: false,
   metrics: { url: 'https://scrapfall-metrics.peneviy.workers.dev/e', dev: '' },
@@ -74,6 +74,7 @@ var CFG = {
     enemyShot: '#ff4d8d',
     enemyShotGlow: 'rgba(255,77,141,.35)',
     spit: '#b6e07a',
+    shock: '#ff2e74',
     gem: '#6fe3c3',
     heal: '#7ee08a'
   },

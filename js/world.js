@@ -219,7 +219,18 @@ var World = {
       { w: 2, t: 'haste' },
       { w: 1, t: 'shield' }
     ]).t;
-    Game.drops.push({ x: x, y: y, r: 13, t: roll, life: 25, bob: Math.random() * 6.28 });
+    Game.drops.push({ x: x, y: y, r: 13, t: this.freshBuff(roll), life: 25, bob: Math.random() * 6.28 });
+  },
+
+  freshBuff: function (t) {
+    var p = Game.player, b = p && p.buffs;
+    if (!b || !(t === 'rage' || t === 'haste' || t === 'shield') || !(b[t] > 0)) return t;
+    var free = [];
+    if (!(b.rage > 0)) free.push('rage');
+    if (!(b.haste > 0)) free.push('haste');
+    if (!(b.shield > 0)) free.push('shield');
+    if (free.length) return U.pick(free);
+    return p.hp < p.st.maxHp ? 'heal' : 'scrap';
   },
 
   draw: function (ctx) {

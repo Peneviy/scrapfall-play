@@ -359,9 +359,10 @@ var Player = {
   },
 
   blast: function (x, y, radius, dmg) {
-    FX.ring(x, y, radius * 0.25, radius, '#ffb35c', 0.3, 3);
-    FX.burst(x, y, 6, '#f0a24a', 220, 0.4, 3);
-    FX.blast(x, y, radius);
+    if (FX.pop(x, y, radius)) {
+      FX.ring(x, y, radius * 0.2, radius * 0.75, '#ffb35c', 0.25, 2, true);
+      FX.burst(x, y, 3, '#f0a24a', 180, 0.3, 2.5);
+    }
     Snd.play('splash');
     var near = [];
     Game.grid.query(x, y, radius, near);

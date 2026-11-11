@@ -31,6 +31,15 @@ var Input = {
     this.dashWanted = false;
   },
 
+  scrollBox: function (el) {
+    for (; el && el.nodeType === 1 && el !== document.body; el = el.parentElement) {
+      if (el.scrollHeight <= el.clientHeight + 1 && el.scrollWidth <= el.clientWidth + 1) continue;
+      var st = getComputedStyle(el), oy = st.overflowY, ox = st.overflowX;
+      if (oy === 'auto' || oy === 'scroll' || ox === 'auto' || ox === 'scroll') return el;
+    }
+    return null;
+  },
+
   isTouch: function () {
     return this.touch || !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
   },
@@ -50,7 +59,7 @@ var Input = {
       if (code === 'Space' || code === 'ShiftLeft') self.dashWanted = true;
       if (code === 'Escape' && UI.escapeScreen()) return;
       if (code === 'Escape' || code === 'KeyP') UI.togglePause();
-      if (code === 'Tab') { e.preventDefault(); UI.toggleAim(); }
+      if (code === 'Tab') { e.preventDefault(); if (!e.repeat && !e.altKey && !e.ctrlKey && !e.metaKey) UI.toggleAim(); }
       if (code === 'Digit1' || code === 'Digit2' || code === 'Digit3') UI.pickByKey(+code.charAt(5) - 1);
       if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].indexOf(code) >= 0) e.preventDefault();
     });
@@ -63,7 +72,14 @@ var Input = {
 
     window.addEventListener('wheel', function (e) {
       e.preventDefault();
-      if (Game.running && e.deltaY) Game.zoomBy(e.deltaY);
+      var box = self.scrollBox(e.target);
+      if (box) {
+        var k = e.deltaMode === 1 ? 32 : (e.deltaMode === 2 ? box.clientHeight : 1);
+        box.scrollTop += e.deltaY * k;
+        box.scrollLeft += e.deltaX * k;
+        return;
+      }
+      if (Game.running && !Game.paused && e.deltaY) Game.zoomBy(e.deltaY);
     }, { passive: false });
 
     window.addEventListener('focus', function () { self.clear(); });

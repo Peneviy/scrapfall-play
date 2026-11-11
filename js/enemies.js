@@ -38,8 +38,8 @@ var Enemies = {
     return U.weighted(pool).k;
   },
 
-  spawn: function (type, x, y, elite) {
-    if (type !== 'boss' && Game.enemies.length >= CFG.scale.capHard) return null;
+  spawn: function (type, x, y, elite, force) {
+    if (type !== 'boss' && !force && Game.enemies.length >= CFG.scale.capHard) return null;
     var d = this.defs[type];
     var e = {
       dead: false, type: type, def: d,
@@ -66,6 +66,21 @@ var Enemies = {
     }
     Game.enemies.push(e);
     return e;
+  },
+
+  summon: function (type, x, y) {
+    var list = Game.enemies;
+    if (list.length < CFG.scale.capHard) return this.spawn(type, x, y, false);
+    var p = Game.player, far = Game.viewRadius() * 1.05, best = null, bd = far * far;
+    for (var i = 0; i < list.length; i++) {
+      var o = list[i];
+      if (o.dead || o.boss || o.elite || o.wave || o.def.nest) continue;
+      var dx = o.x - p.x, dy = o.y - p.y, d2 = dx * dx + dy * dy;
+      if (d2 > bd) { bd = d2; best = o; }
+    }
+    if (!best) return null;
+    best.dead = true;
+    return this.spawn(type, x, y, false, true);
   },
 
   ringMin: function () { return Math.max(CFG.spawn.distMin, Game.viewRadius() + 60); },
@@ -251,9 +266,12 @@ var Enemies = {
         if (e.shootCd <= 0) {
           e.shootCd = U.rand(3.5, 5);
           FX.ring(e.x, e.y, e.r, e.r + 60, e.def.trim, 0.4, 3);
+          FX.burst(e.x, e.y, 8, e.def.trim, 160, 0.4, 3);
+          var seen = d < Game.viewRadius();
           for (var sw = 0; sw < 4; sw++) {
             var sa2 = Math.random() * 6.28;
-            this.spawn('swarm', e.x + Math.cos(sa2) * 42, e.y + Math.sin(sa2) * 42, false);
+            if (seen) this.summon('swarm', e.x + Math.cos(sa2) * 42, e.y + Math.sin(sa2) * 42);
+            else this.spawn('swarm', e.x + Math.cos(sa2) * 42, e.y + Math.sin(sa2) * 42, false);
           }
         }
       } else if (e.def.charger) {
@@ -298,6 +316,7 @@ var Enemies = {
         }
       }
 
+      if (e.def.nest) e.vx = e.vy = 0;
       var wasX = e.x, wasY = e.y;
       e.x += e.vx * dt;
       e.y += e.vy * dt;
@@ -358,8 +377,9 @@ var Enemies = {
   },
 
   bossAI: function (e, dt, d) {
-    if (d > CFG.boss.leash) e.state = 'return';
-    else if (d < CFG.boss.engage) e.state = 'fight';
+    var vr = Game.viewRadius();
+    if (d > Math.max(CFG.boss.leash, this.ringMax() * 1.15 + 250)) e.state = 'return';
+    else if (d < Math.max(CFG.boss.engage, vr + 80)) e.state = 'fight';
 
     if (e.state === 'return') {
       var da = U.dist(e.x, e.y, e.anchorX, e.anchorY);
@@ -403,7 +423,7 @@ var Enemies = {
     if (e.def.armor) amount *= 1 - e.def.armor;
     e.hp -= amount;
     e.flash = 0.08;
-    if (knock && !e.def.heavy && !e.boss) {
+    if (knock && !e.def.heavy && !e.boss && !e.def.nest) {
       var a = U.angleTo(srcX, srcY, e.x, e.y);
       e.x += Math.cos(a) * knock;
       e.y += Math.sin(a) * knock;

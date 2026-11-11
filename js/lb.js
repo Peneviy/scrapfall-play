@@ -67,7 +67,7 @@ var LB = {
 
   runStart: function () {
     if (!this.on) return;
-    this.live = { x: -1, j: -1, rank: 0, next: '', gap: '', flashT: 0, flashAt: -1e9, pend: 0, who: null, best: 1e9 };
+    this.live = { x: -1, j: -1, rank: 0, next: '', gap: '', prev: '', lead: '', flashT: 0, flashAt: -1e9, pend: 0, who: null, best: 1e9 };
     this.plate.classList.toggle('off', !!Save.data.set.lbHide);
     this.plate.classList.add('hidden');
     var self = this;
@@ -105,6 +105,9 @@ var LB = {
       var up = j > 0 ? this.rows[j - 1] : null;
       L.next = up ? this.nm(up[2], up[3]) : '';
       L.gap = up ? '+' + U.num(up[1] - x + 1) : '';
+      var dn = j < this.rows.length ? this.rows[j] : null;
+      L.prev = dn ? this.nm(dn[2], dn[3]) : '';
+      L.lead = dn ? '-' + U.num(x - dn[1]) : '';
       if (L.rank < L.best) {
         if (L.rank === 1 && this.total > 0 && L.best > 1) this.flash(I18N.t('lbFirst'), now, true);
         else if (L.rank <= 10 && L.best > 10 && this.total >= 10) this.flash(I18N.t('lbTop10'), now, true);
@@ -135,9 +138,12 @@ var LB = {
     var rank = '#' + L.rank;
     if (this._rank !== rank) { this._rank = rank; this._r.textContent = rank; }
     var fl = L.flashT > now;
-    var n = fl ? L.flashText : (L.next || I18N.t('lbLead')), g = fl ? L.flashMore : L.next ? L.gap : '';
+    var n = L.next || I18N.t('lbLead'), g = L.next ? L.gap : '';
+    var pt = fl ? L.flashText : L.prev, pg = fl ? L.flashMore : L.lead;
     if (this._n !== n) { this._n = n; this._nm.textContent = n; }
     if (this._g !== g) { this._g = g; this._gp.textContent = g; }
+    if (this._p !== pt) { this._p = pt; this._pn.textContent = pt; this._pv.classList.toggle('hidden', !pt); }
+    if (this._pl !== pg) { this._pl = pg; this._pg.textContent = pg; }
     if (!fl && p.classList.contains('flash') && now - L.flashAt > 1300) p.classList.remove('flash');
     p.classList.toggle('flashing', fl);
   },
@@ -241,9 +247,10 @@ var LB = {
     v = String(v || '').replace(/\s+/g, ' ').trim().slice(0, 16);
     if (v === (set.nick || '')) return;
     set.nick = v;
+    this._nickAt = Date.now();
     Save.flush(true);
     this._post('/lb/name', { v: 1, id: Metrics.uid, name: this.rawName() }, function (st, d) {
-      if (st !== 200 || !d) return;
+      if (st !== 200 || !d) { UI.toast(I18N.t('lbNickOk')); return; }
       if (v && d.name !== v) {
         set.nick = d.name; Save.flush(true);
         self.nickIn.value = d.name;
@@ -258,13 +265,17 @@ var LB = {
     var p = document.createElement('div');
     p.id = 'lbPlate';
     p.className = 'lb-plate hidden';
-    p.innerHTML = '<div class="lbp-tab"></div><div class="lbp-body"><div class="lbp-rank"><i data-i18n="lbWorld"></i><b></b></div>' +
-      '<div class="lbp-next"><span></span><s></s></div></div>';
+    p.innerHTML = '<div class="lbp-body"><div class="lbp-next"><span></span><s></s></div>' +
+      '<div class="lbp-rank"><i data-i18n="lbWorld"></i><b></b></div>' +
+      '<div class="lbp-prev hidden"><span></span><s></s></div></div>';
     $('hud').appendChild(p);
     this.plate = p;
     this._r = p.querySelector('.lbp-rank b');
     this._nm = p.querySelector('.lbp-next span');
     this._gp = p.querySelector('.lbp-next s');
+    this._pv = p.querySelector('.lbp-prev');
+    this._pn = p.querySelector('.lbp-prev span');
+    this._pg = p.querySelector('.lbp-prev s');
     var toggle = function (e) {
       e.preventDefault(); e.stopPropagation();
       var off = !p.classList.contains('off');
@@ -283,7 +294,8 @@ var LB = {
 
     var row = document.createElement('label');
     row.className = 'sw nick';
-    row.innerHTML = '<span data-i18n="lbNick"></span><input type="text" id="setNick" maxlength="16" autocomplete="off" spellcheck="false" enterkeyhint="done">';
+    row.innerHTML = '<span data-i18n="lbNick"></span><b class="nick-box"><input type="text" id="setNick" maxlength="16" autocomplete="off" spellcheck="false" enterkeyhint="done">' +
+      '<button type="button" id="setNickOk" class="nick-ok">OK</button></b>';
     var list = document.querySelector('.settings-list');
     list.insertBefore(row, list.querySelector('.lang-row'));
     var inp = row.querySelector('input');
@@ -295,9 +307,20 @@ var LB = {
       });
     });
     inp.addEventListener('change', function () { self.setNick(inp.value); });
+    var ok = row.querySelector('.nick-ok');
+    var norm = function (v) { return String(v || '').replace(/s+/g, ' ').trim().slice(0, 16); };
+    var dirty = function () { ok.classList.toggle('on', norm(inp.value) !== (Save.data.set.nick || '')); };
+    inp.addEventListener('input', dirty);
+    ok.addEventListener('click', function (e) {
+      e.preventDefault(); e.stopPropagation();
+      if (norm(inp.value) !== (Save.data.set.nick || '')) self.setNick(inp.value);
+      else if (Date.now() - (self._nickAt || 0) > 1500) UI.toast(I18N.t('lbNickOk'));
+      inp.blur(); dirty();
+    });
     var fill = function () {
       inp.value = Save.data.set.nick || '';
       inp.placeholder = PF.playerName ? String(PF.playerName).slice(0, 16) : I18N.t('lbAnon', { n: self.tag });
+      dirty();
     };
     $('btnSettings').addEventListener('click', fill);
 

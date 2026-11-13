@@ -60,9 +60,21 @@ var LB = {
       if (d && d.rows) {
         self.rows = d.rows; self.total = d.total | 0; self.at = Date.now();
         if (d.me) self.me = { s: d.me.s, r: d.me.r };
+        self.syncBest();
       }
       if (cb) cb(!!(d && d.rows));
     });
+  },
+
+  syncBest: function () {
+    if (this._synced) return;
+    this._synced = true;
+    var b = Save.data && Save.data.best, sc = CFG.score;
+    if (!b || !(b.score > 0) || (this.me && this.me.s >= b.score)) return;
+    var t = Math.floor(b.time), l = b.level | 0;
+    var k = Math.max(0, Math.ceil((b.score - t * sc.perSec - l * sc.perLvl) / sc.perKill));
+    this.send({ v: 1, id: Metrics.uid, pf: CFG.platform, ver: CFG.version, name: this.rawName(),
+      s: Math.floor(b.score), t: t, l: l, b: 0, k: k, old: 1 });
   },
 
   runStart: function () {

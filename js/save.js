@@ -33,7 +33,7 @@ var Save = {
           if (raw[k] === undefined) continue;
           if (typeof d[k] === 'object' && d[k] !== null && !Array.isArray(d[k])) {
             for (var kk in d[k]) if (raw[k][kk] !== undefined) d[k][kk] = raw[k][kk];
-            if (k === 'chars' || k === 'guns' || k === 'skins' || k === 'bosses') {
+            if (k === 'chars' || k === 'guns' || k === 'skins' || k === 'bosses' || k === 'set') {
               for (var id in raw[k]) d[k][id] = raw[k][id];
             }
           } else {

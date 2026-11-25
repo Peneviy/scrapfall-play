@@ -167,15 +167,28 @@ canvas#game3d{position:fixed;inset:0;width:100%;height:100%;display:block}
   clip-path:polygon(50% 0,100% 30%,85% 100%,15% 100%,0 30%)}
 
 .shop-on .coins-row,.shop-on #shopCoinsBox{cursor:pointer}
-.shop-on .coins-row b:after,.shop-on #shopCoinsBox b:after{content:"+";display:inline-block;margin-left:7px;width:17px;height:17px;
-  line-height:16px;text-align:center;font-weight:700;font-size:14px;color:#1d150b;background:var(--gold);border-radius:3px;vertical-align:1px}
+.shop-on .coins-row b:after,.shop-on #shopCoinsBox b:after{content:"";display:inline-block;margin-left:7px;width:18px;height:18px;
+  border-radius:3px;vertical-align:-3px;
+  background:linear-gradient(#1d150b,#1d150b) center/10px 2px no-repeat,linear-gradient(#1d150b,#1d150b) center/2px 10px no-repeat,var(--gold)}
 .shop-on .coins-row:hover b,.shop-on #shopCoinsBox:hover b{filter:brightness(1.2)}
-.buy-list{grid-template-columns:repeat(auto-fill,minmax(210px,1fr));max-width:980px;margin:0 auto}
-.item.buy{align-items:flex-start;gap:8px;min-height:132px}
-.item.buy .buy-n{font-size:30px;font-weight:700;color:var(--gold);letter-spacing:.04em;line-height:1.1;flex:0 0 auto}
-.item.buy .buy-n:before{content:"";display:inline-block;width:17px;height:17px;margin-right:8px;vertical-align:1px;
+.grid-list.buy-list{grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-rows:max-content;max-width:980px;margin:0 auto}
+.item.buy{align-items:flex-start;gap:8px;min-height:132px;min-width:0}
+.item.buy h4{font-size:clamp(14px,1.95vw,19px)}
+.item.buy .buy-n{font-size:clamp(19px,2.9vw,30px);font-weight:700;color:var(--gold);letter-spacing:.04em;line-height:1.1;flex:0 0 auto;white-space:nowrap}
+.item.buy .buy-n:before{content:"";display:inline-block;width:.57em;height:.57em;margin-right:.27em;vertical-align:.03em;
   background:radial-gradient(circle at 35% 35%,#fff0c0,var(--gold) 45%,#8a6a20);
   clip-path:polygon(50% 0,100% 30%,85% 100%,15% 100%,0 30%)}
+.item.buy.wide{grid-column:span 3}
+.item.buy.wide p{color:var(--gold);font-size:clamp(14px,1.8vw,17px);font-weight:400;line-height:1.4;max-width:620px}
+@media (max-width:639px){
+  .grid-list.buy-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:12px}
+  #scrBuy .scr-title{font-size:18px;letter-spacing:.08em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  #scrBuy .back-btn,#scrBuy .coin-counter{flex:0 0 auto;white-space:nowrap}
+  .item.buy.wide,.item.buy.odd{grid-column:span 2}
+  .item.buy h4{font-size:16px}
+  .item.buy .buy-n{font-size:23px}
+  .item.buy.wide p{font-size:15px}
+}
 .item.buy .buy-box{display:flex;flex-direction:column;align-items:flex-start;gap:5px}
 .item.buy .buy-bonus{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#1d150b;
   background:var(--paint);padding:1px 8px;transform:rotate(-2deg);box-shadow:1px 2px 0 rgba(0,0,0,.4)}

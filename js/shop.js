@@ -122,9 +122,9 @@ var Shop = {
     var list = UI.el('buyList'), self = this, P = CFG.shop.packs;
     UI.el('buyCoins').textContent = U.num(Save.data.coins);
     list.innerHTML = '';
-    for (var i = 0; i < P.length; i++) {
-      if (!this.price[P[i].id]) continue;
-      (function (pk) {
+    var shown = P.filter(function (q) { return !!self.price[q.id]; });
+    for (var i = 0; i < shown.length; i++) {
+      (function (pk, odd) {
         var box = document.createElement('div'); box.className = 'buy-box';
         var n = document.createElement('p'); n.className = 'buy-n'; n.textContent = self.fmt(self.total(pk));
         box.appendChild(n);
@@ -133,14 +133,14 @@ var Shop = {
           bn.textContent = I18N.t('buyBonus', { n: pk.bonus });
           box.appendChild(bn);
         }
-        list.appendChild(self.card('', I18N.t(pk.name), box, self.price[pk.id], function () { self.buy(pk.id); }));
-      })(P[i]);
+        list.appendChild(self.card(odd ? ' odd' : '', I18N.t(pk.name), box, self.price[pk.id], function () { self.buy(pk.id); }));
+      })(shown[i], i === shown.length - 1 && shown.length % 2 === 1);
     }
     var na = CFG.shop.noAds;
     if (this.price[na] || Save.data.noAds) {
       var txt = document.createElement('p'); txt.textContent = I18N.t('buyNoAdsDesc');
       var own = !!Save.data.noAds;
-      list.appendChild(this.card(own ? ' owned' : '', I18N.t('buyNoAds'), txt, own ? I18N.t('buyOwned') : this.price[na],
+      list.appendChild(this.card(own ? ' wide owned' : ' wide', I18N.t('buyNoAds'), txt, own ? I18N.t('buyOwned') : this.price[na],
         own ? null : function () { self.buy(na); }));
     }
   },

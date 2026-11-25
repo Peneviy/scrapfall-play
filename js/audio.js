@@ -747,6 +747,8 @@ var Snd = {
     fzForm: 1,
     likeBias: 0.5,
     likeMenu: 1,
+    leadKey: 1,
+    avoid: 1,
     cut: 1,
     night: 0.35,
     heart: 0.16,
@@ -1366,6 +1368,15 @@ var Snd = {
     var p = this.pc, a = this.melShape(s), i;
     var d = (p.minor ? this.degMin : this.degMaj)[p.prog[idx]];
     var rs = (p.tonic + d[0]) % 12, cs = this.chordScale(p, d);
+    if (this.mus.avoid && cs[2] === 4) {
+      var moved = {};
+      for (i = 0; i < a.length; i++) {
+        if ((a[i][3] === 0 || a[i][3] === 2) && a[i][2] >= 2 && ((a[i][1] % 7) + 7) % 7 === 3) { a[i][1] -= 1; moved[a[i][0]] = 1; }
+      }
+      for (i = 0; i < a.length; i++) {
+        if (a[i][3] === 1 && moved[a[i][0]] && ((a[i][1] % 7) + 7) % 7 === 1) a[i][1] -= 1;
+      }
+    }
     var semi = function (st) { return cs[((st % 7) + 7) % 7] + 12 * Math.floor(st / 7); };
     var sum = 0, cnt = 0;
     for (i = 0; i < a.length; i++) if (!a[i][3]) { sum += semi(a[i][1]); cnt++; }
@@ -1456,9 +1467,14 @@ var Snd = {
         p.accA = { k: p.k + 1, midi: A };
         var la = 8 - (M.leadAt || 1);
         if (M.lead && lastOn < la - 0.5) {
+          var inKey = function (m) { return key.indexOf(((m - 52 - p.tonic) % 12 + 24) % 12) >= 0; };
           var L = A - 1;
-          if (key.indexOf(((L - 52 - p.tonic) % 12 + 24) % 12) < 0) L = A - 2;
-          if (L === lastMidi) L = A - (L === A - 1 ? 2 : 1);
+          if (!inKey(L)) L = A - 2;
+          if (L === lastMidi) {
+            if (L === A - 2) L = A - 1;
+            else if (M.leadKey) { L--; while (!inKey(L)) L--; }
+            else L = A - 2;
+          }
           if (held && held.d > (la - lastOn) * B) held.d = Math.max(0.3, (la - lastOn) * B);
           this.mq.push({ t: T + la * B, f: 440 * Math.pow(2, (L - 69) / 12), v: M.mel * (s.lv || 1) * 0.8 * folV, d: (8 - la) * B, tone: p.tone, pan: p.pan, tail: 1,
             part: 0, k: p.k, sec: s.sec, mot: s.m, strong: false, ct: NF.pcs.indexOf(((L % 12) + 12) % 12) >= 0, midi: L, seed: p.seed, acc: 0, lead: 1 });

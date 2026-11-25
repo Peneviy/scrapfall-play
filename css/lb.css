@@ -53,3 +53,13 @@
   background:rgba(10,7,5,.65);border:1px solid var(--steel3);border-radius:0;outline:none}
 .sw.nick input:focus{border-color:var(--paint)}
 .sw.nick input::placeholder{color:var(--bone3)}
+
+.lb-tabs{position:absolute;top:62px;left:0;right:0;display:flex;justify-content:center;gap:8px;padding:4px 16px 0}
+.lb-tabs .lbt{min-width:110px;padding:7px 14px;font-size:14px;opacity:.6}
+.lb-tabs .lbt.active{opacity:1;box-shadow:inset 0 -3px 0 var(--paint)}
+.lb-tabs:not(.hidden) ~ .board-list{top:108px}
+.lb-head.lb-arch{color:var(--bone3);font-size:13px;padding-bottom:4px}
+.lb-tiers{position:absolute;top:106px;left:0;right:0;display:flex;justify-content:center;align-items:center;gap:4px;padding:0 16px;flex-wrap:wrap}
+.lb-tiers > i{font-style:normal;font-size:13px;letter-spacing:.08em;color:var(--red);text-transform:uppercase;margin-right:4px}
+.lb-tiers .nk-st{width:28px;height:26px;font-size:14px}
+.lb-tiers:not(.hidden) ~ .board-list{top:138px}

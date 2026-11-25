@@ -5,6 +5,7 @@ var FX = {
   bolts: [],
   blasts: [],
   scorch: [],
+  strikes: [],
   shakeAmt: 0,
   shakeX: 0,
   shakeY: 0,
@@ -17,12 +18,13 @@ var FX = {
     this.bolts.length = 0;
     this.blasts.length = 0;
     this.scorch.length = 0;
+    this.strikes.length = 0;
     this.shakeAmt = 0;
   },
 
   blast: function (x, y, r, color) {
     if (this.blasts.length > 30) this.blasts.shift();
-    this.blasts.push({ x: x, y: y, r: r, c: color || '#ffb35c', life: 0.45, max: 0.45, pop: false });
+    this.blasts.push({ x: x, y: y, r: r, c: color || '#ffb35c', life: 0.45, max: 0.45, pop: false, rk: false });
     if (this.scorch.length > 40) this.scorch.shift();
     this.scorch.push({ x: x, y: y, r: r * 0.6, life: 9, a: Math.random() * 6.28 });
   },
@@ -36,8 +38,14 @@ var FX = {
       if (b.max - b.life < 0.12 && U.dist2(b.x, b.y, x, y) < r * r * 0.6) return false;
     }
     if (this.blasts.length > 30) this.blasts.shift();
-    this.blasts.push({ x: x, y: y, r: r, c: '#ffb35c', life: 0.3, max: 0.3, pop: true });
+    this.blasts.push({ x: x, y: y, r: r, c: '#ffb35c', life: 0.3, max: 0.3, pop: true, rk: false });
     return true;
+  },
+
+  rocket: function (x, y, r) {
+    if (this.blasts.length > 30) this.blasts.shift();
+    this.blasts.push({ x: x, y: y, r: r, c: '#ff9a3c', life: 0.42, max: 0.42, pop: false, rk: true });
+    this.burst(x, y, 7, '#ffd27d', 240, 0.35, 3);
   },
 
   bolt: function (x1, y1, x2, y2, color) {
@@ -50,6 +58,13 @@ var FX = {
       pts.push({ x: U.lerp(x1, x2, k) + nx / len * off, y: U.lerp(y1, y2, k) + ny / len * off });
     }
     this.bolts.push({ pts: pts, life: 0.18, max: 0.18, c: color || '#9fe8ff' });
+  },
+
+  strike: function (x, y) {
+    if (this.strikes.length > 12) this.strikes.shift();
+    var pts = [], n = 6;
+    for (var i = 0; i <= n; i++) pts.push({ x: x + (i && i < n ? U.rand(-12, 12) : 0), y: y - 320 * (1 - i / n) });
+    this.strikes.push({ x: x, y: y, pts: pts, life: 0.32, max: 0.32 });
   },
 
   lowFx: function () { return Save.data && Save.data.set.low; },
@@ -135,6 +150,10 @@ var FX = {
       this.scorch[i].life -= dt;
       if (this.scorch[i].life <= 0) this.scorch.splice(i, 1);
     }
+    for (i = this.strikes.length - 1; i >= 0; i--) {
+      this.strikes[i].life -= dt;
+      if (this.strikes[i].life <= 0) this.strikes.splice(i, 1);
+    }
     if (this.shakeAmt > 0) {
       this.shakeAmt = Math.max(0, this.shakeAmt - dt * 34);
       this.shakeX = U.rand(-this.shakeAmt, this.shakeAmt);
@@ -173,6 +192,19 @@ var FX = {
       ctx.beginPath();
       ctx.moveTo(bo.pts[0].x, bo.pts[0].y);
       for (var q = 1; q < bo.pts.length; q++) ctx.lineTo(bo.pts[q].x, bo.pts[q].y);
+      ctx.stroke();
+    }
+    for (i = 0; i < this.strikes.length; i++) {
+      var st = this.strikes[i];
+      ctx.globalAlpha = st.life / st.max;
+      ctx.strokeStyle = '#e8f4ff';
+      ctx.lineWidth = 3.5;
+      ctx.beginPath();
+      ctx.moveTo(st.pts[0].x, st.pts[0].y);
+      for (var q2 = 1; q2 < st.pts.length; q2++) ctx.lineTo(st.pts[q2].x, st.pts[q2].y);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(st.x, st.y, 26 * (1 - st.life / st.max) + 10, 0, Math.PI * 2);
       ctx.stroke();
     }
     ctx.globalAlpha = 1;

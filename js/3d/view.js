@@ -218,6 +218,18 @@ var View3D = {
     this.scene.fog.color.copy(this._fog);
     this.renderer.setClearColor(this._fog, 1);
     this.ground.material.color.copy(a.ground).lerp(b.ground, k);
+    var red = Game.running && window.Finale ? Finale.red : 0;
+    if (red > 0.01) {
+      var R = this._red || (this._red = { sky: new THREE.Color('#d0583a'), sun: new THREE.Color('#ff6a3a'),
+        fog: new THREE.Color('#8a2a16'), ground: new THREE.Color('#e07858') });
+      var rk = red * 0.75;
+      this.hemi.color.lerp(R.sky, rk);
+      this.sun.color.lerp(R.sun, rk);
+      this._fog.lerp(R.fog, rk);
+      this.scene.fog.color.copy(this._fog);
+      this.renderer.setClearColor(this._fog, 1);
+      this.ground.material.color.lerp(R.ground, rk * 0.8);
+    }
     var dark = this.dark = U.lerp(a.dark, b.dark, k);
     var glowMode = dark > 0.45 ? THREE.AdditiveBlending : THREE.NormalBlending;
     if (this.glows.mesh.material.blending !== glowMode) this.glows.mesh.material.blending = glowMode;
@@ -316,7 +328,7 @@ var View3D = {
     this.matGhost = View3D.ghostMat('#e2503a', 0.5);
     this.foes = {};
     for (var k in Enemies.defs) {
-      if (k === 'boss') continue;
+      if (k === 'boss' || Enemies.defs[k].decoy) continue;
       var mdl = M.enemy(k, Enemies.defs[k]);
       var max = CFG.scale.capHard + 20;
       var b = add(new View3D.Batch(mdl.geo, this.matLit, max, true));
@@ -342,13 +354,21 @@ var View3D = {
     this.blades = add(new View3D.Batch(bl.geo, this.matLit, 16, false));
     this.blades.mesh.castShadow = true;
     add(new View3D.Batch(bl.glow, this.matGlow, 16, false, this.blades));
+    var sw = M.saw();
+    this.saws = add(new View3D.Batch(sw.geo, this.matLit, 24, false));
+    this.saws.mesh.castShadow = true;
+    add(new View3D.Batch(sw.glow, this.matGlow, 24, false, this.saws));
+    var dr = M.drill();
+    this.drills = add(new View3D.Batch(dr.geo, this.matLit, 2, false));
+    this.drills.mesh.castShadow = true;
+    add(new View3D.Batch(dr.glow, this.matGlow, 2, false, this.drills));
     this.motes = add(new View3D.Batch(new THREE.BoxGeometry(1, 1, 1), this.matFlat, 500, true));
     this.fireballs = add(new View3D.Batch(new THREE.IcosahedronGeometry(1, 1),
       new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.88, depthWrite: false }), 40, true));
     this.fireballs.mesh.renderOrder = 7;
     this.smoke = add(new View3D.Batch(new THREE.IcosahedronGeometry(1, 0),
       new THREE.MeshLambertMaterial({ color: 0xffffff, flatShading: true }), 90, true));
-    this.shockwalls = add(View3D.makeWalls(60));
+    this.shockwalls = add(View3D.makeWalls(80));
     this._c = new THREE.Color();
 
     this.props = {};
@@ -366,17 +386,17 @@ var View3D = {
       a(M.B(4.2, 0.6, 0.6), '#ffffff', -0.6, 0, 0);
       a(M.K(0.95, 1.8, 4), '#ffffff', 2.4, 0, 0, Math.PI / 4, 0, -Math.PI / 2);
     });
-    this.spears = add(new View3D.Batch(spear.geo, this.matTint, 120, true));
+    this.spears = add(new View3D.Batch(spear.geo, this.matTint, 320, true));
     var rimAlly = new THREE.MeshBasicMaterial({ color: '#2b1705', side: THREE.BackSide });
     var rimFoe = new THREE.MeshBasicMaterial({ color: '#2a0309', side: THREE.BackSide });
     this.shotRims = add(new View3D.Batch(sphere, rimAlly, 700, false));
     this.eshotRims = add(new View3D.Batch(sphere, rimFoe, 500, false));
-    this.spearRims = add(new View3D.Batch(spear.geo, rimFoe, 120, false));
+    this.spearRims = add(new View3D.Batch(spear.geo, rimFoe, 320, false));
     this.colAlly = M.color('#fff1c2');
     this.colCrit = M.color('#ffffff');
     this.colFoe = M.color('#ff2e4d');
 
-    this.gems = add(new View3D.Batch(new THREE.OctahedronGeometry(1), this.matFlat, 400, true));
+    this.gems = add(new View3D.Batch(new THREE.OctahedronGeometry(1), this.matFlat, 600, true));
     var cross = M.build(function (a) {
       a(M.B(2, 0.6, 0.6), CFG.col.heal);
       a(M.B(0.6, 2, 0.6), CFG.col.heal);
@@ -397,8 +417,8 @@ var View3D = {
     this.shadows.k = this.shadowsOn ? 0.55 : 1;
     this.rings = add(View3D.makeDiscs(800, THREE.NormalBlending, 3));
     this.glows = add(View3D.makeDiscs(500, THREE.AdditiveBlending, 4));
-    this.strips = add(View3D.makeStrips(160, THREE.AdditiveBlending, 5));
-    this.lines = add(View3D.makeStrips(160, THREE.NormalBlending, 5));
+    this.strips = add(View3D.makeStrips(240, THREE.AdditiveBlending, 5));
+    this.lines = add(View3D.makeStrips(240, THREE.NormalBlending, 5));
   },
 
   rebuildHalos: function () {
@@ -461,6 +481,9 @@ var View3D = {
     this.syncShots();
     this.syncPickups();
     this.syncHazards();
+    this.syncMarks();
+    if (p.trN) this.syncTrophy(p);
+    if (Spells.on(p)) this.syncSpells(p);
     this.syncFx();
 
     for (i = 0; i < this.batches.length; i++) this.batches[i].end();
@@ -552,7 +575,7 @@ var View3D = {
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, Game.canvas.width, Game.canvas.height);
       if (this.pl) this.pl.group.visible = false;
-      for (var id in this.bossMeshes) this.bossMeshes[id].group.visible = false;
+      for (var id in this.bossMeshes) { this.bossMeshes[id].group.visible = false; if (this.bossMeshes[id].twin) this.bossMeshes[id].twin.visible = false; }
       for (var i = 0; i < this.turretPool.length; i++) this.turretPool[i].group.visible = false;
     }
     var cx = 900 + now * 16, cy = -300 - now * 6;
@@ -893,35 +916,155 @@ var View3D = {
     var white = Models.color('#ffffff'), elite = Models.color('#c48cff'), purple = Models.color('#a24bd6');
     for (var i = 0; i < list.length; i++) {
       var e = list[i];
-      if (e.boss && e.bd) continue;
+      if ((e.boss && e.bd) || e.def.decoy) continue;
       var b = this.foes[e.boss ? 'brute' : e.type] || this.foes.grunt;
       var r = e.boss ? e.r * 0.8 : e.r;
       var ph = t * (e.def.heavy ? 7 : 11) + e.phase;
       var hover = e.type === 'swarm' ? r * 0.5 + Math.sin(ph * 0.7) * r * 0.15 : 0;
-      var hop = e.type === 'nest' ? 0 : Math.abs(Math.sin(ph)) * r * 0.1;
-      var nest = e.type === 'nest';
+      var nest = e.type === 'nest' || e.type === 'pylon' || e.type === 'comb';
+      var hop = nest ? 0 : Math.abs(Math.sin(ph)) * r * 0.1;
       var swell = nest && e.shootCd < 0.7 ? 1 - e.shootCd / 0.7 : 0;
+      if (e.def.larva && e.aim > 0) swell = 1 - e.aim / Bosses.K.hive.fuse;
+      var blink = false;
+      if (e.fuse > 0) { swell = 1 - e.fuse / Enemies.K.beetle.fuse; blink = Math.sin(t * 40) > 0; }
+      if (e.cast === 1) blink = Math.sin(t * 30) > 0;
       if (swell > 0) {
         r *= 1 + swell * 0.22 + Math.sin(t * 30) * 0.03 * swell;
         var sg = this.glows.put(e.x, 1, e.y, 0, r * 2.4, 1, r * 2.4);
         this.glows.disc(sg, Models.color(e.def.trim), 0, 1.4, 1, 0.6 * swell);
       }
-      var k = b.putR(e.x, hover + hop, e.y, Math.sin(ph) * 0.07, nest ? e.phase : -e.ang,
-        nest ? 0 : Math.cos(ph * 2) * 0.03, r);
+      var k;
+      if (e.def.roller) {
+        var jx = e.roll === 1 ? Math.sin(t * 70) * 2.5 : 0;
+        k = b.putR(e.x + jx, r * 0.75, e.y, 0, -e.ang, -e.spin, r);
+      } else {
+        k = b.putR(e.x, hover + hop, e.y, Math.sin(ph) * 0.07, nest ? e.phase : -e.ang,
+          nest ? 0 : Math.cos(ph * 2) * 0.03, r);
+      }
       if (k < 0) continue;
-      if (e.flash > 0) b.tint(k, white, 6);
-      else if (e.elite) b.tint(k, elite, 1);
-      else b.tint(k, white, 1);
+      if (e.flash > 0 || blink || (swell > 0 && e.def.larva && Math.sin(t * 40) > 0)) b.tint(k, white, 6);
+      else if (e.def.hooker && e.cast >= 2) b.tint(k, this.markCol(e.def.trim), 2.4);
+      else if (e.elite) {
+        if (e.esp === 1) b.tint(k, this.espCol(1), 1.25);
+        else if (e.esp === 3 && Math.sin(t * 9) > 0.4) b.tint(k, this.espCol(3), 1.8);
+        else b.tint(k, elite, 1);
+      }
+      else if (e.chain) {
+        var lit = !e.inv, nx = e.chain.next === e && Math.sin(t * 30) > 0;
+        b.tint(k, white, lit ? 1.7 : (nx ? 1.3 : 0.5));
+        if (lit) {
+          var lg = this.glows.put(e.x, 1, e.y, 0, r * 2.6, 1, r * 2.6);
+          this.glows.disc(lg, Models.color(e.def.trim), 0, 1.4, 1, 0.8);
+        }
+      } else b.tint(k, white, 1);
 
       var s = this.shadows.put(e.x + r * 0.15, 0.6, e.y + r * 0.2, 0, r * 1.25, 1, r * 1.25);
       this.shadows.disc(s, null, 0, 1.1, 1, 0.5);
       if (e.elite) {
         var g = this.glows.put(e.x, 1, e.y, 0, r * 2.2, 1, r * 2.2);
-        this.glows.disc(g, purple, 0, 1.6, 1, 0.55);
+        if (e.esp === 1 || e.esp === 3) this.glows.disc(g, this.espCol(e.esp), 0, 1.6, 1, e.esp === 3 ? 0.5 + 0.35 * Math.sin(t * 9) : 0.6);
+        else this.glows.disc(g, purple, 0, 1.6, 1, 0.55);
+        if (e.esp === 1 && (e.vx || e.vy)) {
+          var tv = Math.sqrt(e.vx * e.vx + e.vy * e.vy) || 1, tl = r * 3.2;
+          var tr = this.strips.line(e.x, e.y, e.x - e.vx / tv * tl, e.y - e.vy / tv * tl, r * 0.9, 6);
+          this.strips.strip(tr, this.espCol(1), tl, 0, 0, 0.55);
+        } else if (e.esh > 0) {
+          var ek = 0.35 + 0.6 * e.esh / e.eshMax;
+          var er = this.rings.put(e.x, 2, e.y, 0, r * 2, 1, r * 2);
+          this.rings.disc(er, this.espCol(2), 0.24, 0, 0.1, ek);
+          var eg = this.glows.put(e.x, 1, e.y, 0, r * 2.5, 1, r * 2.5);
+          this.glows.disc(eg, this.espCol(2), 0, 1.4, 1, 0.5 * ek);
+        }
       }
-      if (e.aim > 0) {
-        var ln = this.lines.line(e.x, e.y, e.x + Math.cos(e.ang) * 260, e.y + Math.sin(e.ang) * 260, 2, 5);
-        this.lines.strip(ln, Models.color(e.def.trim), 260, 0, 0, 0.5);
+      if (e.aim > 0 && !e.def.larva) {
+        var pa = Game.player, al = Math.min(720, Math.max(60, U.dist(e.x, e.y, pa.x, pa.y)));
+        var ln = this.lines.line(e.x, e.y, e.x + Math.cos(e.ang) * al, e.y + Math.sin(e.ang) * al, 2.5, 5);
+        this.lines.strip(ln, Models.color(e.def.trim), al, 0, 0, 0.6);
+      }
+      if (e.ward > 0) {
+        var wc = this.markCol('#7dffa8'), wk = Math.min(1, e.ward / 0.4);
+        var wr = this.rings.put(e.x, 2, e.y, 0, r * 1.9, 1, r * 1.9);
+        this.rings.disc(wr, wc, 0.22, 0, 0.1, 0.8 * wk);
+        var wg = this.glows.put(e.x, 1, e.y, 0, r * 2.4, 1, r * 2.4);
+        this.glows.disc(wg, wc, 0, 1.4, 1, 0.45 * wk);
+      }
+      if (e.def.medic && e.tgt && e.tgt.ward > 0) {
+        var mt = e.tgt, mL = U.dist(e.x, e.y, mt.x, mt.y);
+        var mb = this.strips.line(e.x, e.y, mt.x, mt.y, 5 + Math.sin(t * 20) * 1.5, 16);
+        this.strips.strip(mb, this.markCol('#7dffa8'), mL, 0, 0, 0.85);
+      } else if (e.def.hooker && e.cast >= 1) {
+        var hc = this.markCol(e.def.trim), hpu = 0.5 + 0.5 * Math.sin(t * 18), pull = e.cast === 3;
+        var hcw = this.shockwalls.put(e.x, 0, e.y, 0, r * 1.3, 110, r * 1.3);
+        this.shockwalls.wall(hcw, hc, e.cast === 1 ? 0.3 + 0.45 * hpu : 0.75);
+        var hri = this.rings.put(e.x, 2, e.y, 0, r * 2.4, 1, r * 2.4);
+        this.rings.disc(hri, hc, 0.22, 0, 0.15, 0.95);
+        this.halo(e.x, r * 1.6, e.y, r * 2.6, hc, e.cast === 1 ? 0.4 + 0.5 * hpu : 0.85);
+        if (e.cast >= 2) {
+          var hx = e.x + Math.cos(e.castA) * e.castL, hy = e.y + Math.sin(e.castA) * e.castL;
+          if (pull) { hx = Game.player.x; hy = Game.player.y; }
+          var hL = U.dist(e.x, e.y, hx, hy);
+          var hl = this.lines.line(e.x, e.y, hx, hy, pull ? 8 : 5, 14);
+          this.lines.strip(hl, this.ropeCol || (this.ropeCol = Models.color('#2a3038')), hL, 0, 0, 0.9);
+          var hs = this.strips.line(e.x, e.y, hx, hy, pull ? 5 : 3, 14.5);
+          this.strips.strip(hs, hc, hL, 0, 0, 1);
+          if (pull) {
+            var hg = this.strips.line(e.x, e.y, hx, hy, 20 + 4 * hpu, 14.2);
+            this.strips.strip(hg, hc, hL, 0, 1, 0.5);
+            var hpr = this.rings.put(hx, 2.2, hy, 0, Game.player.r * 2.1, 1, Game.player.r * 2.1);
+            this.rings.disc(hpr, hc, 0.25, 0, 0.1, 0.9);
+          }
+          var hh = this.glows.put(hx, 14, hy, 0, pull ? 26 : 18, 1, pull ? 26 : 18);
+          this.glows.disc(hh, hc, 0, 1.4, 1, 0.95);
+        }
+      }
+    }
+    var pm = Game.player;
+    if (pm && pm.muteT > 0) {
+      var mk = Math.min(1, pm.muteT / 0.4), mc = this.markCol(Enemies.K.muter.c);
+      var mr = this.rings.put(pm.x, 2.2, pm.y, 0, pm.r * 2 + Math.sin(t * 10) * 3, 1, pm.r * 2 + Math.sin(t * 10) * 3);
+      this.rings.disc(mr, mc, 0.2, 0, 0.1, 0.85 * mk);
+      var mg = this.glows.put(pm.x, 1.2, pm.y, 0, pm.r * 2.6, 1, pm.r * 2.6);
+      this.glows.disc(mg, mc, 0, 1.4, 1, 0.5 * mk);
+    }
+    var C = Enemies.chains;
+    if (C.length) {
+      var rope = this.ropeCol || (this.ropeCol = Models.color('#2a3038')), rc = this.markCol('#7ae0ff');
+      for (i = 0; i < C.length; i++) {
+        if (C[i].lk) continue;
+        var cm = C[i].m, hit = C[i].cd > 0.6;
+        for (var j = 0; j + 1 < cm.length; j++) {
+          var a = cm[j], q = cm[j + 1], L = U.dist(a.x, a.y, q.x, q.y);
+          var rl = this.lines.line(a.x, a.y, q.x, q.y, 5, 9);
+          this.lines.strip(rl, rope, L, 0, 0, 0.85);
+          var rg = this.strips.line(a.x, a.y, q.x, q.y, hit ? 7 : 2.5, 9.5);
+          this.strips.strip(rg, rc, L, 0, 0, hit ? 1 : 0.45);
+        }
+      }
+    }
+    var LK = Enemies.locks;
+    if (LK.length) {
+      var rope2 = this.ropeCol || (this.ropeCol = Models.color('#2a3038')), c2 = this._c;
+      for (i = 0; i < LK.length; i++) {
+        var lk = LK[i], sg = lk.seg, ht = lk.heat, hc = this.markCol(Enemies.heatHex(ht)), lh = lk.cd > 0.6;
+        var gw = lh ? 7 : 2.5 + ht * 2.5, ga = lh ? 1 : 0.45 + ht * 0.45;
+        var hk = Math.round(ht * 10), RH = this.ropeHeat || (this.ropeHeat = []);
+        if (!RH[hk]) RH[hk] = rope2.clone().lerp(Models.color(Enemies.heatHex(hk / 10)), U.clamp((hk / 10 - 0.1) * 1.1, 0, 0.9));
+        for (var s2 = 0; s2 < sg.length; s2 += 2) {
+          var a2 = sg[s2], q2 = sg[s2 + 1], L2 = U.dist(a2.x, a2.y, q2.x, q2.y);
+          var rl2 = this.lines.line(a2.x, a2.y, q2.x, q2.y, 5 + ht * 2, 9);
+          this.lines.strip(rl2, RH[hk], L2, 0, 0, 0.9);
+          var rg2 = this.strips.line(a2.x, a2.y, q2.x, q2.y, gw, 9.5);
+          this.strips.strip(rg2, hc, L2, 0, 0, ga);
+          if (!lk.burn) continue;
+          var fl = this.strips.line(a2.x, a2.y, q2.x, q2.y, 13 + 4 * Math.sin(t * 13 + s2), 11);
+          this.strips.strip(fl, this.markCol('#ff7a1a'), L2, 0, 0, 0.55 + 0.2 * Math.sin(t * 17 + s2 * 1.3));
+          for (var f2 = 0; f2 < 3; f2++) {
+            var fph = (t * 1.5 + s2 * 0.29 + f2 * 0.33) % 1, fu = 0.2 + 0.3 * f2 + 0.1 * Math.sin(s2 + t), fsz = 3.5 + 6 * (1 - fph);
+            c2.setRGB(1, 0.75 - fph * 0.5, 0.2 - fph * 0.15);
+            var fm = this.motes.put(a2.x + (q2.x - a2.x) * fu, 9 + fph * 38, a2.y + (q2.y - a2.y) * fu, s2 + f2, fsz, fsz * 1.6, fsz);
+            this.motes.tint(fm, c2, 1.5);
+          }
+        }
       }
     }
   },
@@ -964,6 +1107,12 @@ var View3D = {
         this.scene.add(gh);
         c.ghosts.push(gh);
       }
+      var tw = new THREE.Group();
+      tw.add(new THREE.Mesh(mdl.main.geo, mat));
+      if (mdl.main.glow) tw.add(new THREE.Mesh(mdl.main.glow, this.matGlow));
+      tw.visible = false;
+      this.scene.add(tw);
+      c.twin = tw;
     }
     this.bossMeshes[bd.id] = c;
     return c;
@@ -975,18 +1124,33 @@ var View3D = {
     for (var i = 0; i < list.length; i++) {
       var e = list[i];
       if (!e.boss || !e.bd) continue;
-      var bd = e.bd, c = this.bossMesh(bd);
+      var bd = e.bd, c = this.bossMesh(bd), mid = e.mech || bd.id;
       used[bd.id] = true;
-      var g = c.group, r = e.r;
+      var g = c.group, r = e.r, st = e.state;
+      var zz = st === 'sleep', rise = st === 'rise';
       var hover = bd.id === 'phantom' ? r * 0.25 + Math.sin(Game.time * 2) * r * 0.08 : 0;
-      var stomp = (bd.id === 'titan' || bd.id === 'crusher') ? Math.abs(Math.sin(Game.time * 4 + e.phase)) * r * 0.04 : 0;
+      var stomp = (bd.id === 'titan' || bd.id === 'crusher') && !zz ? Math.abs(Math.sin(Game.time * 4 + e.phase)) * r * 0.04 : 0;
+      var sink = zz ? 0.32 : (rise ? 0.32 * e.riseT / CFG.boss.lair.rise : 0);
       g.visible = true;
-      g.position.set(e.x, hover + stomp, e.y);
-      g.rotation.set(0, -e.ang, 0);
-      g.scale.set(r, r, r);
-      if (e.flash > 0) c.mat.emissive.setScalar(0.4);
-      else if (e.aim > 0 || e.shield > 0) c.mat.emissive.copy(Models.color(bd.trim)).multiplyScalar(0.22 + 0.14 * Math.sin(Game.time * 20));
+      var ow = e.openT > 0 ? e.openW : '', tilt = 0, roll = 0;
+      if (ow === 'stuck') { tilt = -0.32; roll = Math.sin(Game.time * 40) * 0.03; }
+      else if (ow === 'dig') tilt = -0.22;
+      else if (ow === 'stun' || ow === 'dizzy' || ow === 'snap' || ow === 'tired') roll = Math.sin(Game.time * 7) * 0.18;
+      else if (ow === 'heat' || ow === 'cool') roll = Math.sin(Game.time * 31) * 0.025;
+      else if (ow === 'sit') { tilt = 0.12; sink = Math.max(sink, 0.12); }
+      else if (ow === 'empty') roll = Math.sin(Game.time * 3) * 0.1;
+      g.position.set(e.x, hover + stomp - r * sink + (e.lift || 0), e.y);
+      g.rotation.set(roll, -e.ang, tilt, 'YXZ');
+      var ms = r * (bd.mdl || 1);
+      g.scale.set(ms, zz ? ms * (1 + 0.035 * Math.sin(Game.time * 1.7 + e.phase)) : ms, ms);
+      if (e.flash > 0) c.mat.emissive.setScalar(e.inv ? 0.12 : 0.4);
+      else if (ow === 'heat') c.mat.emissive.setRGB(0.55 + 0.2 * Math.sin(Game.time * 9), 0.16, 0.02);
+      else if (e.inv) c.mat.emissive.copy(this.colInv || (this.colInv = Models.color('#b6e07a'))).multiplyScalar(0.18 + 0.06 * Math.sin(Game.time * 5));
+      else if (e.qs) c.mat.emissive.copy(Models.color(bd.trim)).multiplyScalar(0.3 + 0.2 * Math.sin(Game.time * 14));
+      else if (e.aim > 0 || e.shield > 0 || rise) c.mat.emissive.copy(Models.color(bd.trim)).multiplyScalar(0.22 + 0.14 * Math.sin(Game.time * 20));
+      else if (zz) c.mat.emissive.copy(Models.color(bd.trim)).multiplyScalar(0.06 + 0.05 * Math.sin(Game.time * 1.7 + e.phase));
       else c.mat.emissive.setScalar(0);
+      if (zz || rise || st === 'return') this.lair(e, rise ? e.riseT / CFG.boss.lair.rise : 1, st !== 'return');
 
       if (c.spin) {
         var ax = c.spin.userData.axis;
@@ -1004,29 +1168,96 @@ var View3D = {
         gh.scale.set(r, r, r);
         gh.material.opacity = 0.06 + gi * 0.05;
       }
+      if (bd.id === 'phantom') c.mat.opacity = ow === 'solid' ? 1 : 0.72;
+      if (c.twin) {
+        var tw = e.twin && !e.twin.dead ? e.twin : null;
+        c.twin.visible = !!tw;
+        if (tw) {
+          c.twin.position.set(tw.x, hover, tw.y);
+          c.twin.rotation.set(0, -tw.ang, 0);
+          c.twin.scale.set(ms, ms, ms);
+          var tg0 = this.glows.put(tw.x, 1, tw.y, 0, r * 2.6, 1, r * 2.6);
+          this.glows.disc(tg0, Models.color(bd.trim), 0, 2.2, 1, 0.35);
+        }
+      }
 
       var s = this.shadows.put(e.x + r * 0.2, 0.6, e.y + r * 0.25, 0, r * 1.4, 1, r * 1.4);
       this.shadows.disc(s, null, 0, 1.0, 1, 0.55);
       var gl = this.glows.put(e.x, 1, e.y, 0, r * 2.6, 1, r * 2.6);
-      this.glows.disc(gl, Models.color(bd.trim), 0, 2.2, 1, 0.35);
+      this.glows.disc(gl, Models.color(e.mech ? Bosses.byId(e.mech).trim : bd.trim), 0, 2.2, 1, e.mech ? 0.5 : 0.35);
 
-      if (bd.id === 'warden' && e.beamA !== undefined) {
-        var bw = Bosses.beamW;
-        for (var bi = 0; bi < (e.beams || 1); bi++) {
-          var ba = e.beamA + bi * Math.PI;
-          var ex = e.x + Math.cos(ba) * e.beamLen, ey = e.y + Math.sin(ba) * e.beamLen;
-          var s1 = this.strips.line(e.x, e.y, ex, ey, bw * 1.15, 13);
-          this.strips.strip(s1, Models.color(bd.trim), e.beamLen, 0, 1, 0.8);
-          var s2 = this.strips.line(e.x, e.y, ex, ey, 9, 13.5);
-          this.strips.strip(s2, Models.color('#ffe0ee'), e.beamLen, 0, 1, 0.95);
-          var s3 = this.lines.line(e.x, e.y, ex, ey, bw, 1.5);
-          this.lines.strip(s3, Models.color(bd.trim), e.beamLen, 0, 1, 0.45);
+      if (mid === 'warden' && e.beamA !== undefined && st === 'fight') {
+        var bw = Bosses.beamW, rin = (e.m && e.m.safe) || 0, wc = Models.color(bd.trim);
+        if (rin) {
+          var sr0 = this.rings.put(e.x, 1.8, e.y, 0, rin, 1, rin);
+          this.rings.disc(sr0, this.colSafe || (this.colSafe = Models.color('#ffe0ee')), 5 / rin, 0, 0.06, 0.55 + 0.15 * Math.sin(Game.time * 4));
+        }
+        var bon = !(e.openT > 0) ? (e.aim > 0 ? 0.35 + 0.65 * (Math.sin(Game.time * 40) > 0 ? 1 : 0) : 1) : 0;
+        for (var bi = 0; bon > 0 && bi < (e.beams || 1); bi++) {
+          var ba = e.beamA + bi * Math.PI, cb = Math.cos(ba), sb = Math.sin(ba), L = e.beamLen - rin;
+          var bx0 = e.x + cb * rin, by0 = e.y + sb * rin;
+          var ex = e.x + cb * e.beamLen, ey = e.y + sb * e.beamLen;
+          var s1 = this.strips.line(bx0, by0, ex, ey, bw * 1.15, 13);
+          this.strips.strip(s1, wc, L, 0, 1, 0.8 * bon);
+          var s2 = this.strips.line(bx0, by0, ex, ey, 9, 13.5);
+          this.strips.strip(s2, Models.color('#ffe0ee'), L, 0, 1, 0.95 * bon);
+          var s3 = this.lines.line(bx0, by0, ex, ey, bw, 1.5);
+          this.lines.strip(s3, wc, L, 0, 1, 0.45 * bon);
         }
       }
-      if (e.aim > 0) {
-        var al = bd.id === 'lancer' ? 250 : 700;
+      if (e.aim > 0 && (mid === 'driller' || (mid === 'lancer' && e.mode !== 1))) {
+        var al = mid === 'lancer' ? 250 : (e.m && e.m.x) || 700;
+        var tc0 = Models.color(bd.trim);
         var l = this.lines.line(e.x, e.y, e.x + Math.cos(e.chargeAng) * al, e.y + Math.sin(e.chargeAng) * al, 8, 2);
-        this.lines.strip(l, Models.color(bd.trim), al, 24, 0, 0.6);
+        this.lines.strip(l, tc0, al, 24, 0, 0.6);
+        if (mid === 'driller') {
+          var lw = this.lines.line(e.x, e.y, e.x + Math.cos(e.chargeAng) * al, e.y + Math.sin(e.chargeAng) * al, e.r * 1.6, 1.6);
+          this.lines.strip(lw, tc0, al, 0, 1, 0.3);
+          if (e.m.y) {
+            var hx = e.x + Math.cos(e.chargeAng) * (al - 10), hy = e.y + Math.sin(e.chargeAng) * (al - 10);
+            for (var xi = 0; xi < 2; xi++) {
+              var xa = e.chargeAng + Math.PI / 4 + xi * Math.PI / 2;
+              var xl = this.strips.line(hx - Math.cos(xa) * 34, hy - Math.sin(xa) * 34, hx + Math.cos(xa) * 34, hy + Math.sin(xa) * 34, 10, 2.5);
+              this.strips.strip(xl, tc0, 68, 0, 1, 0.9);
+            }
+          }
+        }
+      }
+      if (e.openT > 0 && e.openK > 1) {
+        var gold = this.colOpen || (this.colOpen = Models.color('#ffd27d'));
+        var orr = r + 22 + 6 * Math.sin(Game.time * 10);
+        var og = this.rings.put(e.x, 2.2, e.y, 0, orr, 1, orr);
+        this.rings.disc(og, gold, 7 / orr, 0, 0.08, 0.85);
+        if (ow === 'heat' || ow === 'stuck' || ow === 'dig' || ow === 'cool' || ow === 'sit') {
+          var smk = ow === 'heat' || ow === 'cool' ? (this.colSteam || (this.colSteam = Models.color('#d9d2c8'))) : (this.colDust || (this.colDust = Models.color('#c9b08a')));
+          for (var pm = 0; pm < 5; pm++) {
+            var pph = (Game.time * 0.9 + pm * 0.2) % 1, pa = pm * 1.7 + e.phase, psz = 5 + pph * 8;
+            var pk = this.motes.put(e.x + Math.cos(pa) * r * 0.5, r * 1.2 + pph * 70, e.y + Math.sin(pa) * r * 0.5, pph * 4, psz, psz, psz);
+            this.motes.tint(pk, smk, 0.9 * (1 - pph));
+          }
+        } else {
+          for (var st3 = 0; st3 < 3; st3++) {
+            var sa3 = Game.time * 5 + st3 * 2.09;
+            var sk3 = this.motes.put(e.x + Math.cos(sa3) * r * 0.7, r * 2.3, e.y + Math.sin(sa3) * r * 0.7, sa3, 6, 6, 6);
+            this.motes.tint(sk3, gold, 1.6);
+          }
+        }
+      }
+      if (e.pyl && e.pyl.length && mid === 'weaver') {
+        var tg = Models.color(bd.trim);
+        for (var pi = 0; pi < e.pyl.length; pi++) {
+          var py = e.pyl[pi];
+          if (py.dead) continue;
+          var ps = this.strips.line(py.x, py.y, e.x, e.y, 7, 24);
+          this.strips.strip(ps, tg, U.dist(py.x, py.y, e.x, e.y), 0, 1, 0.55 + 0.25 * Math.sin(Game.time * 6 + pi));
+          var pw2 = this.shockwalls.put(py.x, 0, py.y, 0, 14, 120, 14);
+          this.shockwalls.wall(pw2, tg, 0.35);
+        }
+      }
+      if (e.tie > 0 || (mid === 'weaver' && e.ph > 0 && e.aim > 0)) {
+        var pl = Game.player, tg2 = Models.color(bd.trim), dl = U.dist(e.x, e.y, pl.x, pl.y);
+        var ts = this.strips.line(e.x, e.y, pl.x, pl.y, e.tie > 0 ? 9 : 4, 20);
+        this.strips.strip(ts, tg2, dl, e.tie > 0 ? 0 : 30, 1, e.tie > 0 ? 0.9 : 0.5 + 0.4 * Math.sin(Game.time * 30));
       }
       if (e.shield > 0) {
         var sr = this.rings.put(e.x, 3, e.y, 0, r + 14, 1, r + 14);
@@ -1039,8 +1270,161 @@ var View3D = {
       if (used[id]) continue;
       var bm = this.bossMeshes[id];
       bm.group.visible = false;
+      if (bm.twin) bm.twin.visible = false;
       for (var q = 0; q < bm.ghosts.length; q++) bm.ghosts[q].visible = false;
     }
+  },
+
+  markCol: function (c) {
+    var cc = this.markCols || (this.markCols = {});
+    return cc[c] || (cc[c] = Models.color(c));
+  },
+  espCol: function (n) { return this.markCol(Enemies.K.esp.c[n]); },
+  syncMarks: function () {
+    var B = Bosses, i, k, M = B.marks, white = this.markCol('#ffffff');
+    for (i = 0; i < M.length; i++) {
+      var m = M[i], c = this.markCol(m.c);
+      k = 1 - m.t / m.T;
+      if (m.k === 'line') {
+        var ca = Math.cos(m.a), sa = Math.sin(m.a);
+        var mf = m.fade ? -Math.min(m.len * 0.4, 180) : 0, mo = m.out > 0 ? Math.min(1, m.t / m.out) : 1;
+        var l = this.lines.line(m.x, m.y, m.x + ca * m.len, m.y + sa * m.len, m.w, 1.8);
+        this.lines.strip(l, c, m.len, mf, 1, (0.22 + 0.4 * k) * mo);
+        var l2 = this.strips.line(m.x, m.y, m.x + ca * m.len * k, m.y + sa * m.len * k, m.w * 0.3, 2.2);
+        this.strips.strip(l2, c, m.len * k + 1, m.fade ? -Math.min(m.len * k * 0.4, 180) : 0, 1, 0.85 * mo);
+      } else if (m.k === 'disc') {
+        var d1 = this.rings.put(m.x, 1.7, m.y, 0, m.r, 1, m.r);
+        this.rings.disc(d1, c, Math.min(0.5, 6 / m.r), 0, 0.1, 0.55 + 0.35 * k);
+        var rr = Math.max(4, m.r * k);
+        var d2 = this.glows.put(m.x, 1.5, m.y, 0, rr, 1, rr);
+        this.glows.disc(d2, c, 0, 0, 0.4, 0.9);
+      } else if (m.k === 'fan') {
+        for (var f = -3; f <= 3; f++) {
+          var fa = m.a + f / 3 * m.hw * 0.85;
+          var fl = this.strips.line(m.x, m.y, m.x + Math.cos(fa) * m.r, m.y + Math.sin(fa) * m.r, 64, 2);
+          this.strips.strip(fl, c, m.r, 0, 1, (0.12 + 0.3 * k) * (1 - Math.abs(f) / 6));
+        }
+        for (var ed = -1; ed <= 1; ed += 2) {
+          var ea = m.a + ed * m.hw;
+          var el = this.lines.line(m.x, m.y, m.x + Math.cos(ea) * m.r, m.y + Math.sin(ea) * m.r, 5, 2.4);
+          this.lines.strip(el, white, m.r, 0, 0, 0.35 + 0.4 * k);
+        }
+        if (m.ring) {
+          var rcc = this.markCol(m.rc), rsp = Math.PI * 2 - m.hw * 2, rl0 = m.rin + 6, rl1 = 70 + 230 * k;
+          for (var ri2 = 0; ri2 < m.ring; ri2++) {
+            var rra = m.a + m.hw + (ri2 + 0.5) / m.ring * rsp, rcs = Math.cos(rra), rsn = Math.sin(rra);
+            var rrl = this.lines.line(m.x + rcs * rl0, m.y + rsn * rl0, m.x + rcs * (rl0 + rl1), m.y + rsn * (rl0 + rl1), 9, 2.3);
+            this.lines.strip(rrl, rcc, rl1, -rl1 * 0.7, 1, 0.35 + 0.5 * k);
+          }
+          var rdi = this.rings.put(m.x, 1.9, m.y, 0, rl0 + 4, 1, rl0 + 4);
+          this.rings.disc(rdi, rcc, Math.min(0.5, 7 / (rl0 + 4)), 0, 0.1, 0.5 + 0.4 * k);
+        }
+      }
+    }
+    var ice = this.markCol('#bfe8ff');
+    for (i = 0; i < B.frost.length; i++) {
+      var w = B.frost[i], wk = Math.min(1, (1 - w.r / w.max) * 4), band = w.band || B.K.frostmaw.band;
+      var wcol = w.q ? this.markCol(w.c) : ice;
+      var wr = this.rings.put(w.x, 2, w.y, 0, w.r + band / 2, 1, w.r + band / 2);
+      this.rings.disc(wr, wcol, Math.min(0.9, band / (w.r + band / 2)), 0, 0, 0.7 * wk);
+      var wc = this.rings.put(w.x, 2.4, w.y, 0, w.r + 2, 1, w.r + 2);
+      this.rings.disc(wc, white, Math.min(0.5, 5 / (w.r + 2)), 0, 0, 0.9 * wk);
+      var ww = this.shockwalls.put(w.x, 0, w.y, 0, w.r, w.q ? 30 : 18, w.r);
+      this.shockwalls.wall(ww, wcol, 0.5 * wk);
+    }
+    for (i = 0; i < B.zones.length; i++) {
+      var z = B.zones[i], zc = this.markCol(z.c), zk = Math.min(1, z.t / 0.5);
+      if (z.k === 'disc') {
+        var za = this.glows.put(z.x, 1.3, z.y, 0, z.r, 1, z.r);
+        this.glows.disc(za, zc, 0.1, 0.4, 0.6, 0.75 * zk);
+        var zr = this.rings.put(z.x, 1.6, z.y, 0, z.r, 1, z.r);
+        this.rings.disc(zr, zc, Math.min(0.5, 5 / z.r), 0, 0.1, 0.6 * zk);
+        var bp = (Game.time * 1.3 + i * 0.37) % 1, bpa = i * 2.3 + Game.time * 0.5;
+        var bk = this.motes.put(z.x + Math.cos(bpa) * z.r * 0.5, 3 + bp * 14, z.y + Math.sin(bpa) * z.r * 0.5, 0, 6, 6, 6);
+        this.motes.tint(bk, zc, 1.2 * (1 - bp) * zk);
+      } else {
+        var zx1 = z.x + Math.cos(z.a) * z.len, zy1 = z.y + Math.sin(z.a) * z.len;
+        var zl = this.strips.line(z.x, z.y, zx1, zy1, z.w, 3);
+        this.strips.strip(zl, zc, z.len, 0, 1, 0.95 * zk);
+      }
+    }
+    var rockC = this.colRock || (this.colRock = Models.color('#8a7a66')), KT = B.K.titan;
+    for (i = 0; i < B.rocks.length; i++) {
+      var rk = B.rocks[i], rs = rk.k < 1 ? 34 : KT.wallR * 1.15;
+      var rb = this.debris.put(rk.x, rk.h + rs * 0.5, rk.y, rk.x * 0.01 + (rk.k < 1 ? Game.time * 4 : 0), rs * 1.7, rs * 1.2, rs * 1.6);
+      if (rb >= 0) this.debris.tint(rb, rockC, rk.k < 1 ? 1 : 0.8 + 0.2 * Math.min(1, rk.t));
+      if (rk.k >= 1) {
+        var rg = this.glows.put(rk.x, 1.2, rk.y, 0, KT.wallR * 1.6, 1, KT.wallR * 1.6);
+        this.glows.disc(rg, this.markCol('#ffb35c'), 0, 1.4, 1, 0.3 * Math.min(1, rk.t / 0.8));
+      }
+    }
+    var acid = this.markCol('#9fe05a');
+    for (i = 0; i < B.globs.length; i++) {
+      var gb = B.globs[i];
+      var gk = this.motes.put(gb.x, 10 + gb.h, gb.y, Game.time * 6, 14, 14, 14);
+      this.motes.tint(gk, acid, 1.6);
+    }
+    var gold = this.markCol('#ffcf4a'), scrapC = this.colScrap || (this.colScrap = Models.color('#9a8a70'));
+    for (i = 0; i < B.scrap.length; i++) {
+      var sc = B.scrap[i], sh = sc.st === 0 ? 520 * Math.max(0, sc.t / sc.T) : (sc.st === 2 ? 22 : 0);
+      if (sc.st === 3) {
+        var ws = this.debris.put(sc.x, 26, sc.y, i * 1.3, 72, 46, 64);
+        if (ws >= 0) this.debris.tint(ws, scrapC, 0.9);
+        var wr2 = this.rings.put(sc.x, 1.6, sc.y, 0, B.K.queen.wallR + 8, 1, B.K.queen.wallR + 8);
+        this.rings.disc(wr2, this.markCol(B.K.queen.wallC), 0.18, 0, 0.1, 0.5 * Math.min(1, sc.t));
+        continue;
+      }
+      var sb = this.debris.put(sc.x, sh + 12, sc.y, i * 1.3 + (sc.st !== 1 ? Game.time * 6 : 0), 30, 18, 24);
+      if (sb >= 0) this.debris.tint(sb, sc.st === 1 && Math.sin(Game.time * 18 + i) > 0.3 ? gold : scrapC, 1.2);
+    }
+    var lc = this.markCol('#c0a8ff'), wl = B.K.lancer.wall;
+    for (i = 0; i < B.spears.length; i++) {
+      var s = B.spears[i];
+      if (s.fly < 0) continue;
+      if (s.fly < 1) {
+        k = this.spears.put(s.x, 14, s.y, s.a, 10, 10, 10);
+        if (k >= 0) this.spears.tint(k, lc, 1.7);
+        var st = this.strips.line(s.x - Math.cos(s.a) * 90, s.y - Math.sin(s.a) * 90, s.x, s.y, 10, 13);
+        this.strips.strip(st, lc, 90, 0, 1, 0.6);
+        continue;
+      }
+      var sk = Math.min(1, s.t / 0.8);
+      k = this.spears.put(s.x, 6, s.y, s.a, 10, 10, 10);
+      if (k >= 0) this.spears.tint(k, lc, 1.3 * sk);
+      var wb = this.debris.put(s.x, 13, s.y, s.a + Math.PI / 2, wl, 26, 7);
+      if (wb >= 0) this.debris.tint(wb, lc, 0.9 * sk + 0.1);
+      var wg = this.glows.put(s.x, 1.2, s.y, s.a, wl * 0.6, 1, wl * 0.6);
+      this.glows.disc(wg, lc, 0, 1.4, 1, 0.35 * sk);
+    }
+    var Mi = Game.mines;
+    if (Mi.length > 1) {
+      var pink = this.markCol(CFG.col.enemyShot);
+      for (i = 0; i < Mi.length; i++) {
+        for (var j = i + 1; j < Mi.length; j++) {
+          var a = Mi[i], b = Mi[j], dd = U.dist(a.x, a.y, b.x, b.y);
+          if (dd > a.r) continue;
+          var ml = this.lines.line(a.x, a.y, b.x, b.y, 3, 1.9);
+          this.lines.strip(ml, pink, dd, 14, 0, 0.5);
+        }
+      }
+    }
+  },
+
+  lair: function (e, k, pillar) {
+    var L = CFG.boss.lair, R = L.r, tc = Models.color(e.bd.trim);
+    var pulse = 0.5 + 0.5 * Math.sin(Game.time * 2.2 + e.phase);
+    var ax = e.anchorX, ay = e.anchorY;
+    var lr = this.rings.put(ax, 1.6, ay, 0, R, 1, R);
+    this.rings.disc(lr, tc, 9 / R, 0, 0.1, (0.55 + 0.3 * pulse) * k);
+    var lg = this.glows.put(ax, 1.4, ay, 0, R, 1, R);
+    this.glows.disc(lg, tc, 0.16, 0, 0, (0.18 + 0.12 * pulse) * k);
+    if (!pillar) return;
+    var pw = this.shockwalls.put(e.x, 0, e.y, 0, 40, 600, 40);
+    this.shockwalls.wall(pw, tc, (0.5 + 0.15 * pulse) * k);
+    var pc = this.shockwalls.put(e.x, 0, e.y, 0, 9, 820, 9);
+    this.shockwalls.wall(pc, this.colLair || (this.colLair = Models.color('#fff4d6')), 0.5 * k);
+    var bg = this.glows.put(e.x, 1.2, e.y, 0, e.r * 3.2, 1, e.r * 3.2);
+    this.glows.disc(bg, tc, 0, 1.6, 1, 0.45 * k);
   },
 
   playerMesh: function (p) {
@@ -1135,7 +1519,16 @@ var View3D = {
       var bri = this.rings.put(p.x, 1.6, p.y, 0, br, 1, br);
       this.rings.disc(bri, Models.color('#ff7a5c'), 2 / br, 0, 0, 0.4);
     }
-    if (p.st.nova > 0) {
+    if (p.tideT >= 0 && p.tideR > 8) {
+      var tr = p.tideR, tk = p.tideT < 0.65 ? 1 : 0.75;
+      var tw = this.rings.put(p.x, 2, p.y, 0, tr + 18, 1, tr + 18);
+      this.rings.disc(tw, gold, Math.min(0.9, 36 / (tr + 18)), 0, 0, 0.55 * tk);
+      var tc = this.rings.put(p.x, 2.4, p.y, 0, tr + 2, 1, tr + 2);
+      this.rings.disc(tc, white, Math.min(0.5, 5 / (tr + 2)), 0, 0, 0.85 * tk);
+      var tws = this.shockwalls.put(p.x, 0, p.y, 0, tr, 30, tr);
+      this.shockwalls.wall(tws, gold, 0.5 * tk);
+    }
+    if (p.st.nova > 0 && !(p.evo.nova && p.tideT >= 0)) {
       var nr = (180 + p.st.nova * 70) * p.st.radius;
       var k = U.clamp(1 - p.novaCd / 6, 0, 1);
       var ng = this.glows.put(p.x, 1.2, p.y, 0, nr, 1, nr);
@@ -1145,12 +1538,16 @@ var View3D = {
     }
 
     if (p.st.orbit > 0) {
-      var tech = Models.color(CFG.col.tech);
+      var mill = p.millK > 0, tech = Models.color(mill ? '#f2c46a' : CFG.col.tech), bs = mill ? 15 : 11;
       for (var o = 0; o < p.st.orbit; o++) {
         var a = p.orbA + o / p.st.orbit * Math.PI * 2;
-        var ox = p.x + Math.cos(a) * 62, oy = p.y + Math.sin(a) * 62;
-        this.blades.put(ox, 14, oy, Game.time * 16 + o, 11, 11, 11);
-        this.halo(ox, 14, oy, 20, tech, 0.6);
+        var ox = p.x + Math.cos(a) * p.orbR, oy = p.y + Math.sin(a) * p.orbR;
+        this.blades.put(ox, 14, oy, Game.time * (mill ? 24 : 16) + o, bs, bs, bs);
+        this.halo(ox, 14, oy, mill ? 30 : 20, tech, mill ? 0.8 : 0.6);
+        if (mill) {
+          var og = this.glows.put(ox, 1.3, oy, 0, 26, 1, 26);
+          this.glows.disc(og, tech, 0, 1.4, 1, 0.4);
+        }
         var os = this.shadows.put(ox + 4, 0.6, oy + 4, 0, 11, 1, 11);
         this.shadows.disc(os, null, 0, 1, 1, 0.35);
       }
@@ -1180,11 +1577,33 @@ var View3D = {
       }
     }
 
-    if (p.tetherTarget && !p.tetherTarget.dead) {
-      var te = p.tetherTarget;
-      var tl = U.dist(p.x, p.y, te.x, te.y);
-      var ts = this.strips.line(p.x, p.y, te.x, te.y, 10, 14);
-      this.strips.strip(ts, Models.color(CFG.col.tech), tl, 0, 1, 0.9);
+    if (p.trail.length) {
+      var ember = Models.color('#ff8a4a'), soot2 = Models.color('#1a120b'), c1 = this._c;
+      for (i2 = 0; i2 < p.trail.length; i2++) {
+        var tp = p.trail[i2], ta = U.clamp(1 - (t - tp.t) / 3, 0, 1);
+        var td = this.decals.put(tp.x, 0.5, tp.y, i2, 17, 1, 17);
+        this.decals.disc(td, soot2, 0, 0.9, 1, 0.5 * Math.min(1, ta * 2));
+        var tg = this.glows.put(tp.x, 1.05, tp.y, 0, 26, 1, 26);
+        this.glows.disc(tg, ember, 0, 1.3, 1, 0.75 * ta);
+        for (var tf = 0; tf < 2; tf++) {
+          var tph = (t * 1.6 + i2 * 0.37 + tf * 0.5) % 1, tfs = (2 + 5 * (1 - tph)) * (0.35 + 0.65 * ta);
+          c1.setRGB(1, 0.85 - tph * 0.6, 0.35 - tph * 0.3);
+          mk = this.motes.put(tp.x + Math.sin(i2 * 2.3 + tf * 2) * 8, 3 + tph * 26 * ta, tp.y + Math.cos(i2 * 1.7 + tf * 2) * 8, i2, tfs, tfs * 1.5, tfs);
+          this.motes.tint(mk, c1, 1.5);
+        }
+      }
+    }
+
+    var tlist = p.evo.tether ? p.tethers : (p.tetherTarget ? [p.tetherTarget] : null);
+    if (tlist) {
+      var tcol = Models.color(CFG.col.tech);
+      for (i2 = 0; i2 < tlist.length; i2++) {
+        var te = tlist[i2];
+        if (te.dead) continue;
+        var tl = U.dist(p.x, p.y, te.x, te.y);
+        var ts = this.strips.line(p.x, p.y, te.x, te.y, 10, 14);
+        this.strips.strip(ts, tcol, tl, 0, 1, 0.9);
+      }
     }
 
     this.syncTurrets();
@@ -1217,8 +1636,8 @@ var View3D = {
       v.head.rotation.y = -t.ang;
       var s = this.shadows.put(t.x, 0.6, t.y, 0, 14, 1, 14);
       this.shadows.disc(s, null, 0, 1, 1, 0.4);
-      var gl = this.glows.put(t.x, 1, t.y, 0, 26, 1, 26);
-      this.glows.disc(gl, Models.color(CFG.col.tech), 0, 1.5, 1, 0.35);
+      var gl = this.glows.put(t.x, 1, t.y, 0, t.rk ? 32 : 26, 1, t.rk ? 32 : 26);
+      this.glows.disc(gl, Models.color(t.rk ? '#f2c46a' : CFG.col.tech), 0, 1.5, 1, t.rk ? 0.45 : 0.35);
     }
   },
 
@@ -1266,24 +1685,40 @@ var View3D = {
       this.shadows.disc(bs, null, 0, 1.2, 1, 0.5);
     }
     list = Game.ebullets;
-    var pulse = 1 + Math.sin(Game.time * 14) * 0.08;
+    var pulse = 1 + Math.sin(Game.time * 14) * 0.08, tt = Game.time, hotW = this.colCrit;
     for (i = 0; i < list.length; i++) {
       b = list[i];
       var er = U.clamp(b.r, 6, 9) * pulse;
-      if (b.spear) {
+      var ec = b.bc ? this.markCol(b.bc) : red, gr = er * 1.9;
+      if (b.bk === 1) {
+        var fa = Math.atan2(b.vy, b.vx), fc = Math.cos(fa), fs = Math.sin(fa);
+        k = this.spears.put(b.x, 13, b.y, fa, er * 0.85, er * 1.05, er * 1.05);
+        if (k >= 0) this.spears.tint(k, ec, 3.2);
+        this.spearRims.put(b.x, 13, b.y, fa, er * 0.85 + 1.2, er * 1.05 * 1.4, er * 1.05 * 1.4);
+        var ft = this.strips.line(b.x - fc * er * 6, b.y - fs * er * 6, b.x, b.y, er * 1.6, 12.5);
+        this.strips.strip(ft, ec, er * 6, 0, 1, 0.75);
+        this.halo(b.x + fc * er * 1.5, 13, b.y + fs * er * 1.5, er * 2.2, hotW, 0.75);
+      } else if (b.bk === 2) {
+        var qr = er * 1.55;
+        k = this.gems.put(b.x, 14, b.y, tt * 7 + i, qr, qr * 1.25, qr);
+        if (k >= 0) this.gems.tint(k, ec, 1.9);
+        this.eshotRims.put(b.x, 14, b.y, 0, qr + 3.2, qr * 1.25 + 3.2, qr + 3.2);
+        this.halo(b.x, 15, b.y, qr * 1.3, hotW, 1);
+        gr = qr * 1.7;
+      } else if (b.spear) {
         k = this.spears.put(b.x, 14, b.y, b.ang, er, er, er);
-        if (k >= 0) this.spears.tint(k, red, 1.6);
+        if (k >= 0) this.spears.tint(k, ec, 1.6);
         this.spearRims.put(b.x, 14, b.y, b.ang, er * 1.25, er * 1.4, er * 1.4);
       } else {
         k = this.eshots.put(b.x, 12, b.y, 0, er, er, er);
-        if (k >= 0) this.eshots.tint(k, red, 1.6);
+        if (k >= 0) this.eshots.tint(k, ec, b.bc ? 1.9 : 1.6);
         this.eshotRims.put(b.x, 12, b.y, 0, er + 2.6, er + 2.6, er + 2.6);
       }
-      this.halo(b.x, 12, b.y, er * 2.8, red, 0.8);
+      this.halo(b.x, 12, b.y, er * 2.8, ec, 0.8);
       var es = this.shadows.put(b.x + 6, 0.7, b.y + 4, 0, er * 1.2, 1, er * 1.2);
       this.shadows.disc(es, null, 0, 1.2, 1, 0.5);
-      var gk = this.rings.put(b.x, 1.2, b.y, 0, er * 1.9, 1, er * 1.9);
-      this.rings.disc(gk, red, 0.22, 1.2, 0.35, 0.75);
+      var gk = this.rings.put(b.x, 1.2, b.y, 0, gr, 1, gr);
+      this.rings.disc(gk, ec, 0.22, 1.2, 0.35, 0.75);
     }
   },
 
@@ -1347,10 +1782,11 @@ var View3D = {
       var ww = this.shockwalls.put(w.x, 0, w.y, 0, w.r, 26, w.r);
       this.shockwalls.wall(ww, shock, 0.55 * k);
     }
-    var green = Models.color(CFG.col.heal);
+    var green0 = Models.color(CFG.col.heal), sick = Models.color('#c9e86a'), green;
     for (i = 0; i < Game.clouds.length; i++) {
       var c = Game.clouds[i];
       var a = Math.min(1, c.life / 2);
+      green = c.evo ? sick : green0;
       var cg = this.glows.put(c.x, 1.5, c.y, Game.time * 0.3, c.r, 1, c.r);
       this.glows.disc(cg, green, 0, 0.5, 1, 0.22 * a);
       var cr = this.rings.put(c.x, 1.8, c.y, 0, c.r * 0.95, 1, c.r * 0.95);
@@ -1363,6 +1799,172 @@ var View3D = {
         var mk = this.motes.put(c.x + Math.cos(sa) * srad, 3 + ph * 34, c.y + Math.sin(sa) * srad, ph * 6, ss, ss, ss);
         this.motes.tint(mk, green, 1.2 * a);
       }
+    }
+  },
+
+  syncTrophy: function (p) {
+    var T = Trophy, N = T.N, i, k, t = Game.time, white = Models.color('#ffffff');
+    var cc = this.trCol || (this.trCol = {
+      mine: Models.color('#ffd27d'), post: Models.color('#b6e07a'), ice: Models.color('#7ec8ff'),
+      spear: Models.color('#c0a8ff'), beam: Models.color('#ff4d8d'), wasp: Models.color('#ffd24a')
+    });
+    if (p.tr.driller && p.alive && p.trs) {
+      var ts = p.trs, ND = N.drill, dc = Math.cos(ts.da), dsn = Math.sin(ts.da), hit = ts.drHit > 0;
+      var jt = Math.sin(t * (hit ? 95 : 45)) * (hit ? 1.4 : 0.5), dpx = -dsn, dpy = dc;
+      var bx = p.x + dc * (p.r * 0.85 + jt), by = p.y + dsn * (p.r * 0.85 + jt);
+      var sxl = ND.len / 2.4, syw = ND.w / 0.9;
+      this.drills.put(bx, ND.w * 0.75, by, ts.da, sxl, syw, syw);
+      var dcol = this.markCol(Bosses.byId('driller').trim), ph = (t * 150) % 14;
+      for (var dl = -1; dl <= 1; dl++) {
+        var off = dl * (ND.w + 5), lx = bx + dpx * off * (dl ? 1 : 0), ly = by + dpy * off * (dl ? 1 : 0);
+        var lL = ND.len + 14 - Math.abs(dl) * 8 + ph;
+        var dli = this.strips.line(lx - dc * ph, ly - dsn * ph, lx - dc * ph + dc * lL, ly - dsn * ph + dsn * lL, dl ? 2.5 : 4, 1.6);
+        this.strips.strip(dli, dcol, lL, 14, 0, hit ? 0.95 : 0.55);
+      }
+      var tx = bx + dc * ND.len, ty = by + dsn * ND.len;
+      var dg = this.glows.put(tx, 1.3, ty, 0, ND.w * (hit ? 2.4 : 1.4), 1, ND.w * (hit ? 2.4 : 1.4));
+      this.glows.disc(dg, dcol, 0, 1.4, 1, hit ? 0.8 : 0.35);
+      if (hit) {
+        for (var sp = 0; sp < 4; sp++) {
+          var sph = (t * 3.5 + sp * 0.25) % 1, spa = ts.da + Math.PI + (sp - 1.5) * 0.7;
+          var sm = this.motes.put(tx + Math.cos(spa) * sph * 26, 5 + Math.sin(sph * 3.1) * 14, ty + Math.sin(spa) * sph * 26, sph * 9, 3, 3, 3);
+          this.motes.tint(sm, white, 2 * (1 - sph));
+        }
+      }
+    }
+    for (i = 0; i < T.mines.length; i++) {
+      var m = T.mines[i], on = m.arm <= 0, bl = on && Math.floor(t * 6) % 2 === 0;
+      this.mines.put(m.x, 0, m.y, 0, 8, 8, 8);
+      k = this.mineLights.put(m.x, 5.5, m.y, 0, 8, 8, 8);
+      if (k >= 0) this.mineLights.tint(k, bl ? white : cc.mine, on ? 1.5 : 0.6);
+      if (on) {
+        var mr = this.rings.put(m.x, 1.3, m.y, 0, N.mine.trig + 10, 1, N.mine.trig + 10);
+        this.rings.disc(mr, cc.mine, 2 / (N.mine.trig + 10), 0, 0, 0.35);
+        if (bl) this.halo(m.x, 6, m.y, 16, cc.mine, 0.8);
+      }
+    }
+    for (i = 0; i < T.posts.length; i++) {
+      var o = T.posts[i], oa = Math.min(1, o.life / 1.2), ol = U.dist(o.x1, o.y1, o.x2, o.y2);
+      for (var e2 = 0; e2 < 2; e2++) {
+        var px = e2 ? o.x2 : o.x1, py = e2 ? o.y2 : o.y1;
+        var pw = this.shockwalls.put(px, 0, py, 0, 7, 46, 7);
+        this.shockwalls.wall(pw, cc.post, 0.95 * oa);
+        var pg = this.glows.put(px, 1.2, py, 0, 30, 1, 30);
+        this.glows.disc(pg, cc.post, 0, 1.4, 1, 0.55 * oa);
+        this.halo(px, 40, py, 14, cc.post, 0.7 * oa);
+      }
+      var os = this.strips.line(o.x1, o.y1, o.x2, o.y2, 9, 22);
+      this.strips.strip(os, cc.post, ol, 0, 1, 0.85 * oa);
+      var oc = this.strips.line(o.x1, o.y1, o.x2, o.y2, 2.5, 22.2);
+      this.strips.strip(oc, white, ol, 0, 0, 0.7 * oa);
+      var og = this.lines.line(o.x1, o.y1, o.x2, o.y2, 5, 0.9);
+      this.lines.strip(og, cc.post, ol, 14, 0, 0.4 * oa);
+    }
+    var R = N.chill.r * p.st.radius;
+    for (i = 0; i < T.chills.length; i++) {
+      var c = T.chills[i], ca = U.clamp(1 - (c.t - N.chill.t) / 0.35, 0, 1), cr = Math.max(8, c.r);
+      var cw = this.rings.put(c.x, 2, c.y, 0, cr + 16, 1, cr + 16);
+      this.rings.disc(cw, cc.ice, Math.min(0.9, 30 / (cr + 16)), 0, 0, 0.55 * ca);
+      var ce = this.rings.put(c.x, 2.4, c.y, 0, cr + 2, 1, cr + 2);
+      this.rings.disc(ce, white, Math.min(0.5, 5 / (cr + 2)), 0, 0, 0.8 * ca);
+      var cs = this.shockwalls.put(c.x, 0, c.y, 0, cr, 22, cr);
+      this.shockwalls.wall(cs, cc.ice, 0.45 * ca);
+      if (c.r < R) {
+        var cg = this.glows.put(c.x, 1.4, c.y, 0, cr, 1, cr);
+        this.glows.disc(cg, cc.ice, 0, 0.8, 1, 0.12 * ca);
+      }
+    }
+    if (p.tr.frostmaw) {
+      var en = Game.enemies;
+      for (i = 0; i < en.length; i++) {
+        var fe = en[i];
+        if (fe.frz <= 0 || fe.dead) continue;
+        var fg = this.glows.put(fe.x, 1.5, fe.y, 0, fe.r * 1.7, 1, fe.r * 1.7);
+        if (fg < 0) break;
+        this.glows.disc(fg, cc.ice, 0, 1.2, 1, 0.7 * Math.min(1, fe.frz * 2));
+        this.halo(fe.x, 12, fe.y, fe.r * 1.6, cc.ice, 0.5 * Math.min(1, fe.frz * 2));
+      }
+    }
+    for (i = 0; i < T.spears.length; i++) {
+      var s = T.spears[i], sa = s.fly ? 1 : Math.min(1, s.life / 0.8);
+      if (s.fly) {
+        k = this.spears.put(s.x, 14, s.y, s.a, 9, 9, 9);
+        if (k >= 0) this.spears.tint(k, cc.spear, 1.7);
+        this.halo(s.x, 14, s.y, 26, cc.spear, 0.8);
+        var st = this.strips.line(s.x - Math.cos(s.a) * 90, s.y - Math.sin(s.a) * 90, s.x, s.y, 10, 13);
+        this.strips.strip(st, cc.spear, 90, 0, 1, 0.6);
+        continue;
+      }
+      k = this.spears.put(s.x, 6, s.y, s.a, 9, 9, 9);
+      if (k >= 0) this.spears.tint(k, cc.spear, 1.3 * sa);
+      var wb = this.debris.put(s.x, 13, s.y, s.a + Math.PI / 2, N.spear.len, 26, 7);
+      if (wb >= 0) this.debris.tint(wb, cc.spear, 0.9 * sa + 0.1);
+      var wg = this.glows.put(s.x, 1.2, s.y, s.a, N.spear.len * 0.6, 1, N.spear.len * 0.6);
+      this.glows.disc(wg, cc.spear, 0, 1.4, 1, 0.35 * sa);
+    }
+    if (p.tr.warden) {
+      var ba = p.trs.beamA, bx = Math.cos(ba), by = Math.sin(ba), L = N.beam.len;
+      var x0 = p.x + bx * 18, y0 = p.y + by * 18, x1 = p.x + bx * L, y1 = p.y + by * L;
+      var bs = this.strips.line(x0, y0, x1, y1, N.beam.w * 2.6, 6);
+      this.strips.strip(bs, cc.beam, L - 18, 0, 1, 0.9);
+      var bc = this.strips.line(x0, y0, x1, y1, N.beam.w * 0.6, 6.2);
+      this.strips.strip(bc, white, L - 18, 0, 0, 0.75);
+      var bg = this.glows.put(x1, 1.4, y1, 0, 26, 1, 26);
+      this.glows.disc(bg, cc.beam, 0, 1.4, 1, 0.6);
+    }
+    for (i = 0; i < T.drones.length; i++) {
+      var d = T.drones[i], dh = 20 + Math.sin(t * 9 + i) * 3;
+      k = this.orbs.put(d.x, dh, d.y, t * 8 + i, 7, 4.5, 7);
+      if (k >= 0) this.orbs.tint(k, cc.wasp, 1.6);
+      this.halo(d.x, dh, d.y, 15, cc.wasp, 0.8);
+      var ds = this.shadows.put(d.x + 5, 0.6, d.y + 4, 0, 5, 1, 5);
+      this.shadows.disc(ds, null, 0, 1, 1, 0.35);
+    }
+  },
+
+  syncSpells: function (p) {
+    var S = Spells, i, k, t = Game.time, white = Models.color('#ffffff');
+    var cc = this.spCol || (this.spCol = {
+      saw: Models.color('#ff9a3c'), gold: Models.color('#f2c46a'), rk: Models.color('#ff9a3c'),
+      dome: Models.color('#7ee0ff'), mir: Models.color('#e8f4ff'), ram: Models.color('#ffb35c')
+    });
+    for (i = 0; i < S.saws.length; i++) {
+      var s = S.saws[i], ss = s.circ ? 17 : 13, sc = s.circ ? cc.gold : cc.saw;
+      this.saws.put(s.x, 12, s.y, s.spin, ss, ss, ss);
+      this.halo(s.x, 12, s.y, ss * 1.8, sc, 0.6);
+      var sg = this.glows.put(s.x, 1.2, s.y, 0, ss * 1.6, 1, ss * 1.6);
+      this.glows.disc(sg, sc, 0, 1.4, 1, 0.45);
+    }
+    for (i = 0; i < S.rockets.length; i++) {
+      var r = S.rockets[i], ca = Math.cos(r.a), sa = Math.sin(r.a), rz = r.h ? 0.55 : 1;
+      k = this.spears.put(r.x, 18 * (r.h ? 0.8 : 1), r.y, r.a, 7 * rz, 7 * rz, 7 * rz);
+      if (k >= 0) this.spears.tint(k, cc.rk, 2.4);
+      var tl = Math.min(120 * rz, r.t * 420);
+      var rs = this.strips.line(r.x - ca * tl, r.y - sa * tl, r.x - ca * 10 * rz, r.y - sa * 10 * rz, 10 * rz, 18 * (r.h ? 0.8 : 1));
+      this.strips.strip(rs, cc.rk, tl, 0, 1, 0.85);
+      this.halo(r.x - ca * 12 * rz, 18, r.y - sa * 12 * rz, 22 * rz, white, 0.9);
+      var rg = this.glows.put(r.x, 1.3, r.y, 0, 26 * rz, 1, 26 * rz);
+      this.glows.disc(rg, cc.rk, 0, 1.4, 1, 0.45 * (r.h ? 0.7 : 1));
+    }
+    if (p.domeT > 0) {
+      var dc = p.evo.dome ? cc.mir : cc.dome, R = p.domeR, da = Math.min(1, p.domeT * 3);
+      var dw = this.shockwalls.put(p.x, 0, p.y, 0, R, R * 0.55, R);
+      this.shockwalls.wall(dw, dc, 0.5 * da);
+      var de = this.rings.put(p.x, 1.6, p.y, 0, R, 1, R);
+      this.rings.disc(de, dc, Math.min(0.5, 8 / R), 0, 0, 0.85 * da);
+      var dg = this.glows.put(p.x, 1.3, p.y, 0, R, 1, R);
+      this.glows.disc(dg, dc, 0, 0.6, 1, (0.12 + 0.05 * Math.sin(t * 9)) * da);
+      this.halo(p.x, R * 0.5, p.y, R * 0.5, dc, 0.18 * da);
+    }
+    if (p.skills.ram && p.dashT > 0) {
+      var ra = p.dashAng, W = p.r + S.N.ram.w(S.lv(p, 'ram'));
+      var fx = p.x + Math.cos(ra) * W * 0.6, fy = p.y + Math.sin(ra) * W * 0.6;
+      var pg = this.glows.put(fx, 1.4, fy, ra, W, 1, W);
+      this.glows.disc(pg, cc.ram, 0, 1.2, 1, 0.8);
+      var px = -Math.sin(ra) * W, py = Math.cos(ra) * W;
+      var pl = this.strips.line(fx - px, fy - py, fx + px, fy + py, 8, 10);
+      this.strips.strip(pl, cc.ram, W * 2, 0, 1, 0.9);
+      this.halo(fx, 10, fy, W * 0.8, cc.ram, 0.6);
     }
   },
 
@@ -1388,9 +1990,10 @@ var View3D = {
         this.shockwalls.wall(wi, Models.color(r.c), (1 - kk) * 0.6);
       }
     }
+    var core0 = Models.color('#ffffff');
     for (i = 0; i < FX.bolts.length; i++) {
       var bo = FX.bolts[i];
-      var al = bo.life / bo.max, bc = Models.color(bo.c), core = Models.color('#ffffff');
+      var al = bo.life / bo.max, bc = Models.color(bo.c), core = core0;
       for (var q = 1; q < bo.pts.length; q++) {
         var p0 = bo.pts[q - 1], p1 = bo.pts[q];
         var len = U.dist(p0.x, p0.y, p1.x, p1.y);
@@ -1400,16 +2003,56 @@ var View3D = {
         this.strips.strip(sc, core, len, 0, 0, al);
       }
     }
+    var sky = this.colSky || (this.colSky = Models.color('#bfe3ff'));
+    for (i = 0; i < FX.strikes.length; i++) {
+      var st = FX.strikes[i], sa = st.life / st.max;
+      var sw = this.shockwalls.put(st.x, 0, st.y, 0, 7, 900, 7);
+      this.shockwalls.wall(sw, sky, 0.9 * sa);
+      var sw2 = this.shockwalls.put(st.x, 0, st.y, 0, 2.5, 900, 2.5);
+      this.shockwalls.wall(sw2, core0, sa);
+      var sg = this.glows.put(st.x, 1.6, st.y, 0, 60, 1, 60);
+      this.glows.disc(sg, sky, 0, 1.4, 1, 0.7 * sa);
+      var sr = this.rings.put(st.x, 2.2, st.y, 0, 20 + 30 * (1 - sa), 1, 20 + 30 * (1 - sa));
+      this.rings.disc(sr, core0, 0.18, 0, 0, sa);
+    }
+    var rcol = this.colRail || (this.colRail = Models.color('#ff9a4a'));
+    for (i = 0; i < Game.rails.length; i++) {
+      var rl = Game.rails[i], ra = U.clamp(rl.life / 1.3, 0, 1);
+      var rlen = U.dist(rl.x1, rl.y1, rl.x2, rl.y2);
+      if (rlen < 4) continue;
+      var rs = this.strips.line(rl.x1, rl.y1, rl.x2, rl.y2, 22, 2);
+      this.strips.strip(rs, rcol, rlen, 0, 1, 0.75 * ra);
+      var rc = this.strips.line(rl.x1, rl.y1, rl.x2, rl.y2, 4, 2.2);
+      this.strips.strip(rc, core0, rlen, 0, 0, 0.6 * ra);
+    }
+    var bcol = this.colBomb || (this.colBomb = Models.color('#ffb35c'));
+    for (i = 0; i < Game.bomblets.length; i++) {
+      var bm = Game.bomblets[i], bk = 1 - bm.t / bm.max;
+      var bh = 6 + Math.sin(bk * Math.PI) * 22;
+      var bi = this.shots.put(bm.x, bh, bm.y, 0, 4.5, 4.5, 4.5);
+      if (bi >= 0) this.shots.tint(bi, bcol, 1.8);
+      this.halo(bm.x, bh, bm.y, 12, bcol, 0.7);
+    }
+
     var c0 = this._c, hot = Models.color('#fff3c8'), ember = Models.color('#3a1607'), smoke = Models.color('#5e5146');
     for (i = 0; i < FX.blasts.length; i++) {
       var bl = FX.blasts[i];
       var k = 1 - bl.life / bl.max;
       var grow = k < 0.25 ? k / 0.25 : 1 - (k - 0.25) / 0.75 * 0.85;
-      var bs = bl.r * (bl.pop ? 0.17 : 0.32) * grow;
+      var bs = bl.r * (bl.pop ? 0.17 : (bl.rk ? 0.3 : 0.32)) * grow;
       if (k < 0.4) c0.copy(hot).lerp(Models.color(bl.c), k / 0.4);
       else c0.copy(Models.color(bl.c)).lerp(ember, (k - 0.4) / 0.6);
       var fb = this.fireballs.put(bl.x, bs * 0.45, bl.y, k * 2, bs, bs * 0.85, bs);
       this.fireballs.tint(fb, c0, 1.3);
+      if (bl.rk) {
+        var fa = 1 - k, rR = bl.r;
+        var rgl = this.glows.put(bl.x, 1.5, bl.y, 0, rR, 1, rR);
+        this.glows.disc(rgl, Models.color(bl.c), 0, 1.3, 1, 0.6 * fa * fa);
+        var rri = this.rings.put(bl.x, 2.4, bl.y, 0, rR, 1, rR);
+        this.rings.disc(rri, hot, Math.min(0.5, 6 / rR), 0, 0, 0.95 * fa);
+        this.halo(bl.x, bs * 0.6 + 6, bl.y, bs * 2.4, hot, 0.85 * fa);
+        continue;
+      }
       if (bl.pop) {
         var pg = this.glows.put(bl.x, 1.4, bl.y, 0, bl.r * 0.55, 1, bl.r * 0.55);
         this.glows.disc(pg, Models.color(bl.c), 0, 1.4, 1, 0.4 * (1 - k));
@@ -1435,19 +2078,39 @@ var View3D = {
     }
   },
 
+  drawZz: function (ctx, e, s) {
+    this.toScreen(e.x, e.y, e.r * 1.6, s);
+    if (s.x < -60 || s.x > this.w + 60 || s.y < -60 || s.y > this.h + 60) return;
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#f3e4cc';
+    ctx.strokeStyle = 'rgba(28,21,15,.7)';
+    ctx.lineWidth = 3;
+    for (var z = 0; z < 3; z++) {
+      var ph = (Game.time * 0.45 + z / 3 + e.phase) % 1;
+      ctx.globalAlpha = Math.sin(ph * Math.PI) * 0.85;
+      ctx.font = '900 ' + Math.round(13 + ph * 10) + 'px Verdana, sans-serif';
+      ctx.strokeText('z', s.x + 12 + ph * 22, s.y - ph * 40);
+      ctx.fillText('z', s.x + 12 + ph * 22, s.y - ph * 40);
+    }
+    ctx.restore();
+  },
+
   drawOverlay: function (ctx) {
     var i, s = this._s || (this._s = {});
     var list = Game.enemies;
     for (i = 0; i < list.length; i++) {
       var e = list[i];
-      if (!(e.boss || e.elite || e.def.heavy) || e.hp >= e.maxHp || e.dead) continue;
-      var top = e.r * (e.boss ? 2.4 : 1.9) + 6;
+      if (e.zz) { this.drawZz(ctx, e, s); continue; }
+      var hb = e.def.decoy && e.owner ? e.owner : e;
+      if (!(hb.boss || e.elite || e.def.heavy) || hb.hp >= hb.maxHp || e.dead) continue;
+      var top = e.r * (hb.boss ? 2.4 : 1.9) + 6;
       this.toScreen(e.x, e.y, top, s);
       var w = Math.max(24, e.r * 2 * this.ppu);
       ctx.fillStyle = 'rgba(0,0,0,.6)';
       ctx.fillRect(s.x - w / 2, s.y - 4, w, 5);
-      ctx.fillStyle = e.boss ? (e.bd ? e.bd.trim : '#f0a24a') : '#e2503a';
-      ctx.fillRect(s.x - w / 2, s.y - 4, w * (e.hp / e.maxHp), 5);
+      ctx.fillStyle = hb.boss ? (hb.bd ? hb.bd.trim : '#f0a24a') : '#e2503a';
+      ctx.fillRect(s.x - w / 2, s.y - 4, w * (hb.hp / hb.maxHp), 5);
       if (e.boss && e.state === 'return') {
         ctx.globalAlpha = 0.6;
         ctx.fillStyle = '#e8d5bd';
@@ -1781,6 +2444,7 @@ View3D.makeStrips = function (max, blending, order) {
       '  float across = abs(vUv.y * 2.0 - 1.0);',
       '  float a = vS.z > 0.5 ? pow(1.0 - across, 1.6) : 1.0 - smoothstep(0.6, 1.0, across);',
       '  if (vS.y > 0.0 && mod(vUv.x * vS.x, vS.y) > vS.y * 0.55) discard;',
+      '  if (vS.y < 0.0) a *= smoothstep(0.0, -vS.y, (1.0 - vUv.x) * vS.x);',
       '  gl_FragColor = vec4(vColor, a * vS.w);',
       '  #include <colorspace_fragment>',
       '}'

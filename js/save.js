@@ -18,16 +18,25 @@ var Save = {
       skins: { rust: 1 },
       skin: 'rust',
       up: { dmg: 0, hp: 0, spd: 0, xp: 0, loot: 0, cd: 0, radius: 0, tech: 0 },
+      up10: 1,
       bosses: {},
-      prestige: 0,
-      set: { sfx: 1, music: 1, shake: 1, low: 0, lang: null, aim: 'auto', zoom: 1, vol: 0.7 }
+      prestige: 0, prestigeOld: 0, nakal: -1,
+      wins: 0, winBest: 0,
+      set: { sfx: 1, music: 1, shake: 1, low: 0, lang: null, aim: 'auto', zoom: 1, vol: 0.5 }
     };
   },
 
   load: function (cb) {
     var self = this;
     PF.load(function (raw) {
-      var d = self.def();
+      var d = self.merge(raw);
+      self.data = d;
+      cb(d);
+    });
+  },
+
+  merge: function (raw) {
+      var d = this.def();
       if (raw && typeof raw === 'object') {
         for (var k in d) {
           if (raw[k] === undefined) continue;
@@ -41,9 +50,16 @@ var Save = {
           }
         }
       }
-      self.data = d;
-      cb(d);
-    });
+      if (raw && typeof raw === 'object' && !raw.up10) {
+        for (var uk in d.up) d.up[uk] = Math.min(this.upMax, 2 * Math.max(0, Math.floor(Number(d.up[uk]) || 0)));
+        d.up10 = 1;
+      }
+      var top = CFG.nakal.max, pr = Math.max(0, Math.floor(Number(d.prestige) || 0));
+      if (pr > top) { d.prestigeOld = Math.max(d.prestigeOld | 0, pr); pr = top; }
+      d.prestige = pr;
+      d.nakal = Math.floor(Number(d.nakal));
+      if (!(d.nakal >= 0 && d.nakal < pr)) d.nakal = -1;
+      return d;
   },
 
   flush: function (force) {
@@ -86,11 +102,12 @@ var Save = {
     this.flush(true);
   },
 
-  upMax: 5,
-  upCost: function (key) {
-    var lvl = this.data.up[key] || 0;
-    var base = { dmg: 280, hp: 240, spd: 320, xp: 360, loot: 400, cd: 440, radius: 500, tech: 520 }[key] || 300;
-    return Math.floor(base * Math.pow(2, lvl));
+  upMax: 10,
+  upBase: { dmg: 400, hp: 350, spd: 460, xp: 520, loot: 580, cd: 630, radius: 720, tech: 750 },
+  upCost: function (key, lvl) {
+    if (lvl === undefined) lvl = this.data.up[key] || 0;
+    var base = this.upBase[key] || 400;
+    return Math.round(base * Math.pow(1.5, lvl) / 10) * 10;
   },
   upBuy: function (key) {
     if ((this.data.up[key] || 0) >= this.upMax) return false;
@@ -107,31 +124,19 @@ var Save = {
   },
 
   mult: function () {
-    var u = this.data.up, p = this.data.prestige;
+    var u = this.data.up, p = Nakal.tier(), N = CFG.nakal;
     return {
-      dmg: 1 + 0.08 * u.dmg,
-      hp: 1 + 0.10 * u.hp,
-      spd: 1 + 0.03 * u.spd,
-      xp: 1 + 0.08 * u.xp,
-      loot: (1 + 0.1 * u.loot) * (1 + p * CFG.prestige.coinMult),
-      cd: 1 - 0.05 * u.cd,
-      radius: 1 + 0.07 * (u.radius || 0),
-      tech: 1 + 0.08 * (u.tech || 0),
-      enemyHp: 1 + p * CFG.prestige.enemyHp,
-      startLevel: 1 + p * CFG.prestige.startLevel
+      dmg: 1 + 0.05 * u.dmg,
+      hp: 1 + 0.06 * u.hp,
+      spd: 1 + 0.018 * u.spd,
+      xp: 1 + 0.05 * u.xp,
+      loot: (1 + 0.06 * u.loot) * (1 + p * N.coin),
+      cd: 1 - 0.03 * u.cd,
+      radius: 1 + 0.04 * (u.radius || 0),
+      tech: 1 + 0.05 * (u.tech || 0),
+      enemyHp: 1 + p * N.hp,
+      startLevel: 1 + p * N.startLevel
     };
-  },
-
-  prestigeReady: function () {
-    return this.upTotal() >= CFG.prestige.reqUpgrades && Bosses.defeated() >= CFG.prestige.reqBosses;
-  },
-  doPrestige: function () {
-    if (!this.prestigeReady()) return false;
-    this.data.prestige++;
-    this.data.coins = 0;
-    this.data.up = { dmg: 0, hp: 0, spd: 0, xp: 0, loot: 0, cd: 0, radius: 0, tech: 0 };
-    this.flush(true);
-    return true;
   },
 
   finishRun: function (res) {

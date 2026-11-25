@@ -466,7 +466,10 @@ var PF = {
     var self = this, rewarded = false, shown = false;
     this._adStart(!!this.cg);
     var raw = function () {
-      if (shown || rewarded) self.lastFullscreen = self.now();
+      if (shown || rewarded) {
+        var quiet = self.now() - (self.fsGap || CFG.ads.fullscreenGap) + CFG.ads.rewardQuiet;
+        self.lastFullscreen = Math.max(self.lastFullscreen, quiet);
+      }
       self._adEnd();
       if (rewarded) onReward(); else onFail(shown ? 'closed' : 'none');
     };

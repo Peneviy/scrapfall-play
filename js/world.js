@@ -105,6 +105,20 @@ var World = {
     return false;
   },
 
+  freeAt: function (x, y, pad) {
+    var b = this.block, cx0 = Math.floor(x / b), cy0 = Math.floor(y / b);
+    for (var cx = cx0 - 1; cx <= cx0 + 1; cx++) {
+      for (var cy = cy0 - 1; cy <= cy0 + 1; cy++) {
+        var ws = this.chunk(cx, cy).walls;
+        for (var i = 0; i < ws.length; i++) {
+          var w = ws[i];
+          if (x > w.x - pad && x < w.x + w.w + pad && y > w.y - pad && y < w.y + w.h + pad) return false;
+        }
+      }
+    }
+    return true;
+  },
+
   blockingWall: function (o, pad) {
     pad = pad || 6;
     for (var i = 0; i < this.near.length; i++) {
@@ -155,7 +169,7 @@ var World = {
     FX.burst(c.x, c.y, 14, '#c9a06a', 200, 0.5, 3);
     FX.ring(c.x, c.y, 6, 60, '#ffd27d', 0.3, 2);
     Snd.play('crateBreak');
-    this.drop(c.x, c.y, c.loot);
+    this.drop(c.x, c.y, c.loot, true);
   },
 
   touchCrates: function (p) {
@@ -211,7 +225,7 @@ var World = {
     }
   },
 
-  drop: function (x, y, t) {
+  drop: function (x, y, t, crate) {
     var roll = t || U.weighted([
       { w: 4, t: 'scrap' },
       { w: 3, t: 'heal' },
@@ -219,7 +233,7 @@ var World = {
       { w: 2, t: 'haste' },
       { w: 1, t: 'shield' }
     ]).t;
-    Game.drops.push({ x: x, y: y, r: 13, t: this.freshBuff(roll), life: 25, bob: Math.random() * 6.28 });
+    Game.drops.push({ x: x, y: y, r: 13, t: this.freshBuff(roll), life: 25, bob: Math.random() * 6.28, crate: !!crate });
   },
 
   freshBuff: function (t) {

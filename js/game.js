@@ -3,11 +3,12 @@ var Game = {
   w: 0, h: 0, dpr: 1, scale: 1,
   running: false, paused: false, over: false,
   time: 0, spawnT: 0, nextBoss: 0,
-  kills: 0, score: 0, runCoins: 0, pendingLevels: 0, bossKills: 0,
+  kills: 0, score: 0, runCoins: 0, pendingLevels: 0, pendingEvo: 0, bossKills: 0,
   scoreParts: { kills: 0, levels: 0, bosses: 0, time: 0 },
   rerollsLeft: 0, reviveLeft: 0, adLevelCounter: 0,
   enemies: [], bullets: [], ebullets: [], gems: [], heals: [], turrets: [], clouds: [], drops: [],
   mines: [], waves: [],
+  rails: [], bomblets: [],
   grid: null, player: null,
   cam: { x: 0, y: 0 },
   lastTs: 0, acc: 0,
@@ -60,16 +61,24 @@ var Game = {
 
   start: function () {
     var d = Save.data;
+    Nakal.begin();
+    this.nakalUp = 0;
     this.time = 0; this.spawnT = 0.5; this.nextBoss = CFG.boss.first;
-    this.kills = 0; this.score = 0; this.runCoins = 0; this.pendingLevels = 0; this.bossKills = 0;
+    this.kills = 0; this.score = 0; this.runCoins = 0; this.pendingLevels = 0; this.pendingEvo = 0; this.bossKills = 0;
     this.scoreParts = { kills: 0, levels: 0, bosses: 0, time: 0 };
-    this.rerollsLeft = CFG.ads.rerollPerRun;
+    this.rerollsLeft = Nakal.run >= 7 ? 0 : CFG.ads.rerollPerRun;
     this.reviveLeft = CFG.ads.revivePerRun;
     this.adLevelCounter = 0;
     this.bossIndex = 0;
+    Finale.start();
     this.enemies.length = 0; this.bullets.length = 0; this.ebullets.length = 0;
     this.gems.length = 0; this.heals.length = 0; this.turrets.length = 0; this.clouds.length = 0;
     this.drops.length = 0; this.mines.length = 0; this.waves.length = 0;
+    this.rails.length = 0; this.bomblets.length = 0;
+    Trophy.reset();
+    Spells.reset();
+    Bosses.clear();
+    Enemies.clear();
     World.reset();
     FX.reset();
 
@@ -114,6 +123,7 @@ var Game = {
     this.player.alive = true;
     this.player.hp = this.player.st.maxHp;
     this.player.inv = 3;
+    this.player.fireT = 0;
     this.over = false;
     var blast = 420;
     for (var i = 0; i < this.enemies.length; i++) {
@@ -127,7 +137,7 @@ var Game = {
   },
 
   finalScore: function () {
-    return Math.floor(this.score + this.time * CFG.score.perSec);
+    return Math.floor((this.score + this.time * CFG.score.perSec) * Nakal.scoreK());
   },
 
   settle: function () {
@@ -136,10 +146,12 @@ var Game = {
     var bonus = Math.floor(this.time * CFG.coins.timeBonus + this.player.level * CFG.coins.lvlBonus);
     bonus = Math.floor(bonus * Save.mult().loot * this.player.char.loot);
     this.payout = this.runCoins + bonus;
+    if (this.won) this.payout = Math.floor(this.payout * CFG.finale.winLoot);
     this.scoreParts.time = Math.floor(this.time * CFG.score.perSec);
     this.res = {
       score: this.finalScore(), time: this.time,
-      level: this.player.level, kills: this.kills
+      level: this.player.level, kills: this.kills,
+      won: !!this.won, bosses: this.bossKills, nakal: Nakal.tier()
     };
     return this.res;
   },
@@ -169,25 +181,11 @@ var Game = {
     PF.banner(true);
   },
 
-  bossCount: function () {
-    var n = 0;
-    for (var i = 0; i < this.enemies.length; i++) if (this.enemies[i].boss && !this.enemies[i].dead) n++;
-    return n;
-  },
-
-  waitingBoss: function () {
-    for (var i = 0; i < this.enemies.length; i++) {
-      var e = this.enemies[i];
-      if (e.boss && !e.dead && e.bd && e.state !== 'fight') return e;
-    }
-    return null;
-  },
-
   activeBoss: function () {
     var best = null, bd = 1e9;
     for (var i = 0; i < this.enemies.length; i++) {
       var e = this.enemies[i];
-      if (!e.boss || e.dead || e.state !== 'fight') continue;
+      if (!e.boss || e.dead || (e.state !== 'fight' && e.state !== 'rise')) continue;
       var d = U.dist2(this.player.x, this.player.y, e.x, e.y);
       if (d < bd) { bd = d; best = e; }
     }
@@ -199,9 +197,13 @@ var Game = {
     var list = this.enemies;
     for (var i = 0; i < list.length; i++) {
       var e = list[i];
-      if (e.dead) continue;
+      if (e.dead || e.zz || e.inv) continue;
       if (skip && skip.indexOf(e) >= 0) continue;
       var d = U.dist2(x, y, e.x, e.y);
+      if (e.pylon) d *= 0.36;
+      else if (e.openT > 0 && e.openK > 1) d *= 0.25;
+      else if (e.def.medic) d *= 0.49;
+      if (d < bd && e.lk && e.lk.st === 2 && e.type === 'shellback' && Enemies.ropeBlock(x, y, e.x, e.y)) continue;
       if (d < bd) { bd = d; best = e; }
     }
     return best;
@@ -218,8 +220,8 @@ var Game = {
     this.gems.push({ x: x, y: y, vx: U.rand(-40, 40), vy: U.rand(-40, 40), v: value, r: 5 + Math.min(4, value), age: 0 });
   },
 
-  spawnCloud: function (x, y, r, dmg) {
-    this.clouds.push({ x: x, y: y, r: r, dmg: dmg, life: 7, tick: 0 });
+  spawnCloud: function (x, y, r, dmg, life, evo, gen) {
+    this.clouds.push({ x: x, y: y, r: r, dmg: dmg, life: life || 7, tick: 0, evo: !!evo, gen: gen || 0 });
   },
 
   updateClouds: function (dt) {
@@ -234,7 +236,7 @@ var Game = {
       this.grid.query(c.x, c.y, c.r, near);
       for (var j = 0; j < near.length; j++) {
         var e = near[j];
-        if (e.dead) continue;
+        if (e.dead || e.zz) continue;
         if (U.dist2(c.x, c.y, e.x, e.y) < c.r * c.r) {
           e.slowT = 0.6;
           Enemies.damage(e, c.dmg, false, c.x, c.y, 0);
@@ -247,14 +249,17 @@ var Game = {
     this.heals.push({ x: x, y: y, r: 9, life: 20 });
   },
 
+  shooter: null,
   spawnEnemyBullet: function (x, y, ang, speed, dmg, color, opts) {
     opts = opts || {};
+    var sh = this.shooter, bd = sh && sh.boss ? sh.bd : null;
     this.ebullets.push({
       x: x, y: y, vx: Math.cos(ang) * speed, vy: Math.sin(ang) * speed,
-      r: opts.r || 6, dmg: dmg, life: opts.life || 4.5, c: color || CFG.col.spit,
+      r: opts.r || 6, dmg: dmg, life: opts.life || 4.5, c: bd ? bd.trim : (color || CFG.col.spit),
       pw: !!opts.pw,
       spear: !!opts.spear,
-      ang: ang
+      ang: ang,
+      bc: bd ? bd.trim : null, bk: bd ? (bd.id === 'phantom' ? 1 : bd.id === 'queen' ? 2 : 0) : 0
     });
   },
 
@@ -266,8 +271,12 @@ var Game = {
     Player.update(this.player, dt);
     Enemies.director(dt);
     Enemies.update(dt);
+    Bosses.update(dt);
     Player.updateBullets(dt);
     Player.updateTurrets(dt);
+    Player.updateEvo(dt);
+    Spells.update(this.player, dt);
+    Trophy.update(this.player, dt);
     this.updateEnemyBullets(dt);
     this.updateClouds(dt);
     this.updateDrops(dt);
@@ -281,7 +290,13 @@ var Game = {
     this.cam.x = U.lerp(this.cam.x, this.player.x, U.clamp(CFG.view.camLerp * dt, 0, 1));
     this.cam.y = U.lerp(this.cam.y, this.player.y, U.clamp(CFG.view.camLerp * dt, 0, 1));
 
-    if (this.pendingLevels > 0 && !this.over) {
+    if (this.pendingWin && !this.over) {
+      this.pendingWin = false;
+      UI.showWin();
+    } else if (this.pendingEvo > 0 && !this.over) {
+      this.pendingEvo--;
+      UI.showEvo();
+    } else if (this.pendingLevels > 0 && !this.over) {
       this.pendingLevels--;
       UI.showLevelUp();
     }
@@ -340,7 +355,7 @@ var Game = {
       if (p.st.grab > 0) this.pull(h, p, dt);
       if (U.dist2(h.x, h.y, p.x, p.y) < (p.r + h.r + 6) * (p.r + h.r + 6)) {
         p.heal(p.st.maxHp * 0.07);
-        FX.text(p.x, p.y - 20, '+' + Math.round(p.st.maxHp * 0.07), CFG.col.heal, 15);
+        FX.text(p.x, p.y - 20, '+' + Math.round(p.st.maxHp * 0.07 * p.healK), CFG.col.heal, 15);
         this.heals.splice(i, 1);
         Snd.play('coin');
       }
@@ -354,7 +369,8 @@ var Game = {
       d.life -= dt;
       d.bob += dt * 3;
       if (d.life <= 0) { this.drops.splice(i, 1); continue; }
-      if (p.st.grab > 0 && !(d.t === 'heal' && p.hp >= p.st.maxHp)) this.pull(d, p, dt);
+      var crateHeal = d.t === 'heal' && d.crate;
+      if ((p.st.grab > 0 || crateHeal) && !(d.t === 'heal' && p.hp >= p.st.maxHp)) this.pull(d, p, dt, crateHeal ? 230 : 0);
       var rr = p.r + d.r + 8;
       if (U.dist2(d.x, d.y, p.x, p.y) > rr * rr) continue;
       if (d.t === 'heal' && p.hp >= p.st.maxHp) continue;
@@ -363,8 +379,8 @@ var Game = {
     }
   },
 
-  pull: function (o, p, dt) {
-    var R = Math.max(70 + 80 * p.st.grab, p.st.pickup), d = U.dist(o.x, o.y, p.x, p.y);
+  pull: function (o, p, dt, min) {
+    var R = Math.max(p.st.grab > 0 ? 70 + 80 * p.st.grab : 0, p.st.pickup, min || 0), d = U.dist(o.x, o.y, p.x, p.y);
     if (d >= R || d < 1) return;
     var sp = 420 * (1 - d / R) + 260, a = U.angleTo(o.x, o.y, p.x, p.y);
     o.x += Math.cos(a) * sp * dt;
@@ -380,7 +396,7 @@ var Game = {
       Snd.play('coin');
     } else if (d.t === 'heal') {
       p.heal(p.st.maxHp * 0.25);
-      FX.text(p.x, p.y - 26, '+' + Math.round(p.st.maxHp * 0.25), CFG.col.heal, 15);
+      FX.text(p.x, p.y - 26, '+' + Math.round(p.st.maxHp * 0.25 * p.healK), CFG.col.heal, 15);
       Snd.play('coin');
     } else {
       if (d.t === 'shield') p.buffs.shield = Math.min(6, p.buffs.shield + 3);
@@ -409,21 +425,34 @@ var Game = {
   },
 
   spawnMine: function (x, y, dmg, delay) {
-    this.mines.push({ x: x, y: y, t: delay || 2.4, dmg: dmg, r: 110 });
+    if (this.mines.length >= 14) this.mines.shift();
+    this.mines.push({ x: x, y: y, t: delay || 2.4, dmg: dmg, r: 110, age: 0 });
   },
 
   updateMines: function (dt) {
-    var p = this.player;
-    for (var i = this.mines.length - 1; i >= 0; i--) {
-      var m = this.mines[i];
+    var p = this.player, M = this.mines, B = this.bullets, ch = Bosses.K.sapper.chain;
+    for (var i = M.length - 1; i >= 0; i--) {
+      var m = M[i];
       m.t -= dt;
+      m.age += dt;
+      if (m.t > 0 && m.age > 0.4) {
+        for (var b = 0; b < B.length; b++) {
+          var dx = B[b].x - m.x, dy = B[b].y - m.y;
+          if (dx * dx + dy * dy < 400) { m.t = 0; B[b].dead = true; break; }
+        }
+      }
       if (m.t > 0) continue;
       FX.ring(m.x, m.y, 10, m.r, CFG.col.enemyShot, 0.35, 4);
       FX.blast(m.x, m.y, m.r * 0.8, '#ff4d6d');
       FX.burst(m.x, m.y, 12, CFG.col.enemyShot, 220, 0.45, 3);
       Snd.play('boom');
       if (U.dist2(m.x, m.y, p.x, p.y) < m.r * m.r) p.hurt(m.dmg);
-      this.mines.splice(i, 1);
+      M.splice(i, 1);
+      for (var j = 0; j < M.length; j++) {
+        if (M[j].t > ch && U.dist2(M[j].x, M[j].y, m.x, m.y) < m.r * m.r) M[j].t = ch;
+      }
+      Bosses.mineBlast(m);
+      i = Math.min(i, M.length);
     }
   },
 
@@ -509,6 +538,9 @@ var Game = {
     Player.drawBullets(ctx);
     this.drawEnemyBullets(ctx);
     this.drawMines(ctx);
+    Bosses.drawMarks(ctx);
+    Trophy.draw(ctx);
+    Spells.draw(ctx);
     FX.draw(ctx);
     FX.drawText(ctx);
 
@@ -566,6 +598,16 @@ var Game = {
       if (mx < x0 || mx > x0 + size || my < y0 || my > y0 + size) continue;
       if (o.boss) {
         ctx.fillStyle = o.bd ? o.bd.trim : '#f0a24a';
+        if (o.bd && (o.state === 'sleep' || o.state === 'return')) {
+          var ga = ctx.globalAlpha;
+          ctx.globalAlpha = 0.6 + 0.35 * Math.sin(this.time * 4 + o.phase);
+          ctx.strokeStyle = ctx.fillStyle;
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.arc(cx + (o.anchorX - p.x) * k, cy + (o.anchorY - p.y) * k, Math.max(5, CFG.boss.lair.r * k), 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.globalAlpha = ga;
+        }
         ctx.fillRect(mx - 3, my - 3, 6, 6);
       } else if (o.elite || o.wave) {
         ctx.fillStyle = '#e45cff';
@@ -606,12 +648,23 @@ var Game = {
   },
 
   drawBossMarker: function (ctx) {
-    var boss = null;
-    for (var i = 0; i < this.enemies.length; i++) if (this.enemies[i].boss) { boss = this.enemies[i]; break; }
-    if (!boss) return;
+    var list = this.enemies, s = this._bm || (this._bm = {});
+    for (var i = 0; i < list.length; i++) {
+      var b = list[i];
+      if (b.boss && !b.dead) this.bossArrow(ctx, b, s);
+    }
+    var LK = Enemies.locks, ls = this._lm || (this._lm = { x: 0, y: 0, r: 70, bd: { trim: '' }, state: 'lair', phase: 0 });
+    for (i = 0; i < LK.length; i++) {
+      if (LK[i].st !== 2 || LK[i].hx.length < Enemies.K.lock.big) continue;
+      ls.x = LK[i].x; ls.y = LK[i].y; ls.bd.trim = Enemies.heatHex(LK[i].heat);
+      this.bossArrow(ctx, ls, s);
+    }
+  },
+
+  bossArrow: function (ctx, boss, s) {
     var sx, sy;
     if (View3D.on) {
-      var s = View3D.toScreen(boss.x, boss.y, boss.r);
+      View3D.toScreen(boss.x, boss.y, boss.r, s);
       sx = s.x; sy = s.y;
     } else {
       sx = (boss.x - this.cam.x) * this.scale + this.w / 2;
@@ -626,18 +679,25 @@ var Game = {
     var ry = Math.min(cy - pad, Math.abs(Math.sin(a)) > 0.001 ? Math.abs((cy - pad) / Math.sin(a)) : 1e9);
     var r = Math.min(rx, ry);
     var mx = cx + Math.cos(a) * r, my = cy + Math.sin(a) * r;
+    var lair = boss.bd && boss.state !== 'fight' && boss.state !== 'rise';
 
     ctx.save();
     ctx.translate(mx, my);
     ctx.rotate(a);
-    ctx.fillStyle = '#f0a24a';
-    ctx.globalAlpha = 0.85;
+    ctx.fillStyle = lair ? boss.bd.trim : '#f0a24a';
+    ctx.globalAlpha = lair ? 0.6 + 0.35 * Math.sin(this.time * 4 + boss.phase) : 0.85;
     ctx.beginPath();
     ctx.moveTo(14, 0);
     ctx.lineTo(-10, -9);
     ctx.lineTo(-10, 9);
     ctx.closePath();
     ctx.fill();
+    if (lair) {
+      ctx.globalAlpha = 0.7;
+      ctx.strokeStyle = '#1c150f';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
     ctx.restore();
     ctx.globalAlpha = 1;
   },
@@ -741,6 +801,7 @@ var Game = {
     if (this.w < 2 || this.h < 2) return;
     var rgb = View3D.on ? View3D.vig.rgb : '0,0,0';
     var a = View3D.on ? Math.round(View3D.vig.k * 20) / 20 : 0.55;
+    if (Finale.red > 0.05) { rgb = '120,16,0'; a = Math.max(a, Math.round((0.3 + 0.35 * Finale.red) * 10) / 10); }
     var key = this.w + 'x' + this.h + ':' + rgb + ':' + a;
     if (!this.vignetteCache || this.vignetteCache.key !== key) {
       var c = document.createElement('canvas');
@@ -788,7 +849,7 @@ var Game = {
     var steps = 0;
     if (live) {
       this.acc += dt;
-      while (this.acc >= this.fixed && steps < 5) {
+      while (this.acc >= this.fixed && steps < 5 && !this.paused && !this.over) {
         this.update(this.fixed);
         this.acc -= this.fixed;
         steps++;

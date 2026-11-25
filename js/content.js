@@ -64,18 +64,21 @@ var Content = {
     { id: 'rust', cost: 0, ru: { n: 'Ржавчина', d: 'Заводской окрас.' }, en: { n: 'Rust', d: 'Factory paint.' }, body: '#c9713a', trim: '#ffd27d', trail: '#f0a24a' },
     { id: 'reef', cost: 800, ru: { n: 'Риф', d: 'Бирюза и соль.' }, en: { n: 'Reef', d: 'Teal and salt.' }, body: '#3fa38f', trim: '#a9f2dd', trail: '#6fe3c3' },
     { id: 'void', cost: 2200, ru: { n: 'Пустота', d: 'Фиолетовый, как элитные машины.' }, en: { n: 'Void', d: 'Purple, like the elites.' }, body: '#8b4bd6', trim: '#e0b3ff', trail: '#a24bd6' },
-    { id: 'ash', cost: 4500, ru: { n: 'Пепел', d: 'Черный с золотой окантовкой.' }, en: { n: 'Ash', d: 'Black with gold trim.' }, body: '#2b3138', trim: '#ffd27d', trail: '#ffe6a8' }
+    { id: 'ash', cost: 4500, ru: { n: 'Пепел', d: 'Черный с золотой окантовкой.' }, en: { n: 'Ash', d: 'Black with gold trim.' }, body: '#2b3138', trim: '#ffd27d', trail: '#ffe6a8' },
+    { id: 'chalk', cost: 10000, ru: { n: 'Мел', d: 'Белый, как кость пустыни.' }, en: { n: 'Chalk', d: 'White as desert bone.' }, body: '#e9e5dc', trim: '#7fa6c8', trail: '#ffffff' },
+    { id: 'flamingo', cost: 25000, ru: { n: 'Фламинго', d: 'Розовый, чтобы видели издалека.' }, en: { n: 'Flamingo', d: 'Pink, so they see you from afar.' }, body: '#e2629f', trim: '#ffd3e8', trail: '#ff8ac4' },
+    { id: 'ingot', cost: 50000, ru: { n: 'Слиток', d: 'Чистое золото. Отдано полсвалки.' }, en: { n: 'Ingot', d: 'Pure gold. Paid with half the scrapyard.' }, body: '#dca22a', trim: '#fff2b8', trail: '#ffd65a' }
   ],
 
   upgrades: [
-    { id: 'dmg', ru: { n: 'Бронебой', d: '+8% ко всему урону за каждый уровень' }, en: { n: 'Piercer', d: '+8% to all your damage per level' } },
-    { id: 'hp', ru: { n: 'Пластины', d: '+10% здоровья за уровень' }, en: { n: 'Plating', d: '+10% health per level' } },
-    { id: 'spd', ru: { n: 'Привод', d: '+3% скорости хода за уровень' }, en: { n: 'Drive', d: '+3% move speed per level' } },
-    { id: 'xp', ru: { n: 'Сканер', d: '+8% опыта: в рейде он копится быстрее' }, en: { n: 'Scanner', d: '+8% XP: it builds up faster in a raid' } },
-    { id: 'loot', ru: { n: 'Магнит', d: '+10% лома за рейд' }, en: { n: 'Magnet', d: '+10% scrap per raid' } },
-    { id: 'cd', ru: { n: 'Затвор', d: '-5% времени между выстрелами' }, en: { n: 'Bolt', d: '-5% time between shots' } },
-    { id: 'radius', ru: { n: 'Резонатор', d: '+7% радиуса взрывов, колец и аур' }, en: { n: 'Resonator', d: '+7% radius of blasts, rings and auras' } },
-    { id: 'tech', ru: { n: 'Балласт', d: '+8% урона турелей, спутников, разряда и ленты' }, en: { n: 'Ballast', d: '+8% damage from turrets, shards, arcs and tether' } }
+    { id: 'dmg', ru: { n: 'Бронебой', d: '+5% ко всему урону за каждый уровень' }, en: { n: 'Piercer', d: '+5% to all your damage per level' } },
+    { id: 'hp', ru: { n: 'Пластины', d: '+6% здоровья за уровень' }, en: { n: 'Plating', d: '+6% health per level' } },
+    { id: 'spd', ru: { n: 'Привод', d: '+1.8% скорости хода за уровень' }, en: { n: 'Drive', d: '+1.8% move speed per level' } },
+    { id: 'xp', ru: { n: 'Сканер', d: '+5% опыта: в рейде он копится быстрее' }, en: { n: 'Scanner', d: '+5% XP: it builds up faster in a raid' } },
+    { id: 'loot', ru: { n: 'Магнит', d: '+6% лома за рейд' }, en: { n: 'Magnet', d: '+6% scrap per raid' } },
+    { id: 'cd', ru: { n: 'Затвор', d: '-3% времени между выстрелами' }, en: { n: 'Bolt', d: '-3% time between shots' } },
+    { id: 'radius', ru: { n: 'Резонатор', d: '+4% радиуса взрывов, колец и аур' }, en: { n: 'Resonator', d: '+4% radius of blasts, rings and auras' } },
+    { id: 'tech', ru: { n: 'Балласт', d: '+5% урона турелей, спутников, разряда и ленты' }, en: { n: 'Ballast', d: '+5% damage from turrets, shards, arcs and tether' } }
   ],
 
   char: function (id) {

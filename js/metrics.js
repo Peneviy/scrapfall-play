@@ -58,7 +58,8 @@ var Metrics = {
     if (!this.url || !res) return;
     this.push({
       t: 'r', d: Math.round(res.time || 0), k: res.kills | 0, l: res.level | 0,
-      p: (Save.data && Save.data.prestige) | 0, s: res.score | 0
+      p: (Save.data && Save.data.prestige) | 0, s: res.score | 0,
+      n: res.nakal | 0, w: res.won ? 1 : 0
     });
   },
 

@@ -221,6 +221,85 @@ var Models = {
           add(S(0.17, 5, 4), trim, Math.cos(ha) * 0.6, 0.42, Math.sin(ha) * 0.6, 0, 0, 0, 1, 1, 1, 'glow');
         }
         add(S(0.24, 6, 4), trim, 0, 1.18, 0, 0, 0, 0, 1, 1, 1, 'glow');
+      } else if (type === 'pylon') {
+        add(C(0.9, 1.05, 0.3, 6), dark, 0, 0.15, 0);
+        for (var pl = 0; pl < 3; pl++) {
+          var pa = pl / 3 * Math.PI * 2;
+          add(B(0.22, 1.3, 0.22), metal, Math.cos(pa) * 0.45, 0.8, Math.sin(pa) * 0.45, Math.sin(pa) * 0.35, 0, -Math.cos(pa) * 0.35);
+        }
+        add(C(0.2, 0.26, 2.6, 6), body, 0, 1.6, 0);
+        add(T(0.42, 0.07, 4, 10), trim, 0, 2.2, 0, HALF, 0, 0, 1, 1, 1, 'glow');
+        add(O(0.42), trim, 0, 3.05, 0, 0, 0, 0, 1, 1.4, 1, 'glow');
+      } else if (type === 'comb') {
+        add(C(0.95, 1.05, 1.1, 6), body, 0, 0.55, 0);
+        add(C(1.0, 1.0, 0.12, 6), dark, 0, 1.12, 0);
+        for (var cb = 0; cb < 6; cb++) {
+          var cba = cb / 6 * Math.PI * 2;
+          add(C(0.2, 0.2, 0.14, 6), trim, Math.cos(cba) * 0.55, 1.2, Math.sin(cba) * 0.55, 0, 0, 0, 1, 1, 1, 'glow');
+        }
+        add(C(0.24, 0.24, 0.16, 6), trim, 0, 1.22, 0, 0, 0, 0, 1, 1, 1, 'glow');
+      } else if (type === 'larva') {
+        add(S(0.55, 6, 4), body, 0.5, 0.5, 0, 0, 0, 0, 1, 0.8, 0.9);
+        add(S(0.6, 6, 4), body, -0.1, 0.55, 0, 0, 0, 0, 1, 0.85, 1);
+        add(S(0.62, 6, 4), trim, -0.75, 0.62, 0, 0, 0, 0, 1, 0.9, 1, 'glow');
+        add(B(0.1, 0.12, 0.5), dark, 0.95, 0.55, 0);
+      } else if (type === 'beetle') {
+        add(S(0.85, 8, 5), body, -0.1, 0.5, 0, 0, 0, 0, 1.1, 0.6, 0.9);
+        add(B(1.6, 0.05, 0.06), dark, -0.15, 1.0, 0);
+        add(S(0.36, 6, 4), dark, 0.78, 0.42, 0);
+        add(B(0.4, 0.08, 0.08), dark, 1.1, 0.35, 0.16, 0, 0.5, 0);
+        add(B(0.4, 0.08, 0.08), dark, 1.1, 0.35, -0.16, 0, -0.5, 0);
+        for (var bl = 0; bl < 6; bl++) {
+          var bx = (bl % 3 - 1) * 0.45, bz = bl < 3 ? 0.7 : -0.7;
+          add(B(0.09, 0.09, 0.6), dark, bx, 0.2, bz, bz * 0.5, 0, 0);
+        }
+        add(S(0.3, 6, 4), trim, -0.3, 1.0, 0, 0, 0, 0, 1, 0.7, 1, 'glow');
+      } else if (type === 'link') {
+        add(C(0.5, 0.62, 0.22, 7), dark, 0, 0.11, 0);
+        add(T(0.62, 0.2, 6, 12), body, 0, 0.98, 0, 0, HALF, 0);
+        add(B(0.3, 0.3, 0.3), metal, 0, 1.66, 0);
+        add(O(0.34), trim, 0, 0.98, 0, 0, 0, 0, 1, 1.3, 1, 'glow');
+      } else if (type === 'roller') {
+        add(C(0.75, 0.75, 1.6, 10), body, 0, 0, 0, HALF, 0, 0);
+        for (var rs = 0; rs < 8; rs++) {
+          var ra = rs / 8 * Math.PI * 2;
+          add(B(0.2, 0.2, 1.5), metal, Math.cos(ra) * 0.76, Math.sin(ra) * 0.76, 0, 0, 0, ra);
+        }
+        add(C(0.88, 0.88, 0.1, 8), dark, 0, 0, 0.84, HALF, 0, 0);
+        add(C(0.88, 0.88, 0.1, 8), dark, 0, 0, -0.84, HALF, 0, 0);
+        add(C(0.26, 0.26, 0.1, 6), trim, 0, 0, 0.9, HALF, 0, 0, 1, 1, 1, 'glow');
+        add(C(0.26, 0.26, 0.1, 6), trim, 0, 0, -0.9, HALF, 0, 0, 1, 1, 1, 'glow');
+        add(T(0.8, 0.05, 4, 14), trim, 0, 0, 0, 0, 0, 0, 1, 1, 1, 'glow');
+      } else if (type === 'medic') {
+        add(C(0.55, 0.65, 1.1, 7), body, -0.1, 0.85, 0);
+        add(C(0.6, 0.6, 0.1, 7), top, -0.1, 1.42, 0);
+        add(B(0.9, 0.12, 0.26), trim, -0.15, 1.52, 0, 0, 0, 0, 1, 1, 1, 'glow');
+        add(B(0.26, 0.12, 0.9), trim, -0.15, 1.52, 0, 0, 0, 0, 1, 1, 1, 'glow');
+        add(C(0.08, 0.1, 0.7, 5), metal, 0.45, 1.25, 0, 0, 0, -1.0);
+        add(S(0.16, 5, 4), trim, 0.8, 1.48, 0, 0, 0, 0, 1, 1, 1, 'glow');
+        add(B(0.16, 0.55, 0.16), dark, 0.1, 0.27, 0.32);
+        add(B(0.16, 0.55, 0.16), dark, 0.1, 0.27, -0.32);
+        add(B(0.16, 0.55, 0.16), dark, -0.35, 0.27, 0);
+      } else if (type === 'hooker') {
+        add(B(1.2, 0.9, 1.1), body, -0.15, 0.85, 0, 0, 0, 0.15);
+        add(C(0.42, 0.42, 0.9, 8), dark, -0.55, 1.45, 0, HALF, 0, 0);
+        add(C(0.46, 0.46, 0.12, 8), trim, -0.55, 1.45, 0.48, HALF, 0, 0, 1, 1, 1, 'glow');
+        add(B(1.1, 0.18, 0.18), metal, 0.6, 1.2, 0.45, 0, 0, 0.2);
+        add(T(0.26, 0.07, 4, 8), trim, 1.18, 1.0, 0.45, 0, 0, 0, 1, 1, 1, 'glow');
+        add(B(0.3, 0.7, 0.3), dark, 0.1, 0.32, 0.38);
+        add(B(0.3, 0.7, 0.3), dark, 0.1, 0.32, -0.38);
+        add(B(0.1, 0.12, 0.5), trim, 0.48, 1.12, -0.1, 0, 0, 0, 1, 1, 1, 'glow');
+      } else if (type === 'muter') {
+        add(B(1.3, 0.8, 1.3), body, 0, 0.6, 0);
+        add(B(1.4, 0.1, 1.4), top, 0, 1.03, 0);
+        add(C(0.75, 0.32, 0.8, 8), metal, 0, 1.5, 0);
+        add(T(0.7, 0.07, 4, 12), trim, 0, 1.9, 0, HALF, 0, 0, 1, 1, 1, 'glow');
+        add(S(0.2, 5, 4), trim, 0, 1.55, 0, 0, 0, 0, 1, 1, 1, 'glow');
+        for (var mu = 0; mu < 4; mu++) {
+          var mua = mu * HALF + HALF / 2;
+          add(B(0.3, 0.4, 0.3), dark, Math.cos(mua) * 0.6, 0.2, Math.sin(mua) * 0.6);
+        }
+        add(B(0.1, 0.12, 0.55), trim, 0.68, 0.7, 0, 0, 0, 0, 1, 1, 1, 'glow');
       } else {
         add(B(1.4, 1.2, 1.4), body, 0, 0.9, 0);
         add(B(0.12, 0.2, 0.7), trim, 0.72, 1.1, 0, 0, 0, 0, 1, 1, 1, 'glow');
@@ -428,6 +507,25 @@ var Models = {
         add(K(0.3, 0.9, 4), body, -1.1, 1.3, 0, 0, 0, HALF);
         add(B(0.1, 0.14, 0.8), trim, 0.95, 1.35, 0, 0, 0, 0, 1, 1, 1, g);
         add(T(0.6, 0.05, 4, 12), trim, -0.2, 1.3, 0, HALF, 0, 0, 1, 1, 1, g);
+      } else if (bd.id === 'queen') {
+        add(C(0.9, 1.35, 1.1, 8), body, 0, 0.55, 0);
+        for (var q = 0; q < 8; q++) {
+          var qa = q / 8 * Math.PI * 2 + 0.2;
+          add(B(0.55, 0.9, 0.08), q % 2 ? dark : metal, Math.cos(qa) * 1.2, 0.5, Math.sin(qa) * 1.2, 0, -qa + HALF, 0.28);
+        }
+        add(C(0.7, 0.9, 0.7, 8), dark, 0, 1.45, 0);
+        add(B(1.0, 0.7, 0.9), body, 0.1, 2.05, 0);
+        add(C(0.62, 0.55, 0.22, 8), '#c9a24a', 0, 2.55, 0);
+        for (var qc = 0; qc < 7; qc++) {
+          var ca = qc / 7 * Math.PI * 2;
+          add(K(0.1, qc % 2 ? 0.45 : 0.7, 4), trim, Math.cos(ca) * 0.55, 2.9 + (qc % 2 ? 0 : 0.12), Math.sin(ca) * 0.55, 0, 0, 0, 1, 1, 1, g);
+        }
+        add(S(0.16, 6, 4), trim, 0.62, 2.15, 0, 0, 0, 0, 1, 1, 1, g);
+        for (var qs = -1; qs <= 1; qs += 2) {
+          add(B(1.2, 0.22, 0.22), metal, 0.55, 1.75, qs * 0.75, 0, qs * 0.35, -0.25);
+          add(K(0.18, 0.7, 4), steel, 1.2, 1.55, qs * 0.95, 0, 0, -HALF - 0.3);
+          add(B(0.12, 0.12, 0.6), trim, 0.95, 1.65, qs * 0.85, 0, 0, 0, 1, 1, 1, g);
+        }
       } else {
         add(B(1.6, 1.2, 1.6), body, 0, 1.0, 0);
         add(B(0.1, 0.2, 0.8), trim, 0.82, 1.2, 0, 0, 0, 0, 1, 1, 1, g);
@@ -435,7 +533,7 @@ var Models = {
     });
 
     var back = { crusher: 1.62, driller: 1.22, weaver: 1.95, frostmaw: 1.62, hive: 1.4, warden: 1.5,
-      sapper: 1.1, lancer: 1.3, titan: 2.3, phantom: 1.62 }[bd.id] || 1.6;
+      sapper: 1.1, lancer: 1.3, titan: 2.3, phantom: 1.62, queen: 2.0 }[bd.id] || 1.6;
     var menace = this.build(function (add) {
       for (var i = 0; i < 5; i++) {
         var x = -0.95 + i * 0.32;
@@ -445,7 +543,7 @@ var Models = {
       add(S(0.09, 5, 4), '#ff3b2e', 0.78, back - 0.28, 0.24, 0, 0, 0, 1, 1, 1, 'glow');
       add(S(0.09, 5, 4), '#ff3b2e', 0.78, back - 0.28, -0.24, 0, 0, 0, 1, 1, 1, 'glow');
     });
-    if (bd.id !== 'phantom' && bd.id !== 'hive') {
+    if (bd.id !== 'phantom' && bd.id !== 'hive' && bd.id !== 'queen') {
       main = { geo: THREE.mergeGeometries([main.geo, menace.geo]), glow: main.glow ? THREE.mergeGeometries([main.glow, menace.glow]) : menace.glow };
     }
 
@@ -470,6 +568,16 @@ var Models = {
         add(T(1.15, 0.05, 3, 18), trim, 0, 0, 0, HALF, 0, 0, 1, 1, 1, 'glow');
       });
       spin.at = [0, 0.4, 0];
+      spin.axis = 'y';
+    } else if (bd.id === 'queen') {
+      spin = this.build(function (add) {
+        add(T(1.55, 0.05, 3, 20), trim, 0, 0, 0, HALF, 0, 0, 1, 1, 1, 'glow');
+        for (var i = 0; i < 6; i++) {
+          var a = i / 6 * Math.PI * 2;
+          add(B(0.22, 0.16, 0.3), metal, Math.cos(a) * 1.55, 0, Math.sin(a) * 1.55, 0.4, a, 0.3);
+        }
+      });
+      spin.at = [0, 1.1, 0];
       spin.axis = 'y';
     }
     return { main: main, spin: spin };
@@ -520,6 +628,32 @@ var Models = {
         add(B(0.38, 0.1, 0.22), '#c4beb4', Math.cos(a) * 1.05, 0, -Math.sin(a) * 1.05, 0, a + 0.5, 0);
       }
       add(M.T(0.82, 0.05, 3, 20), CFG.col.tech, 0, 0.08, 0, Math.PI / 2, 0, 0, 1, 1, 1, 'glow');
+    });
+  },
+
+  drill: function () {
+    var M = this, C = M.C, K = M.K;
+    return this.build(function (add) {
+      add(K(0.9, 2.4, 8), '#aab2ba', 1.2, 0, 0, 0, 0, -Math.PI / 2);
+      add(C(1.05, 1.05, 0.42, 10), '#ffb07a', 0, 0, 0, 0, 0, -Math.PI / 2);
+      for (var i = 0; i < 3; i++) {
+        var x = 0.45 + i * 0.6, rr = 0.9 * (1 - x / 2.4) + 0.04;
+        add(M.T(rr, 0.08, 3, 12), '#3a3530', x, 0, 0, 0, Math.PI / 2, 0);
+      }
+      add(K(0.24, 0.5, 6), '#fff1c2', 2.25, 0, 0, 0, 0, -Math.PI / 2, 1, 1, 1, 'glow');
+    });
+  },
+
+  saw: function () {
+    var M = this, C = M.C, K = M.K;
+    return this.build(function (add) {
+      add(C(1, 1, 0.14, 16), '#6e6862', 0, 0, 0);
+      add(C(0.32, 0.32, 0.26, 8), '#2b2826', 0, 0, 0);
+      for (var i = 0; i < 12; i++) {
+        var a = i / 12 * Math.PI * 2;
+        add(K(0.2, 0.42, 3), '#e8e2d6', Math.cos(a) * 1.1, 0, -Math.sin(a) * 1.1, 0, a, -Math.PI / 2);
+      }
+      add(M.T(0.66, 0.07, 3, 20), '#ff9a3c', 0, 0.09, 0, Math.PI / 2, 0, 0, 1, 1, 1, 'glow');
     });
   },
 

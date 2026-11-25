@@ -386,7 +386,7 @@ var UI = {
           continue;
         }
         var lvl = p.skills[s.id], ev = p.evo[s.id] && Evo.of(s.id);
-        var mark = h ? (h[0].evo ? '<b class="ev">★</b>' : '<b class="up">▲' + (lvl + 1) + '</b>') : '<b>' + lvl + '</b>';
+        var mark = h ? (h[0].evo ? '<b class="ev">★</b>' : '<b class="cur">' + lvl + '</b><b class="up">▲' + (lvl + 1) + '</b>') : '<b>' + lvl + '</b>';
         html += '<div class="sl' + (ev ? ' evo' : '') + (lvl >= s.max ? ' max' : '') + (h ? ' hl' + (h[0].evo ? ' hlev' : '') + hc : '') +
           '"' + (cards ? ' title="' + (ev ? I18N.name(ev) : I18N.name(s)) + '"' : ' data-tip="s:' + s.id + '"') + '>' +
           (ev ? '<u class="ev-star">★</u>' : '') +
@@ -729,7 +729,7 @@ var UI = {
           '<div class="ic" style="color:' + (s.col || '#ffd27d') + '">' + s.ic + '</div>' +
           '<h3>' + I18N.name(s) + (ev ? ' <s>' + I18N.name(ev) + '</s>' : '') + '</h3>' +
           '<p>' + I18N.desc(s) + '</p>' +
-          '<div class="stack">' + (lvl ? I18N.t('stack', { n: lvl + 1, m: s.max }) : I18N.t('newSkill') + ' · ' + I18N.t(Skills.kindOf(s) === 'spell' ? 'kindSpell' : 'kindPart')) + '</div>' +
+          '<div class="stack">' + (lvl ? I18N.t('stackUp', { a: lvl, n: lvl + 1, m: s.max }) : I18N.t('newSkill') + ' · ' + I18N.t(Skills.kindOf(s) === 'spell' ? 'kindSpell' : 'kindPart')) + '</div>' +
           (s.at && lvl ? '<div class="next">' + I18N.t('willBe', { v: s.at(lvl) }) + '</div>' : '');
         div.onclick = function () { self.pickCard(s); };
         row.appendChild(div);

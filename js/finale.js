@@ -149,7 +149,7 @@ var Finale = {
     var pos = Bosses.spot(p.x, p.y, 520, 640);
     var e = Enemies.spawn('boss', pos.x, pos.y, false);
     e.bd = bd; e.rep = true;
-    e.r = bd.r * (View3D.on ? 1.2 : 1);
+    e.r = bd.r * 1.2;
     e.speed = bd.speed;
     e.dmg *= bd.dmgMul;
     e.hp = e.maxHp = e.maxHp * bd.hpMul * N.repHp;
@@ -178,7 +178,7 @@ var Finale = {
     var pos = Bosses.spot(p.x, p.y, Q.dist, Q.dist + 120);
     var e = Enemies.spawn('boss', pos.x, pos.y, false);
     e.bd = bd;
-    e.r = bd.r * (View3D.on ? 1.2 : 1);
+    e.r = bd.r * 1.2;
     e.speed = bd.speed;
     e.dmg *= Q.dmgMul;
     e.hp = e.maxHp = e.maxHp * Q.hpMul;

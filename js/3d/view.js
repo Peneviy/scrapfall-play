@@ -7,9 +7,13 @@ var View3D = {
   off: null,
   last: 0,
 
-  init: function (canvas) {
-    if (typeof THREE === 'undefined' || !canvas) return false;
-    if (/[?&]2d\b/.test(location.search)) return false;
+  init: function (canvas, force) {
+    this.flatBy = '';
+    if (typeof THREE === 'undefined' || !canvas) { this.flatBy = 'nolib'; return false; }
+    if (!force) {
+      if (/[?&]2d\b/.test(location.search)) { this.flatBy = 'url'; return false; }
+      if (Save.data && Save.data.set && Save.data.set.view === '2d') { this.flatBy = 'set'; return false; }
+    }
     var r;
     try {
       r = new THREE.WebGLRenderer({
@@ -17,8 +21,8 @@ var View3D = {
         antialias: (window.devicePixelRatio || 1) < 2,
         powerPreference: 'high-performance'
       });
-    } catch (e) { return false; }
-    if (!r || !r.getContext()) return false;
+    } catch (e) { this.flatBy = 'nogl'; return false; }
+    if (!r || !r.getContext()) { this.flatBy = 'nogl'; return false; }
     this.renderer = r;
     r.setClearColor(CFG.view3d.fog, 1);
 
@@ -98,12 +102,14 @@ var View3D = {
   watchContext: function (canvas) {
     var self = this;
     canvas.addEventListener('webglcontextlost', function (e) {
+      if (!self.renderer || self.renderer.domElement !== canvas) return;
       e.preventDefault();
       self.lost = true;
       if (Game.running && !Game.paused && !Game.over) UI.togglePause();
       self.lostWait();
     }, false);
     canvas.addEventListener('webglcontextrestored', function () {
+      if (!self.renderer || self.renderer.domElement !== canvas) return;
       self.lost = false;
       clearTimeout(self.lostT);
       Game.resize();
@@ -131,10 +137,65 @@ var View3D = {
       Game.resize();
       return;
     }
+    this.flatBy = 'lost';
     c.style.display = 'none';
     Game.canvas.classList.remove('overlay');
     Game.ctx = Game.canvas.getContext('2d');
     Game.resize();
+    UI.gfxLost();
+  },
+
+  setFlat: function (flat) {
+    var cur, n;
+    if (flat) {
+      if (this.on) {
+        cur = this.renderer.domElement;
+        n = cur.cloneNode(false);
+        cur.parentNode.replaceChild(n, cur);
+        try { this.renderer.dispose(); this.renderer.forceContextLoss(); } catch (e) {}
+        clearTimeout(this.lostT);
+        this.on = false;
+        this.lost = false;
+        this.renderer = null;
+        n.style.display = 'none';
+        Game.canvas.classList.remove('overlay');
+      }
+      this.flatBy = 'set';
+      Game.resize();
+      return true;
+    }
+    if (this.on) return true;
+    if (!Game.ctxAlpha) return false;
+    cur = document.getElementById('game3d');
+    if (!cur) return false;
+    n = cur.cloneNode(false);
+    cur.parentNode.replaceChild(n, cur);
+    n.style.display = '';
+    if (this.init(n, true)) {
+      Game.canvas.classList.add('overlay');
+      Game.resize();
+      return true;
+    }
+    n.style.display = 'none';
+    if (this.flatBy !== 'nolib') this.flatBy = 'nogl';
+    Game.resize();
+    return false;
+  },
+
+  reach: function (w, h, scale) {
+    var key = w + 'x' + h + 'x' + scale;
+    if (this.reachKey === key) return this.reachR;
+    var cfg = CFG.view3d, p = cfg.pitch * Math.PI / 180, th = Math.tan(cfg.fov * Math.PI / 360);
+    var D = h / scale * Math.sin(p) / (2 * th) * cfg.zoom, a = w / Math.max(1, h), far = 0;
+    for (var ny = -1; ny <= 1; ny += 2) {
+      var den = Math.sin(p) - ny * th * Math.cos(p);
+      if (den <= 0.001) { far = 1400; break; }
+      var t = D * Math.sin(p) / den;
+      var x = t * th * a, z = D * Math.cos(p) - t * (Math.cos(p) + ny * th * Math.sin(p));
+      far = Math.max(far, Math.sqrt(x * x + z * z));
+    }
+    this.reachKey = key;
+    return (this.reachR = Math.min(1400, far));
   },
 
   resize: function (w, h, dpr) {
@@ -740,25 +801,14 @@ var View3D = {
   },
 
   fadeWalls: function (dt) {
-    var p = Game.player, grid = Game.grid, gc = grid.cell, tp = this.tanPitch || 1.48;
+    var p = Game.player, tp = this.tanPitch || 1.48, m = 14;
     for (var i = 0; i < this.walls.length; i++) {
       var w = this.walls[i], g = w.mesh3;
       if (!g) continue;
-      var u = g.userData, reach = Math.max(0, (u.h - 12) / tp);
-      var x0 = w.x - 18, x1 = w.x + w.w + 18, y0 = w.y - reach, y1 = w.y + w.h;
-      var hide = reach > 10 && p.x > x0 && p.x < x1 && p.y > y0 - 10 && p.y < y1;
-      if (!hide && reach > 24) {
-        var cx0 = Math.floor(x0 / gc), cx1 = Math.floor(x1 / gc), cy0 = Math.floor(y0 / gc), cy1 = Math.floor(y1 / gc);
-        for (var gx = cx0; gx <= cx1 && !hide; gx++) {
-          for (var gy = cy0; gy <= cy1 && !hide; gy++) {
-            var bk = grid.bucket(gx, gy);
-            if (!bk) continue;
-            for (var j = 0; j < bk.length; j++) {
-              var e = bk[j];
-              if (!e.dead && e.x > x0 && e.x < x1 && e.y > y0 && e.y < y1) { hide = true; break; }
-            }
-          }
-        }
+      var u = g.userData, occ = u.occ, hide = false;
+      for (var j = 0; j < occ.length && !hide; j++) {
+        var b = occ[j], reach = (b.h - 12) / tp;
+        hide = reach > 10 && p.x > b.x0 - m && p.x < b.x1 + m && p.y < b.y1 && p.y > b.y0 - reach;
       }
       if (hide) u.hold = 0.4;
       else if (u.hold > 0) u.hold -= dt;
@@ -780,12 +830,14 @@ var View3D = {
     var long = Math.max(w.w, w.h), short = Math.min(w.w, w.h);
     var alongX = w.w >= w.h;
     var style = r();
+    var occ = [];
     var mdl = M.fast(function (add) {
       var put = add;
       var container = function (cx, y0, len, dep, hgt, col, yaw) {
         var c = Math.cos(yaw), s = Math.sin(yaw);
         var at = function (dx) { return [cx + dx * c, -dx * s]; };
         put(B(len, hgt, dep), col, cx, y0 + hgt / 2, 0, 0, yaw);
+        occ.push([cx - len / 2, cx + len / 2, y0 + hgt]);
         var shade = M.shade(col, 0.72);
         for (var x = -len / 2 + 7; x < len / 2 - 4; x += 9) {
           var q = at(x);
@@ -819,6 +871,7 @@ var View3D = {
         var rows = Math.max(1, Math.round(short / 40));
         var per = Math.max(1, Math.round(long / 62));
         var cl = long / per, cw = short / rows;
+        occ.push([-long / 2, long / 2, 49]);
         for (var layer = 0; layer < 4; layer++) {
           var y0 = layer * 17;
           for (var a = 0; a < per; a++) {
@@ -838,6 +891,7 @@ var View3D = {
         var junk = ['#5d5752', '#6b4a2a', '#3d4a4f', '#7a3b2a', '#4a3e34', '#8a6a2f'];
         var cnt = Math.min(34, Math.max(8, Math.floor(long * short / 700)));
         put(B(long, 6, short), '#5a4636', 0, 3, 0);
+        occ.push([-long / 2, long / 2, 38]);
         for (var j = 0; j < cnt; j++) {
           var jx = (r() - 0.5) * (long - 14), jz = (r() - 0.5) * (short - 10);
           var edge = 1 - Math.max(Math.abs(jx) / (long / 2), Math.abs(jz) / (short / 2));
@@ -869,6 +923,7 @@ var View3D = {
             y += lh;
           }
           put(B(pw * 0.78, 4, short * 0.78), '#e2b07a', px, y + 2, 0, 0, r());
+          occ.push([px - pw / 2, px + pw / 2, y + 4]);
           put(new THREE.DodecahedronGeometry(9 + r() * 6), bands[li % bands.length],
             px + (r() - 0.5) * pw * 0.6, 5, (r() < 0.5 ? -1 : 1) * short * 0.45, r(), r(), r(), 1, 0.7, 1);
         }
@@ -879,7 +934,14 @@ var View3D = {
     main.castShadow = main.receiveShadow = true;
     g.add(main);
     if (!mdl.geo.boundingBox) mdl.geo.computeBoundingBox();
-    g.userData = { main: main, h: mdl.geo.boundingBox.max.y, k: 0, lvl: 0, hold: 0 };
+    var cxw = w.x + w.w / 2, cyw = w.y + w.h / 2, boxes = [];
+    for (var oi = 0; oi < occ.length; oi++) {
+      var o = occ[oi];
+      boxes.push(alongX
+        ? { x0: cxw + o[0], x1: cxw + o[1], y0: w.y, y1: w.y + w.h, h: o[2] }
+        : { x0: w.x, x1: w.x + w.w, y0: cyw - o[1], y1: cyw - o[0], h: o[2] });
+    }
+    g.userData = { main: main, h: mdl.geo.boundingBox.max.y, occ: boxes, k: 0, lvl: 0, hold: 0 };
     if (mdl.glow) g.add(new THREE.Mesh(mdl.glow, this.matGlow));
     g.position.set(w.x + w.w / 2, 0, w.y + w.h / 2);
     if (!alongX) g.rotation.y = Math.PI / 2;

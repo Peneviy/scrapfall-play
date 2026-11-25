@@ -48,10 +48,16 @@ var Metrics = {
     try { localStorage.setItem('sf_mq', JSON.stringify(this.q)); } catch (e) {}
   },
 
+  gfx: function () {
+    var v = window.View3D;
+    if (!v) return '';
+    return v.on ? '3d' : (v.flatBy === 'set' || !v.flatBy ? '2d' : v.flatBy);
+  },
+
   session: function () {
     if (!this.url || this.sent) return;
     this.sent = true;
-    this.push({ t: 's' });
+    this.push({ t: 's', v: this.gfx() });
   },
 
   run: function (res) {
@@ -59,7 +65,7 @@ var Metrics = {
     this.push({
       t: 'r', d: Math.round(res.time || 0), k: res.kills | 0, l: res.level | 0,
       p: (Save.data && Save.data.prestige) | 0, s: res.score | 0,
-      n: res.nakal | 0, w: res.won ? 1 : 0
+      n: res.nakal | 0, w: res.won ? 1 : 0, v: this.gfx()
     });
   },
 
@@ -79,7 +85,7 @@ var Metrics = {
     this.errN++;
     var g = window.Game || {};
     this.push({
-      t: 'x', m: msg, w: (String(where || '') + ' ' + at).trim().slice(0, 60),
+      t: 'x', m: msg, w: (String(where || '') + (window.View3D && !View3D.on ? ' 2d' : '') + ' ' + at).trim().slice(0, 60),
       g: Math.round(g.time || 0), l: (g.player && g.player.level) | 0
     });
   },

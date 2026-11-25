@@ -103,9 +103,16 @@ var Bosses = {
       ai: function (e, dt, d) {
         var K = Bosses.K.weaver, ph = e.mech ? 0 : e.ph, p = Game.player;
         if (ph === 0) {
-          if (e.inv) Bosses.approach(e, d, 430, 0.25, -0.3);
-          else Bosses.approach(e, d, 430, 1, -1);
+          if (e.inv) {
+            Bosses.approach(e, d, 430, 0.25, -0.3);
+            var ox = e.x - e.m.px, oy = e.y - e.m.py;
+            if (ox * ox + oy * oy > K.stay * K.stay && e.vx * ox + e.vy * oy > 0) e.vx = e.vy = 0;
+          } else Bosses.approach(e, d, 430, 1, -1);
           var alive = Bosses.pylonsAlive(e);
+          if (e.inv && alive && U.dist2(e.x, e.y, e.m.px, e.m.py) > K.lost * K.lost) {
+            Bosses.plant(e, true);
+            alive = Bosses.pylonsAlive(e);
+          }
           if (e.inv && !alive) {
             e.inv = false; e.n1 = K.bare;
             FX.ring(e.x, e.y, e.r, e.r + 160, e.bd.trim, 0.6, 5);
@@ -752,7 +759,7 @@ var Bosses = {
       if (ph > e.ph) { this.phaseUp(e, ph); return; }
     }
     bd.ai(e, dt, d);
-    if (d > this.K.chase.from && !(e.aim > 0) && !(e.charge > 0) && !(e.openT > 0) && !e.mech && !e.rep) {
+    if (d > this.K.chase.from && !(e.aim > 0) && !(e.charge > 0) && !(e.openT > 0) && !e.mech && !e.rep && !e.inv) {
       var asp = this.chaseSpeed(e, d);
       if (e.vx * e.vx + e.vy * e.vy < asp * asp) {
         var ca = Math.atan2(Game.player.y - e.y, Game.player.x - e.x);
@@ -792,8 +799,10 @@ var Bosses = {
     } else e.tpT = 0;
     if (!e.chase && d > C.on) {
       e.chase = true;
-      var tw = e.tpW;
+      var tw = e.tpW, keep = e.inv && this.pylonsAlive(e) ? e.pyl : null;
+      if (keep) e.pyl = [];
       this.reset(e);
+      if (keep) { e.pyl = keep; e.inv = true; }
       if (tw > 0) this.mark({ k: 'disc', x: e.tpX, y: e.tpY, r: e.r * 2.2, t: tw, c: e.bd.trim, o: e });
       e.aim = 0; e.charge = 0;
     } else if (e.chase && d < C.off && !(e.tpW > 0)) {
@@ -815,7 +824,7 @@ var Bosses = {
     driller: { sp: 900, time: 1.0, stuck: 3, stuckK: 2, dig: 1.0, digK: 1.3 },
     sapper: { stun: 2, stunK: 1.5, self: 0.02, chain: 0.12 },
     frostmaw: { tell: 0.75, cd: [4, 5], sp: 150, max: 560, band: 34, frz: 1, tired: 2, tiredK: 1.5 },
-    weaver: { pylons: 3, pylonR: 200, pylonHp: 0.03, bare: 10, pull: 120, tieT: 4, tieTell: 0.6, tieCd: [4, 6], snap: 2, snapK: 1.5 },
+    weaver: { pylons: 3, pylonR: 200, stay: 110, lost: 600, maxPyl: 9, pylonHp: 0.03, bare: 10, pull: 120, tieT: 4, tieTell: 0.6, tieCd: [4, 6], snap: 2, snapK: 1.5 },
     lancer: { tell: 0.8, cd: [1.6, 2.2], len: 620, w: 34, fly: 1500, stand: 6, wall: 150, max: 4, unarmed: 2.5, unarmedK: 1.5,
       jumpCd: 1.4, jumpTell: 0.7, jumpT: 0.5, slamR: 130, dizzy: 2, dizzyK: 1.6 },
     warden: { safe: 58, len: 540, spin: 0.9, walk: 320, revCd: [8, 11], revTell: 0.7, inMax: 2.4, pulseTell: 0.9, push: 80, cool: 2.2, coolK: 1.6 },
@@ -895,13 +904,24 @@ var Bosses = {
     return o;
   },
 
-  plant: function (e) {
-    var K = this.K.weaver, n = K.pylons, a0 = Math.random() * 6.28;
+  plant: function (e, more) {
+    var K = this.K.weaver, n = K.pylons, a0 = Math.random() * 6.28, had = 0;
     e.pyl = e.pyl || [];
-    e.pyl.length = 0;
+    if (more) {
+      for (var j = e.pyl.length - 1; j >= 0; j--) if (e.pyl[j].dead) e.pyl.splice(j, 1);
+      had = e.pyl.length;
+      n = Math.min(n, K.maxPyl - had);
+    } else e.pyl.length = 0;
+    e.m.px = e.x; e.m.py = e.y;
+    var OFF = [0, 0.35, -0.35, 0.7, -0.7, 1.05, -1.05], RK = [1, 0.65];
     for (var i = 0; i < n; i++) {
-      var a = a0 + i / n * Math.PI * 2, x = e.x + Math.cos(a) * K.pylonR, y = e.y + Math.sin(a) * K.pylonR;
-      for (var t = 0; t < 4 && !World.freeAt(x, y, 30); t++) { a += 0.5; x = e.x + Math.cos(a) * K.pylonR; y = e.y + Math.sin(a) * K.pylonR; }
+      var x = 0, y = 0, ok = false;
+      for (var t = 0; t < OFF.length * RK.length && !ok; t++) {
+        var a = a0 + i / K.pylons * Math.PI * 2 + OFF[t % OFF.length], rr = K.pylonR * RK[Math.floor(t / OFF.length)];
+        x = e.x + Math.cos(a) * rr; y = e.y + Math.sin(a) * rr;
+        ok = World.freeAt(x, y, 30);
+      }
+      if (!ok) continue;
       var s = Enemies.summon('pylon', x, y);
       if (!s) continue;
       s.hp = s.maxHp = e.maxHp * K.pylonHp;
@@ -910,7 +930,8 @@ var Bosses = {
       FX.ring(x, y, 6, 60, e.bd.trim, 0.4, 3);
     }
     e.inv = e.pyl.length > 0;
-    Snd.play('tell');
+    if (!e.inv) { e.n1 = 2; return; }
+    if (e.pyl.length > had) Snd.play('tell');
   },
   pylonsAlive: function (e) {
     var n = 0, P = e.pyl;

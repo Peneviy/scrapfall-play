@@ -1,5 +1,5 @@
 var UI = {
-  screens: ['scrLoading', 'scrMenu', 'scrShop', 'scrBoard', 'scrSettings', 'scrLevel', 'scrPause', 'scrOver'],
+  screens: ['scrLoading', 'scrMenu', 'scrShop', 'scrBuy', 'scrBoard', 'scrSettings', 'scrLevel', 'scrPause', 'scrOver'],
   tab: 'chars',
   lastCrate: -999,
   cards: [],
@@ -36,6 +36,8 @@ var UI = {
     this.el('btnPause').onclick = function () { self.togglePause(); };
     this.el('btnResume').onclick = function () { self.togglePause(); };
     this.el('btnQuit').onclick = function () { self.quitRun(); };
+    this.el('gfxLostGo').onclick = function () { self.gfxLostEnd(false); };
+    this.el('gfxLostQuit').onclick = function () { self.gfxLostEnd(true); };
     this.el('btnAimMode').onclick = function () { self.toggleAim(); this.blur(); };
     this.el('abAim').onclick = function () { self.toggleAim(); this.blur(); };
 
@@ -77,6 +79,11 @@ var UI = {
       qb[qi].onclick = function () { Quality.choose(this.getAttribute('data-q')); self.markQ(); };
     }
     this.markQ();
+    var vb = document.querySelectorAll('#setView .btn');
+    for (var vi = 0; vi < vb.length; vi++) {
+      vb[vi].onclick = function () { self.setView(this.getAttribute('data-v')); };
+    }
+    this.markView();
     this.el('setDashL').checked = !!set.dashL;
     this.el('setDashL').onchange = function () { set.dashL = this.checked ? 1 : 0; Input.dashSide(); Save.flush(true); };
 
@@ -126,6 +133,28 @@ var UI = {
   markQ: function () {
     var qb = document.querySelectorAll('#setQ .btn');
     for (var i = 0; i < qb.length; i++) qb[i].classList.toggle('active', qb[i].getAttribute('data-q') === Save.data.set.q);
+  },
+
+  setView: function (v) {
+    var flat = v === '2d';
+    if (flat === !View3D.on) { this.markView(); return; }
+    if (!View3D.setFlat(flat)) { this.toast(I18N.t('view3dNo')); this.markView(); return; }
+    Save.data.set.view = flat ? '2d' : '3d';
+    Save.flush(true);
+    this.markView();
+    this.refreshMenu();
+  },
+
+  markView: function () {
+    var flat = !View3D.on;
+    var vb = document.querySelectorAll('#setView .btn');
+    for (var i = 0; i < vb.length; i++) {
+      var d3 = vb[i].getAttribute('data-v') === '3d';
+      vb[i].classList.toggle('active', d3 !== flat);
+      if (d3) vb[i].disabled = flat && !Game.ctxAlpha;
+    }
+    this.el('setViewNo').classList.toggle('hidden', !(flat && !Game.ctxAlpha));
+    this.el('setQRow').classList.toggle('hidden', flat);
   },
 
   markLang: function () {
@@ -262,6 +291,18 @@ var UI = {
     setTimeout(function () { el.classList.add('hidden'); }, 600);
     Save.data.hintSeen = true;
     Save.flush(false);
+  },
+
+  gfxLost: function () {
+    this.markView();
+    if (!Game.running || Game.over) { this.toast(I18N.t('gfxLostToast')); return; }
+    if (!Game.paused) this.togglePause();
+    this.el('gfxLost').classList.remove('hidden');
+  },
+  gfxLostEnd: function (quit) {
+    this.el('gfxLost').classList.add('hidden');
+    if (quit) { this.quitRun(); return; }
+    if (Game.running && Game.paused && !this.el('scrPause').classList.contains('hidden')) this.togglePause();
   },
 
   quitRun: function () {
@@ -812,7 +853,7 @@ var UI = {
     var res = Game.settle();
     this.fillOver(res, false);
     this.el('btnRevive').classList.toggle('hidden', Game.reviveLeft <= 0);
-    this.el('btnDouble').classList.remove('hidden');
+    this.el('btnDouble').classList.toggle('hidden', !!Game.doubled);
     this.syncAdButtons();
     this.el('scrOver').classList.remove('hidden');
   },
@@ -883,6 +924,8 @@ var UI = {
   doubleCoins: function () {
     var self = this;
     PF.showRewarded(function () {
+      if (Game.doubled) return;
+      Game.doubled = true;
       Game.payout *= 2;
       self.el('ovCoins').textContent = U.num(Game.payout);
       self.el('btnDouble').classList.add('hidden');

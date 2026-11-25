@@ -1,5 +1,5 @@
 var CFG = {
-  version: '0.20.67',
+  version: '0.20.74',
   platform: 'pikabu',
   debug: false,
   metrics: { url: 'https://scrapfall-metrics.peneviy.workers.dev/e', dev: '' },
@@ -62,6 +62,17 @@ var CFG = {
     phase2: 0.66, lairK: 2, sleepMax: 1, heal: 0.5,
     eliteK: 2, frenzy: 210, repeats: 2, repAt: [30, 110], repGap: 15, repHp: 0.7, repCoin: 0.5,
     queen4: 0.2
+  },
+
+  shop: {
+    packs: [
+      { id: 'scrap_1', name: 'pack1', coins: 10000, bonus: 0 },
+      { id: 'scrap_2', name: 'pack2', coins: 25000, bonus: 10 },
+      { id: 'scrap_3', name: 'pack3', coins: 50000, bonus: 20 },
+      { id: 'scrap_4', name: 'pack4', coins: 100000, bonus: 30 },
+      { id: 'scrap_5', name: 'pack5', coins: 500000, bonus: 50 }
+    ],
+    noAds: 'no_ads'
   },
 
   ads: {

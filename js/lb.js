@@ -10,6 +10,7 @@ var LB = {
   live: null,
   plate: null,
   seasons: false,
+  noArch: false,
   view: 0,
   tierView: 0,
   rowsTier: -1,
@@ -71,6 +72,7 @@ var LB = {
       if (d && d.rows) {
         self.rows = d.rows; self.total = d.total | 0; self.at = Date.now(); self.rowsTier = tr;
         self.seasons = d.season !== undefined;
+        self.noArch = d.arch === 0;
         if (d.me) self.me = { s: d.me.s, r: d.me.r };
         if (!self.seasons) self.syncBest();
       }
@@ -181,6 +183,18 @@ var LB = {
     if (this.me && this.me.r && res.score > this.me.s && r < this.me.r) html += ' <s>' + I18N.t('lbUp', { r: this.me.r }) + '</s>';
     el.innerHTML = html;
     el.classList.remove('hidden');
+    this.ovS = Math.floor(res.score);
+    this.overFix();
+  },
+
+  overFix: function () {
+    var v = this.verdict, el = this.ovEl;
+    if (!v || !el || v.s !== this.ovS || el.classList.contains('hidden')) return;
+    if (!v.ok) { el.textContent = I18N.t('lbWait'); return; }
+    if (v.best !== v.s || !(v.rank > 0)) return;
+    var html = I18N.t('lbOver', { r: v.rank });
+    if (v.prev > v.rank) html += ' <s>' + I18N.t('lbUp', { r: v.prev }) + '</s>';
+    el.innerHTML = html;
   },
 
   submit: function (res) {
@@ -191,6 +205,7 @@ var LB = {
       se: CFG.lb.season | 0, tr: res.nakal | 0, w: res.won ? 1 : 0
     };
     this.live = null;
+    this.verdict = null;
     this.send(body);
   },
 
@@ -200,13 +215,15 @@ var LB = {
       if (st === 200 && d && d.ok) {
         self.me = { s: d.best, r: d.rank };
         self._pend(null, body);
+        self.verdict = { s: body.s, ok: true, best: d.best, rank: d.rank | 0, prev: d.prev | 0 };
         var set = Save.data.set;
         if (set.nick && d.name !== set.nick) { set.nick = d.name; Save.flush(false); }
-      } else if (st === 0 || st === 429 || st >= 500) {
-        self._pend(body);
       } else {
-        self._pend(null, body);
+        if (st === 0 || st === 429 || st >= 500 || (st === 422 && d && d.error === 'implausible')) self._pend(body);
+        else self._pend(null, body);
+        self.verdict = { s: body.s, ok: false };
       }
+      self.overFix();
     });
   },
 
@@ -214,7 +231,10 @@ var LB = {
     try {
       var old = JSON.parse(localStorage.getItem('sf_lbq') || 'null');
       if (body) {
-        if (!old || body.s >= old.s) localStorage.setItem('sf_lbq', JSON.stringify(body));
+        if (!old || body.s >= old.s) {
+          if (!body.q) body.q = Date.now();
+          localStorage.setItem('sf_lbq', JSON.stringify(body));
+        }
       } else if (old && sent && old.s <= sent.s) localStorage.removeItem('sf_lbq');
     } catch (e) {}
   },
@@ -222,6 +242,7 @@ var LB = {
   resend: function () {
     try {
       var b = JSON.parse(localStorage.getItem('sf_lbq') || 'null');
+      if (b && b.q && Date.now() - b.q > 14 * 864e5) { localStorage.removeItem('sf_lbq'); return; }
       if (b && b.id === Metrics.uid) { b.name = this.rawName(); this.send(b); }
     } catch (e) {}
   },
@@ -237,7 +258,7 @@ var LB = {
     list.innerHTML = '';
     list.appendChild(this._line(I18N.t('lbLoading'), 'lb-head'));
     this.nickBtn.classList.remove('hidden');
-    this._get('/lb/top?n=20&id=' + encodeURIComponent(Metrics.uid) + this.qs(view, tier), function (d) {
+    this._get('/lb/top?n=100&id=' + encodeURIComponent(Metrics.uid) + this.qs(view, tier), function (d) {
       if (self.view !== view || self.tierView !== tier) return;
       list.innerHTML = '';
       if (!d || !d.top) {
@@ -245,23 +266,21 @@ var LB = {
         return;
       }
       self.seasons = d.season !== undefined;
+      self.noArch = d.arch === 0;
       self.markTabs();
       if (d.me && view === cur && tier === self.rowsTier) self.me = { s: d.me.s, r: d.me.r };
       if (view === 0 && self.seasons) list.appendChild(self._line(I18N.t('lbArchiveHint'), 'lb-head lb-arch'));
       list.appendChild(self._line(d.me ? I18N.t('lbYour', { r: d.me.r, t: d.total }) : I18N.t(view === 0 && self.seasons ? 'lbArchNo' : 'lbNoRec'), 'lb-head'));
       if (!d.top.length) { list.appendChild(self._line(I18N.t('boardEmpty'), 'board-row')); return; }
+      if (d.me) { var pin = self._row(d.me); pin.className += ' pin'; list.appendChild(pin); }
       for (var i = 0; i < d.top.length; i++) list.appendChild(self._row(d.top[i]));
-      if (d.around && d.around.length) {
-        list.appendChild(self._line('...', 'lb-gap'));
-        for (var k = 0; k < d.around.length; k++) list.appendChild(self._row(d.around[k]));
-      }
     });
   },
 
   markTabs: function () {
     var t = this.tabs;
     if (!t) return;
-    t.classList.toggle('hidden', !this.seasons);
+    t.classList.toggle('hidden', !this.seasons || this.noArch);
     var cur = CFG.lb.season | 0;
     this.tabSeason.textContent = I18N.t('lbSeason', { n: cur });
     this.tabSeason.classList.toggle('active', this.view === cur);
@@ -417,32 +436,32 @@ var LB = {
         lbYour: 'Твоё место в мире: #{r} из {t}', lbNoRec: 'Сыграй рейд, чтобы попасть в мировой рейтинг', lbLoading: 'Загружаю рейтинг...',
         lbFail: 'Рейтинг не загрузился. Твой рекорд: {n}', lbNick: 'Ник в рейтинге', lbNickBtn: 'Сменить ник', lbNickOk: 'Ник сохранён',
         lbNickBad: 'Такой ник не подойдёт, в рейтинге будет {n}', lbOver: '#{r} в мире', lbUp: 'было #{r}', lbLvl: 'ур. {n}',
-        lbSeason: 'Сезон {n}', lbArchive: 'Архив', lbArchiveHint: 'Рекорды до финала (до версии 0.20.44)', lbArchNo: 'В архиве твоих очков нет' },
+        lbSeason: 'Сезон {n}', lbArchive: 'Архив', lbArchiveHint: 'Рекорды до финала (до версии 0.20.44)', lbArchNo: 'В архиве твоих очков нет', lbWait: 'место уточняется' },
       en: { lbWorld: 'world', lbAnon: 'Player #{n}', lbPassed: 'passed {n}', lbLead: 'nobody ahead', lbTop10: 'World top 10!', lbFirst: '#1 in the world!',
         lbYour: 'Your world place: #{r} of {t}', lbNoRec: 'Play a raid to join the world ranking', lbLoading: 'Loading ranking...',
         lbFail: 'Ranking did not load. Your best: {n}', lbNick: 'Name in ranking', lbNickBtn: 'Change name', lbNickOk: 'Name saved',
         lbNickBad: 'That name will not do, the ranking shows {n}', lbOver: '#{r} world', lbUp: 'was #{r}', lbLvl: 'lv {n}',
-        lbSeason: 'Season {n}', lbArchive: 'Archive', lbArchiveHint: 'Records from before the finale (before 0.20.44)', lbArchNo: 'No score of yours in the archive' },
+        lbSeason: 'Season {n}', lbArchive: 'Archive', lbArchiveHint: 'Records from before the finale (before 0.20.44)', lbArchNo: 'No score of yours in the archive', lbWait: 'rank pending' },
       tr: { lbWorld: 'dünya', lbAnon: 'Oyuncu #{n}', lbPassed: '{n} geçildi', lbLead: 'önünde kimse yok', lbTop10: 'Dünya ilk 10!', lbFirst: 'Dünyada 1 numara!',
         lbYour: 'Dünya sıran: #{r} / {t}', lbNoRec: 'Dünya sıralamasına girmek için bir baskın oyna', lbLoading: 'Sıralama yükleniyor...',
         lbFail: 'Sıralama yüklenmedi. En iyin: {n}', lbNick: 'Sıralamadaki adın', lbNickBtn: 'Adını değiştir', lbNickOk: 'Ad kaydedildi',
         lbNickBad: 'Bu ad olmaz, sıralamada {n} görünecek', lbOver: 'dünyada #{r}', lbUp: 'önce #{r}', lbLvl: 'sv {n}',
-        lbSeason: 'Sezon {n}', lbArchive: 'Arşiv', lbArchiveHint: 'Finalden önceki rekorlar (0.20.44 öncesi)', lbArchNo: 'Arşivde puanın yok' },
+        lbSeason: 'Sezon {n}', lbArchive: 'Arşiv', lbArchiveHint: 'Finalden önceki rekorlar (0.20.44 öncesi)', lbArchNo: 'Arşivde puanın yok', lbWait: 'sıra bekleniyor' },
       de: { lbWorld: 'welt', lbAnon: 'Spieler #{n}', lbPassed: '{n} überholt', lbLead: 'niemand vor dir', lbTop10: 'Welt-Top 10!', lbFirst: 'Platz 1 weltweit!',
         lbYour: 'Dein Weltplatz: #{r} von {t}', lbNoRec: 'Spiel einen Raid, um in die Weltrangliste zu kommen', lbLoading: 'Rangliste lädt...',
         lbFail: 'Rangliste nicht geladen. Dein Bestwert: {n}', lbNick: 'Name in der Rangliste', lbNickBtn: 'Namen ändern', lbNickOk: 'Name gespeichert',
         lbNickBad: 'Dieser Name geht nicht, angezeigt wird {n}', lbOver: 'Welt #{r}', lbUp: 'vorher #{r}', lbLvl: 'St. {n}',
-        lbSeason: 'Saison {n}', lbArchive: 'Archiv', lbArchiveHint: 'Rekorde vor dem Finale (vor 0.20.44)', lbArchNo: 'Im Archiv hast du keine Punkte' },
+        lbSeason: 'Saison {n}', lbArchive: 'Archiv', lbArchiveHint: 'Rekorde vor dem Finale (vor 0.20.44)', lbArchNo: 'Im Archiv hast du keine Punkte', lbWait: 'Platz wird geprüft' },
       es: { lbWorld: 'mundo', lbAnon: 'Jugador #{n}', lbPassed: 'superaste a {n}', lbLead: 'nadie delante', lbTop10: '¡Top 10 mundial!', lbFirst: '¡N.º 1 del mundo!',
         lbYour: 'Tu puesto mundial: #{r} de {t}', lbNoRec: 'Juega una incursión para entrar en el ranking mundial', lbLoading: 'Cargando ranking...',
         lbFail: 'El ranking no cargó. Tu mejor marca: {n}', lbNick: 'Nombre en el ranking', lbNickBtn: 'Cambiar nombre', lbNickOk: 'Nombre guardado',
         lbNickBad: 'Ese nombre no vale, se verá {n}', lbOver: 'mundo #{r}', lbUp: 'antes #{r}', lbLvl: 'nv {n}',
-        lbSeason: 'Temporada {n}', lbArchive: 'Archivo', lbArchiveHint: 'Récords de antes del final (antes de 0.20.44)', lbArchNo: 'No tienes puntos en el archivo' },
+        lbSeason: 'Temporada {n}', lbArchive: 'Archivo', lbArchiveHint: 'Récords de antes del final (antes de 0.20.44)', lbArchNo: 'No tienes puntos en el archivo', lbWait: 'puesto pendiente' },
       pt: { lbWorld: 'mundo', lbAnon: 'Jogador #{n}', lbPassed: 'passou {n}', lbLead: 'ninguém à frente', lbTop10: 'Top 10 mundial!', lbFirst: 'Nº 1 do mundo!',
         lbYour: 'Sua posição mundial: #{r} de {t}', lbNoRec: 'Jogue uma incursão para entrar no ranking mundial', lbLoading: 'Carregando ranking...',
         lbFail: 'O ranking não carregou. Seu melhor: {n}', lbNick: 'Nome no ranking', lbNickBtn: 'Mudar nome', lbNickOk: 'Nome salvo',
         lbNickBad: 'Esse nome não serve, aparecerá {n}', lbOver: 'mundo #{r}', lbUp: 'antes #{r}', lbLvl: 'nv {n}',
-        lbSeason: 'Temporada {n}', lbArchive: 'Arquivo', lbArchiveHint: 'Recordes de antes do final (antes de 0.20.44)', lbArchNo: 'Você não tem pontos no arquivo' }
+        lbSeason: 'Temporada {n}', lbArchive: 'Arquivo', lbArchiveHint: 'Recordes de antes do final (antes de 0.20.44)', lbArchNo: 'Você não tem pontos no arquivo', lbWait: 'posição pendente' }
     };
     for (var l in W) {
       if (!I18N[l]) continue;

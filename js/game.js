@@ -19,7 +19,8 @@ var Game = {
     var c3 = document.getElementById('game3d');
     if (View3D.init(c3)) canvas.classList.add('overlay');
     else if (c3) c3.style.display = 'none';
-    this.ctx = canvas.getContext('2d', { alpha: View3D.on });
+    this.ctxAlpha = View3D.on || View3D.flatBy === 'set' || View3D.flatBy === 'url';
+    this.ctx = canvas.getContext('2d', { alpha: this.ctxAlpha });
     this.grid = new HashGrid(CFG.grid);
     var self = this;
     window.addEventListener('resize', function () { self.resize(); });
@@ -54,9 +55,7 @@ var Game = {
   },
 
   viewRadius: function () {
-    if (View3D.on) return View3D.radius;
-    var hw = this.w / 2 / this.scale, hh = this.h / 2 / this.scale;
-    return Math.sqrt(hw * hw + hh * hh);
+    return View3D.on ? View3D.radius : View3D.reach(this.w, this.h, this.scale);
   },
 
   start: function () {
@@ -68,6 +67,7 @@ var Game = {
     this.scoreParts = { kills: 0, levels: 0, bosses: 0, time: 0 };
     this.rerollsLeft = Nakal.run >= 7 ? 0 : CFG.ads.rerollPerRun;
     this.reviveLeft = CFG.ads.revivePerRun;
+    this.doubled = false;
     this.adLevelCounter = 0;
     this.bossIndex = 0;
     Finale.start();
@@ -147,6 +147,7 @@ var Game = {
     bonus = Math.floor(bonus * Save.mult().loot * this.player.char.loot);
     this.payout = this.runCoins + bonus;
     if (this.won) this.payout = Math.floor(this.payout * CFG.finale.winLoot);
+    if (this.doubled) this.payout *= 2;
     this.scoreParts.time = Math.floor(this.time * CFG.score.perSec);
     this.res = {
       score: this.finalScore(), time: this.time,
@@ -552,6 +553,29 @@ var Game = {
     Input.draw(ctx);
   },
 
+  idleFlat: function () {
+    if (this.w < 2 || this.h < 2) return;
+    var now = performance.now() / 1000;
+    if (now - (this.idleLast || 0) < 1 / 31) return;
+    this.idleLast = now;
+    var ctx = this.ctx, cam = this.cam || (this.cam = { x: 0, y: 0 });
+    var ox = cam.x, oy = cam.y;
+    cam.x = 900 + now * 16; cam.y = -300 - now * 6;
+    World.refresh(cam.x, cam.y, this.viewRadius() + 400);
+    ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    ctx.fillStyle = '#0a1216';
+    ctx.fillRect(0, 0, this.w, this.h);
+    ctx.save();
+    ctx.translate(this.w / 2, this.h / 2);
+    ctx.scale(this.scale, this.scale);
+    ctx.translate(-cam.x, -cam.y);
+    this.drawFloor(ctx);
+    World.draw(ctx);
+    ctx.restore();
+    cam.x = ox; cam.y = oy;
+    this.drawVignette(ctx);
+  },
+
   mapRange: 2400,
   drawMinimap: function (ctx) {
     var size = Math.min(132, Math.max(92, this.w * 0.16));
@@ -861,6 +885,7 @@ var Game = {
       if (!live || steps > 0 || this.redraw) this.render();
       this.redraw = false;
     } else if (View3D.on) View3D.idle();
+    else this.idleFlat();
     Snd.music();
   },
 

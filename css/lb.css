@@ -40,6 +40,8 @@
 .lb-on .board-list > div{max-width:640px;margin-left:auto;margin-right:auto}
 .lb-head{text-align:center;color:var(--bone2);font-size:15px;letter-spacing:.04em;padding:2px 0 10px}
 .lb-gap{text-align:center;color:var(--bone3);line-height:1;padding:0 0 6px}
+.board-row.pin{position:sticky;top:-6px;z-index:2;margin-bottom:12px;box-shadow:inset 4px 0 0 var(--paint),0 6px 10px rgba(0,0,0,.55)}
+.board-row .rank{min-width:34px;width:auto}
 .board-row .lb-meta{color:var(--bone3);font-size:12px;white-space:nowrap}
 #lbNickBtn{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);white-space:nowrap}
 @media (max-width:420px){.board-row .lb-meta{display:none}}

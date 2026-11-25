@@ -166,6 +166,25 @@ canvas#game3d{position:fixed;inset:0;width:100%;height:100%;display:block}
   background:radial-gradient(circle at 35% 35%,#fff0c0,var(--gold) 45%,#8a6a20);
   clip-path:polygon(50% 0,100% 30%,85% 100%,15% 100%,0 30%)}
 
+.shop-on .coins-row,.shop-on #shopCoinsBox{cursor:pointer}
+.shop-on .coins-row b:after,.shop-on #shopCoinsBox b:after{content:"+";display:inline-block;margin-left:7px;width:17px;height:17px;
+  line-height:16px;text-align:center;font-weight:700;font-size:14px;color:#1d150b;background:var(--gold);border-radius:3px;vertical-align:1px}
+.shop-on .coins-row:hover b,.shop-on #shopCoinsBox:hover b{filter:brightness(1.2)}
+.buy-list{grid-template-columns:repeat(auto-fill,minmax(210px,1fr));max-width:980px;margin:0 auto}
+.item.buy{align-items:flex-start;gap:8px;min-height:132px}
+.item.buy .buy-n{font-size:30px;font-weight:700;color:var(--gold);letter-spacing:.04em;line-height:1.1;flex:0 0 auto}
+.item.buy .buy-n:before{content:"";display:inline-block;width:17px;height:17px;margin-right:8px;vertical-align:1px;
+  background:radial-gradient(circle at 35% 35%,#fff0c0,var(--gold) 45%,#8a6a20);
+  clip-path:polygon(50% 0,100% 30%,85% 100%,15% 100%,0 30%)}
+.item.buy .buy-box{display:flex;flex-direction:column;align-items:flex-start;gap:5px}
+.item.buy .buy-bonus{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#1d150b;
+  background:var(--paint);padding:1px 8px;transform:rotate(-2deg);box-shadow:1px 2px 0 rgba(0,0,0,.4)}
+.item.buy .price{font-size:16px;padding:4px 14px;margin-top:auto}
+.screen.crash.gfx-lost{cursor:default;gap:14px}
+.item.buy.busy{pointer-events:none;filter:saturate(.5) brightness(.8)}
+.item.buy.owned{cursor:default}
+.item.buy.owned:hover{filter:none;transform:none}
+
 .grid-list{position:absolute;top:64px;bottom:0;left:0;right:0;overflow-y:auto;padding:16px;
   display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px;align-content:start}
 .item{background:var(--plate);padding:14px;clip-path:var(--cut);
@@ -241,6 +260,8 @@ canvas#game3d{position:fixed;inset:0;width:100%;height:100%;display:block}
 .q-row{display:flex;gap:5px;margin-left:auto}
 .btn.q{padding:6px 9px;font-size:12px;letter-spacing:.05em}
 .btn.q.active{color:#1d150b;background:var(--noise),linear-gradient(180deg,#f4bd4c,var(--paint2))}
+.btn.q:disabled{opacity:.35;pointer-events:none}
+.q-note{flex-basis:100%;font-style:normal;font-size:11px;opacity:.65;text-align:right}
 .btn.lang.active{color:#1d150b;background:var(--noise),linear-gradient(180deg,#f4bd4c,var(--paint2))}
 .ver{text-align:center;color:var(--bone3);font-size:12px;letter-spacing:.1em}
 

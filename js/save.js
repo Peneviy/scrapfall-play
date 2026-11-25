@@ -22,6 +22,7 @@ var Save = {
       bosses: {},
       prestige: 0, prestigeOld: 0, nakal: -1,
       wins: 0, winBest: 0,
+      noAds: 0, paid: [],
       set: { sfx: 1, music: 1, shake: 1, low: 0, lang: null, aim: 'auto', zoom: 1, vol: 0.5 }
     };
   },
@@ -103,7 +104,7 @@ var Save = {
   },
 
   upMax: 10,
-  upBase: { dmg: 400, hp: 350, spd: 460, xp: 520, loot: 580, cd: 630, radius: 720, tech: 750 },
+  upBase: { dmg: 400, hp: 350, spd: 460, xp: 520, loot: 580, cd: 630, radius: 720, tech: 751.5 },
   upCost: function (key, lvl) {
     if (lvl === undefined) lvl = this.data.up[key] || 0;
     var base = this.upBase[key] || 400;

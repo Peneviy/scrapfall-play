@@ -1422,7 +1422,7 @@ var Enemies = {
     var pos = Bosses.spot(p.x, p.y, L.dMin, L.dMax);
     var e = this.spawn('boss', pos.x, pos.y, false);
     e.bd = bd;
-    e.r = bd.r * (View3D.on ? 1.2 : 1);
+    e.r = bd.r * 1.2;
     e.speed = bd.speed * (1 + cycle * 0.12);
     e.dmg *= bd.dmgMul;
     e.hp = e.maxHp = e.maxHp * bd.hpMul * (1 + cycle * 0.8);

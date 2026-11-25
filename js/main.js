@@ -19,6 +19,7 @@
       Game.init(canvas);
       Input.init(canvas);
       UI.init();
+      Shop.init();
 
       Snd.setSfx(Save.data.set.sfx);
       Snd.setMusic(Save.data.set.music);

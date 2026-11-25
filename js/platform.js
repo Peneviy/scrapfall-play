@@ -313,7 +313,7 @@ var PF = {
     return Math.max(0, Math.ceil((this.fsGap || CFG.ads.fullscreenGap) - (this.now() - this.lastFullscreen)));
   },
   canFullscreen: function (where) {
-    if (this.adsOff) return false;
+    if (this.adsOff || this.noAds) return false;
     if (this.cg && where) return false;
     return !this.adRunning && this.fullscreenLeft() === 0;
   },
@@ -376,7 +376,7 @@ var PF = {
   },
 
   _backInGame: function (cb) {
-    var t0 = Date.now(), evs = ['pointerdown', 'keydown'];
+    var t0 = Date.now(), evs = ['pointerdown'];
     var off = function () { evs.forEach(function (ev) { window.removeEventListener(ev, h, true); }); };
     var h = function () {
       if (Date.now() - t0 < 1500) return;
@@ -567,9 +567,80 @@ var PF = {
   banner: function (show) {
     if (!this.ysdk) return;
     try {
-      if (show) this.ysdk.adv.showBannerAdv();
+      if (show && !this.noAds) this.ysdk.adv.showBannerAdv();
       else this.ysdk.adv.hideBannerAdv();
     } catch (e) {}
+  },
+
+  noAds: false,
+
+  shopTest: (function () {
+    try {
+      var m = /[?&]shoptest=(\w+)/.exec(location.search);
+      return m && /^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? m[1] : '';
+    } catch (e) { return ''; }
+  })(),
+
+  payStart: function () { this._adStart(false); },
+  payEnd: function () { if (this.adRunning) this._adEnd(); },
+
+  store: function () {
+    var self = this;
+    if (this.pkb && this.pkb.store) {
+      var st = this.pkb.store;
+      var norm = function (q) { return { id: q.productId, token: q.purchaseId, consumable: !!q.isConsumable }; };
+      return {
+        catalog: function (cb) {
+          try {
+            st.getProducts().then(function (list) {
+              cb((list || []).map(function (q) {
+                return { id: q.id, price: q.formattedPrice || (Math.round(q.price / 100) + ' \u20bd') };
+              }));
+            }).catch(function () { cb([]); });
+          } catch (e) { cb([]); }
+        },
+        owned: function (cb) {
+          try {
+            st.getPurchases().then(function (list) { cb((list || []).map(norm)); }).catch(function () { cb([]); });
+          } catch (e) { cb([]); }
+        },
+        buy: function (id, cb) {
+          try {
+            st.purchase({ productId: id }).then(function (r) {
+              if (r && r.success && r.purchase) cb(norm(r.purchase));
+              else cb(null, (r && r.reason) || 'UNKNOWN');
+            }).catch(function () { cb(null, 'UNKNOWN'); });
+          } catch (e) { cb(null, 'UNKNOWN'); }
+        },
+        consume: function (token) {
+          var go = function () { try { st.consumePurchase(token).catch(function () {}); } catch (e) {} };
+          if (!self.pkb.storage) { go(); return; }
+          try {
+            self._pkbLastFlush = self.now();
+            self.pkb.storage.flush().then(go).catch(function () {});
+          } catch (e) {}
+        }
+      };
+    }
+    if (this.shopTest) {
+      var fail = this.shopTest === 'fail';
+      return {
+        catalog: function (cb) {
+          var list = CFG.shop.packs.map(function (q, i) { return { id: q.id, price: [10, 25, 50, 100, 500][i] + ' \u20bd' }; });
+          list.push({ id: CFG.shop.noAds, price: '30 \u20bd' });
+          cb(list);
+        },
+        owned: function (cb) { cb(window.SHOP_TEST_OWNED || []); },
+        buy: function (id, cb) {
+          self._fakeAd(function () {
+            if (fail) cb(null, 'UNKNOWN');
+            else cb({ id: id, token: 'test' + Date.now(), consumable: id !== CFG.shop.noAds });
+          }, 1);
+        },
+        consume: function (token) { (window.SHOP_TEST_USED = window.SHOP_TEST_USED || []).push(token); }
+      };
+    }
+    return null;
   },
 
   noSave: (function () { try { return /[?&]nosave=1/.test(location.search); } catch (e) { return false; } })(),

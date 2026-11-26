@@ -1,5 +1,5 @@
 var CFG = {
-  version: '3.12',
+  version: '3.14',
   platform: 'pikabu',
   debug: false,
   metrics: { url: 'https://scrapfall-metrics.peneviy.workers.dev/e', dev: '' },
@@ -68,7 +68,8 @@ var CFG = {
   maps: {
     list: [
       { id: 'scrap', theme: 'scrap', hp: 1, dmg: 1, coin: 1, score: 1 },
-      { id: 'sea', theme: 'sea', need: 'scrap', hp: 1.4, dmg: 1.2, coin: 1.5, score: 1.5 }
+      { id: 'sea', theme: 'sea', need: 'scrap', hp: 1.25, dmg: 1.25, coin: 1.25, score: 1.25,
+        sp: { from: 0.5, fromBoss: 1, small: 0.4, plateau: 1.7, opening: { grunt: 8, runner: 6, spitter: 3, brute: 1 } } }
     ],
     soon: 5
   },

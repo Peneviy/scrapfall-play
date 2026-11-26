@@ -155,8 +155,34 @@ var Snd = {
   },
   setMusic: function (v) {
     this.musicOn = !!v;
-    if (this.musGain) this.musGain.gain.value = v ? this.musVol : 0;
-    if (this.musVerb) this.musVerb.gain.value = v ? 1 : 0;
+    var on = this.musicOn && !this.musPaused;
+    if (this.musGain) this.musGain.gain.value = on ? this.musVol : 0;
+    if (this.musVerb) this.musVerb.gain.value = on ? 1 : 0;
+  },
+  musPaused: false,
+  musPause: function (on) {
+    on = !!on;
+    if (on === this.musPaused) return on;
+    var c = this.ctx, now = c ? c.currentTime : 0;
+    this.musPaused = on;
+    if (on) this.musHoldT = now;
+    else if (c) {
+      var d = Math.max(0, now - (this.musHoldT || now));
+      if (this.pc) this.pc.t0 += d;
+      if (this.lastChordT) this.lastChordT += d;
+    }
+    var want = this.musicOn && !on;
+    if (c && this.musGain) {
+      try {
+        this.musGain.gain.cancelScheduledValues(now);
+        this.musGain.gain.setTargetAtTime(want ? this.musVol : 0, now, 0.06);
+        if (this.musVerb) {
+          this.musVerb.gain.cancelScheduledValues(now);
+          this.musVerb.gain.setTargetAtTime(want ? 1 : 0, now, 0.06);
+        }
+      } catch (e) { this.setMusic(this.musicOn); }
+    }
+    return on;
   },
 
   mute: function (m) {
@@ -840,6 +866,10 @@ var Snd = {
     likeMenu: 1,
     leadKey: 1,
     avoid: 1,
+    seaWind: 0.5,
+    surf: 0.3,
+    buoy: 0.05,
+    buoyOften: 0.3,
     cut: 1,
     night: 0.35,
     heart: 0.16,
@@ -866,14 +896,30 @@ var Snd = {
     { n: 'рассвет', q: 1, h: 1, m: [[0, 2, 1], [1, 4, 1], [2, 7, 2], [4, 5, 1], [5, 4, 1], [6, 2, 2]] },
     { n: 'вера', q: 0, h: 1, m: [[0, 4, 1], [1, 5, 1], [2, 4, 1], [3, 2, 1], [4, 1, 1], [5, 2, 1], [6, 0, 2]] },
     { n: 'тепло', q: 0, h: 1, m: [[0, 1, 1], [1, 2, 1], [2, 4, 2], [4, 2, 1], [5, 1, 1], [6, 0, 2]] }
-  ],
+  ].concat([
+    { n: 'прилив', q: 1, m: [[0, 0, 2], [2, 1, 1], [3, 2, 3], [6, 4, 5], [11, 5, 1], [12, 4, 2], [14, 2, 1], [15, 4, 9]] },
+    { n: 'качка', q: 1, m: [[0, 4, 2], [2, 2, 1], [3, 4, 3], [6, 7, 6], [12, 4, 2], [14, 2, 1], [15, 1, 9]] },
+    { n: 'парус', q: 1, m: [[0, 0, 3], [3, 2, 2], [5, 4, 1], [6, 7, 5], [11, 6, 1], [12, 4, 12]] },
+    { n: 'чайка', q: 1, m: [[0, 4, 3], [3, 7, 5], [8, 4, 1], [9, 2, 3], [12, 4, 2], [14, 5, 1], [15, 7, 3], [18, 4, 6]] },
+    { n: 'волна', q: 1, m: [[0, 2, 2], [2, 1, 1], [3, 4, 3], [6, 7, 2], [8, 5, 1], [9, 4, 3], [12, 2, 3], [15, 4, 9]] },
+    { n: 'отлив', q: 0, m: [[0, 4, 2], [2, 3, 1], [3, 2, 2], [5, 1, 1], [6, 0, 6], [12, 2, 2], [14, 1, 1], [15, 0, 9]] },
+    { n: 'причал', q: 0, m: [[0, 2, 3], [3, 4, 2], [5, 2, 1], [6, 1, 3], [9, 2, 3], [12, 0, 12]] },
+    { n: 'якорь', q: 0, m: [[0, 0, 2], [2, -1, 1], [3, 0, 3], [6, 2, 5], [11, 1, 1], [12, 0, 12]] },
+    { n: 'зыбь', q: 0, m: [[0, 4, 5], [5, 5, 1], [6, 4, 2], [8, 2, 1], [9, 1, 3], [12, 2, 6], [18, 0, 6]] },
+    { n: 'гавань', q: 0, m: [[0, 7, 2], [2, 6, 1], [3, 4, 3], [6, 2, 2], [8, 4, 1], [9, 2, 3], [12, 1, 5], [17, -1, 1], [18, 0, 6]] }
+  ].map(function (o) {
+    return { n: o.n, q: o.q, sea: 1, m: o.m.map(function (x) { return [x[0] / 3, x[1], x[2] / 3]; }) };
+  })),
   tailM: [[0, 2, 3], [4, 0, 4]],
   scMin: [0, 2, 3, 5, 7, 8, 10],
   scMaj: [0, 2, 4, 5, 7, 9, 11],
   tones: {
     piano: { h: [0, 1, 0.42, 0.2, 0.1, 0.05, 0.025], br: 5, dk: 1.3, atk: 0.008, rel: 0.7, bell: 0, reg: 0 },
     bell: { h: [0, 1, 0.1, 0.05, 0, 0.015], br: 3, dk: 1.9, atk: 0.009, rel: 1.0, bell: 2.76, bv: 0.17, btc: 0.26, reg: 1 },
-    box: { h: [0, 1, 0.08, 0.04], br: 3, dk: 0.9, atk: 0.003, rel: 0.6, bell: 4.07, bv: 0.16, btc: 0.12, reg: 7 }
+    box: { h: [0, 1, 0.08, 0.04], br: 3, dk: 0.9, atk: 0.003, rel: 0.6, bell: 4.07, bv: 0.16, btc: 0.12, reg: 7 },
+    squeeze: { h: [0, 1, 0.5, 0.36, 0.18, 0.12, 0.06, 0.035, 0.02], br: 4, dk: 1.6, atk: 0.07, rel: 0.16, sus: 0.72, det: 4, lv: 0.46, reg: -1, sea: 1 },
+    whistle: { h: [0, 1, 0.14, 0.06, 0.02], br: 4, dk: 1.2, atk: 0.06, rel: 0.14, sus: 0.8, vib: 4.7, vibD: 7, lv: 0.44, reg: 4, sea: 1 },
+    lute: { h: [0, 1, 0.5, 0.34, 0.2, 0.12, 0.07, 0.04], br: 4.5, dk: 0.85, atk: 0.004, rel: 0.5, bell: 0, reg: 0, sea: 1 }
   },
 
   bpm: 96,
@@ -891,6 +937,16 @@ var Snd = {
   degMaj: [[0, 0, 5], [9, 1, 4], [5, 0, 3], [4, 1, 2], [2, 1, 2], [7, 0, 1]],
   fluteMin: [0, 2, 3, 5, 7, 8, 10, 12, 14, 15],
   fluteMaj: [0, 2, 4, 5, 7, 9, 11, 12, 14, 16],
+  scDor: [0, 2, 3, 5, 7, 9, 10],
+  scMix: [0, 2, 4, 5, 7, 9, 10],
+  degDor: [[0, 1, 5], [10, 0, 4], [5, 0, 4], [3, 0, 3], [7, 1, 2]],
+  degMix: [[0, 0, 5], [10, 0, 4], [5, 0, 4], [7, 1, 3], [2, 1, 2]],
+  seaProgMin: [[0, 1, 2, 1], [0, 1, 0, 2], [0, 2, 1, 2], [0, 3, 1, 2], [0, 1, 3, 2], [0, 4, 1, 2], [0, 2, 0, 1], [0, 1, 0, 4]],
+  seaProgMaj: [[0, 1, 2, 1], [0, 1, 0, 2], [0, 2, 1, 2], [0, 3, 1, 2], [0, 4, 1, 2], [0, 3, 2, 1], [0, 2, 0, 1]],
+  fluteDor: [0, 2, 3, 5, 7, 9, 10, 12, 14, 15],
+  fluteMix: [0, 2, 4, 5, 7, 9, 10, 12, 14, 16],
+  degs: function (p) { return p.sea ? (p.minor ? this.degDor : this.degMix) : (p.minor ? this.degMin : this.degMaj); },
+  scale: function (p) { return p.sea ? (p.minor ? this.scDor : this.scMix) : (p.minor ? this.scMin : this.scMaj); },
   vShapes: [[0, 100, 7, 12], [0, 7, 112, 19], [0, 7, 14, 112], [0, 100, 7, 200]],
   vLv: [1, 0.85, 0.75, 0.6],
   lowDay: [0, 6, 8, 14],
@@ -920,6 +976,7 @@ var Snd = {
       [0, 2, 3, 4, 3, 2, 1, 2, 3, 5, 3, 2], [0, 3, 2, 4, 3, 2, 0, 3, 2, 5, 4, 3]]
   },
   arpArc: { 'развитие': [[0.15, 0.35], [0.35, 0.5], [0.5, 0.65], [0.65, 0.8]], 'вершина': [[0.85, 1], [1, 1]] },
+  arpSea: [[0, 2, 3, 5, 3, 2], [0, -1, 2, 3, -1, 2], [0, 2, 3, 2, 5, 2], [0, -1, 3, 2, -1, 1]],
 
   wantLayer: function () {
     if (!Game.running || Game.over) return 0;
@@ -932,6 +989,9 @@ var Snd = {
     return (typeof View3D !== 'undefined' && View3D.on && Game.running) ? View3D.dark : 0;
   },
   wantHot: function () { return !!(window.Finale && Finale.frenzy() && Game.running); },
+  wantSea: function () {
+    try { return typeof Maps !== 'undefined' && Maps.theme() === 'sea'; } catch (e) { return false; }
+  },
   wantFz: function () {
     if (!window.Finale || !Finale.frenzy() || !Game.running) return null;
     return { el: Game.time - Finale.t0, len: Math.max(30, Finale.t - Finale.t0), rep: !!(Finale.repAlive && Finale.repAlive()) };
@@ -944,7 +1004,7 @@ var Snd = {
 
   music: function () {
     var c = this.ctx;
-    if (!c || c.state !== 'running' || this.musDead) return;
+    if (!c || c.state !== 'running' || this.musDead || this.musPaused) return;
     try { this.musicRun(); } catch (e) {
       this.musDead = true;
       if (window.console) console.error('music', e);
@@ -1086,6 +1146,7 @@ var Snd = {
     mg.connect(mb.bus);
     mb.wMel = {};
     for (var tn in this.tones) {
+      if (this.tones[tn].sea) continue;
       var th = this.tones[tn].h;
       mb.wMel[tn] = c.createPeriodicWave(new Float32Array(th.length), new Float32Array(th));
     }
@@ -1111,8 +1172,18 @@ var Snd = {
     mb.d1.start();
     mb.d2.start();
 
-    this.pc = this.makePiece(null, false, this.noFav ? null : this.favPiece);
+    this.pc = this.makePiece(null, false, this.noFav ? (this.wantSea() ? { sea: 1 } : null) : this.favPiece);
     this.pieceStart(c.currentTime + 0.1, true);
+  },
+
+  seaBuild: function () {
+    var mb = this.mb, c = this.ctx;
+    if (!mb || mb.seaOk) return;
+    mb.seaOk = true;
+    for (var tn in this.tones) {
+      var th = this.tones[tn].h;
+      if (this.tones[tn].sea && !mb.wMel[tn]) mb.wMel[tn] = c.createPeriodicWave(new Float32Array(th.length), new Float32Array(th));
+    }
   },
 
   makePiece: function (prev, night, o) {
@@ -1120,7 +1191,7 @@ var Snd = {
     var seed = o.seed !== undefined ? o.seed : Math.floor(this.mr() * 4294967296);
     this.prs = seed;
     var self = this, r = function () { return self.pr(); };
-    var M = this.mus, tonic, minor, i, x, tot, last;
+    var M = this.mus, tonic, minor, i, x, tot, last, sea = !!o.sea && !o.fav;
     if (o.tonic !== undefined) { tonic = o.tonic; minor = !!o.minor; }
     else if (!prev) {
       tonic = Math.floor(r() * 12);
@@ -1136,9 +1207,12 @@ var Snd = {
       } else tonic += r() < 0.5 ? 5 : 7;
       tonic %= 12;
     }
-    var deg = minor ? this.degMin : this.degMaj, prog;
+    var deg = sea ? (minor ? this.degDor : this.degMix) : (minor ? this.degMin : this.degMaj), prog;
     if (o.prog) prog = o.prog.slice();
-    else if (r() < 0.4) {
+    else if (sea) {
+      x = minor ? this.seaProgMin : this.seaProgMaj;
+      prog = x[Math.floor(r() * x.length)].slice();
+    } else if (r() < 0.4) {
       prog = minor ? [0, 2, r() < 0.6 ? 1 : 3, 2] : [0, 1, r() < 0.65 ? 2 : 4, 1];
     } else {
       prog = [r() < 0.7 ? 0 : (r() < 0.5 ? 1 : 3)];
@@ -1171,6 +1245,7 @@ var Snd = {
       x = prog[1]; prog[1] = prog[2]; prog[2] = x;
     }
     var pool = night ? ['piano', 'bell'] : ['piano', 'bell', 'box'], tone = o.tone || M.tone;
+    if (sea) pool = night ? ['squeeze', 'lute'] : ['squeeze', 'whistle', 'lute'];
     if (!tone) {
       if (prev && pool.length > 1 && pool.indexOf(prev.tone) >= 0) pool.splice(pool.indexOf(prev.tone), 1);
       tone = pool[Math.floor(r() * pool.length)];
@@ -1178,23 +1253,24 @@ var Snd = {
     var bpm = o.bpm || (night ? 44 + r() * 6 : 48 + r() * 12);
     var beat = 60 / (bpm * M.tempo);
     var center = o.center || ((night ? 62 : 66) + Math.floor(r() * 4) + this.tones[tone].reg);
-    var hope = o.hope || (!minor && !night && r() < 0.5);
+    var hope = o.hope || (!sea && !minor && !night && r() < 0.5);
     var used = prev && !o.fav ? prev.mot : [];
     var pick = function (q, avoid) {
       var c = [], k;
       for (k = 0; k < self.motifs.length; k++) {
         var m = self.motifs[k];
+        if (!m.sea !== !sea) continue;
         if (q >= 0 && m.q !== q) continue;
         if (avoid.indexOf(k) >= 0 || used.indexOf(k) >= 0) continue;
         if (hope && !m.h && q >= 0) continue;
         c.push(k);
       }
-      if (!c.length) for (k = 0; k < self.motifs.length; k++) if (avoid.indexOf(k) < 0 && (q < 0 || self.motifs[k].q === q)) c.push(k);
+      if (!c.length) for (k = 0; k < self.motifs.length; k++) if (!self.motifs[k].sea === !sea && avoid.indexOf(k) < 0 && (q < 0 || self.motifs[k].q === q)) c.push(k);
       return c[Math.floor(r() * c.length)];
     };
     var mQ = pick(1, []), mA = pick(0, [mQ]), mD = pick(-1, [mQ, mA]);
     var p = {
-      seed: seed, fav: !!o.fav, night: !!night,
+      seed: seed, fav: !!o.fav, night: !!night, sea: sea,
       from: prev ? { tonic: prev.tonic, minor: prev.minor, tone: prev.tone, mot: prev.mot, prog: prev.prog } : null,
       tonic: tonic, minor: minor, prog: prog, idx: 0, k: 0,
       bpm: bpm, beat: beat, len: 8 * beat,
@@ -1209,7 +1285,7 @@ var Snd = {
       cutMul: 1, arcCut: 1, padLv: 1, varN: 2, breath: false, req: ''
     };
     p.plan = this.makePlan(mQ, mA, mD, r, !!o.fav);
-    if (M.likeBias > 0 && o.tonic === undefined && !minor && !night && this.sh(seed, 5) < M.likeBias) {
+    if (M.likeBias > 0 && !sea && o.tonic === undefined && !minor && !night && this.sh(seed, 5) < M.likeBias) {
       if (tone !== 'bell' && !M.tone && !o.tone && !(prev && prev.tone === 'bell')) {
         p.center += this.tones.bell.reg - this.tones[tone].reg;
         p.tone = 'bell';
@@ -1218,7 +1294,7 @@ var Snd = {
       if (p.det > 7.8) p.det = 7.8;
       p.likeLike = true;
     }
-    p.arp = !!o.fav || this.sh(seed, 7) < M.arpShare * (night ? 0.5 : 1);
+    p.arp = !!o.fav || this.sh(seed, 7) < M.arpShare * (night ? 0.5 : 1) * (sea ? 1.5 : 1);
     p.arpP = Math.floor(this.sh(seed, 11) * 64);
     return p;
   },
@@ -1269,8 +1345,8 @@ var Snd = {
       mb.v[i].oL.detune.setTargetAtTime(-p.det, T, 2);
       mb.v[i].oR.detune.setTargetAtTime(p.det, T, 2);
     }
-    mb.dL.delayTime.setTargetAtTime(Math.min(0.98, p.beat * 0.5), T, 0.5);
-    mb.dR.delayTime.setTargetAtTime(Math.min(0.98, p.beat * 0.75), T, 0.5);
+    mb.dL.delayTime.setTargetAtTime(Math.min(0.98, p.beat * this.echoK(p, 0)), T, 0.5);
+    mb.dR.delayTime.setTargetAtTime(Math.min(0.98, p.beat * this.echoK(p, 1)), T, 0.5);
     mb.es.gain.setTargetAtTime(this.mus.echo, T, 0.5);
     for (i = this.mq.length - 1; i >= 0; i--) if (this.mq[i].t > T + 0.5) this.mq.splice(i, 1);
     this.padTo(T, first ? 2 : 3);
@@ -1278,7 +1354,13 @@ var Snd = {
     this.melSlot(t1, s);
     this.arpSeg(T, s);
     this.chordT = t1 + p.len;
+    if (p.sea) {
+      this.seaBuild();
+      this.seaWave(T + (first ? 0 : 2.7));
+    }
   },
+
+  echoK: function (p, right) { return p.sea ? (right ? 2 / 3 : 1 / 3) : (right ? 0.75 : 0.5); },
 
   vGain: function (v, val, t, tc) {
     v.gL.gain.setTargetAtTime(val, t, tc);
@@ -1287,7 +1369,7 @@ var Snd = {
 
   padTo: function (T, mode) {
     var p = this.pc, mb = this.mb, i, k, x;
-    var d = (p.minor ? this.degMin : this.degMaj)[p.prog[p.idx]];
+    var d = this.degs(p)[p.prog[p.idx]];
     var semi = (p.tonic + d[0]) % 12, minor = d[1];
     var root = 146.83 * Math.pow(2, ((semi + 2) % 12) / 12);
     var sh = this.vShapes[p.voice];
@@ -1349,6 +1431,7 @@ var Snd = {
       this.arpSeg(T, s);
       this.lastChordT = T;
       this.chordT = T + p.len;
+      if (p.sea) this.seaWave(T);
       return;
     }
     if (--p.varN <= 0) this.vary(T);
@@ -1356,12 +1439,66 @@ var Snd = {
     if (!frozen) this.melSlot(T, s);
     this.arpSeg(T, s);
     this.chordT = T + p.len;
+    if (p.sea) this.seaWave(T);
+  },
+
+  seaWave: function (T) {
+    var p = this.pc, M = this.mus, c = this.ctx;
+    var n = p.waveN = (p.waveN || 0) + 1;
+    if (!this.musicOn) return;
+    var h = this.sh(p.seed, 300 + n), h2 = this.sh(p.seed, 400 + n);
+    var boss = this.drumLv >= 0.5, night = this.mood > 0.5;
+    var rise = 2.7 + 0.8 * h2, fall = 1.3 + 0.6 * h, t0 = T + 0.1, tp = t0 + rise;
+    if (M.surf > 0) {
+      var vol = M.surf * (0.7 + 0.3 * h) * (boss ? 0.5 : 1) * (night ? 0.85 : 1);
+      var src = c.createBufferSource(), hp = c.createBiquadFilter(), lp = c.createBiquadFilter(), g = c.createGain();
+      var pn = c.createStereoPanner ? c.createStereoPanner() : null;
+      src.buffer = this.brown;
+      src.loop = true;
+      hp.type = 'highpass';
+      hp.frequency.value = 180;
+      hp.Q.value = 0.5;
+      lp.type = 'lowpass';
+      lp.Q.value = 0.6;
+      lp.frequency.setValueAtTime(340, t0);
+      lp.frequency.setTargetAtTime((night ? 1100 : 1500) + 600 * h, t0 + rise * 0.3, rise * 0.4);
+      lp.frequency.setTargetAtTime(420, tp, fall * 0.9);
+      g.gain.setValueAtTime(0, t0);
+      g.gain.setTargetAtTime(vol, t0, rise / 2.2);
+      g.gain.setTargetAtTime(0, tp, fall);
+      src.connect(hp);
+      hp.connect(lp);
+      lp.connect(g);
+      if (pn) {
+        var side = (h2 < 0.5 ? -1 : 1) * (0.25 + 0.3 * h);
+        pn.pan.setValueAtTime(side, t0);
+        pn.pan.linearRampToValueAtTime(-side * 0.7, tp + fall * 3);
+        g.connect(pn);
+        pn.connect(this.mb.bus);
+      } else g.connect(this.mb.bus);
+      src.start(t0, h * 1.5);
+      src.stop(tp + fall * 5.5);
+      src.onended = function () { g.disconnect(); lp.disconnect(); hp.disconnect(); if (pn) pn.disconnect(); };
+    }
+    if (M.buoy > 0 && n > 1 && !boss && this.sh(p.seed, 500 + n) < M.buoyOften) {
+      var bf = 440 * Math.pow(2, (64 + (p.tonic + (this.sh(p.seed, 3) < 0.5 ? 0 : 7)) % 12 - 69) / 12);
+      var bt = tp + 0.2 + 0.6 * h2, bv = M.buoy * (0.75 + 0.25 * h);
+      this.seaBell(bt, bf, bv);
+      if (this.sh(p.seed, 600 + n) < 0.6) this.seaBell(bt + 0.55 + 0.5 * h, bf, bv * 0.55);
+    }
+  },
+
+  seaBell: function (t, f, vol) {
+    var B = this.mb.bus;
+    this.osc({ t: t, type: 'sine', f0: f, dur: 3.4, vol: vol, atk: 0.006, bus: B, verb: 0.6 });
+    this.osc({ t: t, type: 'sine', f0: f * 2.76, dur: 1.2, vol: vol * 0.28, atk: 0.004, bus: B, verb: 0.6 });
+    this.osc({ t: t, type: 'sine', f0: f * 5.4, dur: 0.4, vol: vol * 0.09, atk: 0.003, bus: B, verb: 0.4 });
   },
 
   newPiece: function (T) {
-    var p = this.pc, fav = this.favWant || p.req === 'fav';
+    var p = this.pc, fav = this.favWant || p.req === 'fav', sea = !fav && this.wantSea();
     this.favWant = false;
-    if (!fav && p.fav && this.mus.likeMenu > 0 && this.layer === 0 && !this.nightSt) {
+    if (!fav && !sea && p.fav && this.mus.likeMenu > 0 && this.layer === 0 && !this.nightSt) {
       this.favN = (this.favN || 0) + 1;
       if (this.favN % 2 === 1) {
         var lk = this.likePiece, f = lk.from;
@@ -1372,7 +1509,7 @@ var Snd = {
         return;
       }
     }
-    this.pc = this.makePiece(p, this.nightSt, fav ? this.favPiece : null);
+    this.pc = this.makePiece(p, this.nightSt, fav ? this.favPiece : (sea ? { sea: 1 } : null));
     this.killSeen = this.wantKills();
     this.pieceStart(T, false);
   },
@@ -1398,7 +1535,7 @@ var Snd = {
   },
 
   chordScale: function (p, d) {
-    var sc = p.minor ? this.scMin : this.scMaj, root = d[0] % 12, j = sc.indexOf(root), cs = [], i;
+    var sc = this.scale(p), root = d[0] % 12, j = sc.indexOf(root), cs = [], i;
     if (j < 0) j = 0;
     for (i = 0; i < 7; i++) cs.push((sc[(j + i) % 7] - root + 12) % 12);
     cs[1] = 2; cs[2] = d[1] ? 3 : 4; cs[4] = 7;
@@ -1408,6 +1545,7 @@ var Snd = {
 
   melShape: function (s) {
     var src = s.m === -2 ? this.tailM : this.motifs[s.m].m, a = [], i, n, b;
+    var sea = s.m >= 0 && !!this.motifs[s.m].sea;
     for (i = 0; i < src.length; i++) a.push([src[i][0], src[i][1], src[i][2], 0]);
     if (s.frag) {
       a = a.slice(0, s.frag);
@@ -1421,7 +1559,8 @@ var Snd = {
       for (i = 0; i < t.length; i++) t[i][2] = (i + 1 < t.length ? t[i + 1][0] : 8) - t[i][0];
       a = t;
     }
-    if (s.v === 'dot') {
+    if (sea && (s.v === 'dot' || s.v === 'orn')) a = this.seaVar(a, s.v);
+    else if (s.v === 'dot') {
       for (i = 0; i < a.length - 1; i++) {
         if (a[i][2] === 1 && a[i + 1][0] === a[i][0] + 1 && a[i + 1][2] >= 1) {
           a[i][2] = 1.5; a[i + 1][0] += 0.5; a[i + 1][2] -= 0.5; i++;
@@ -1450,15 +1589,30 @@ var Snd = {
     for (i = 0; i < L; i++) {
       n = a[i];
       if (s.fill && n[2] >= 3) a.push([n[0] + 2, up(n[1]), n[2] - 2, 3]);
-      if (s.h && n[2] >= 1) a.push([n[0], n[1] - 2, n[2], 1]);
+      if (s.h && n[2] >= (sea ? 0.6 : 1)) a.push([n[0], n[1] - 2, n[2], 1]);
       if (s.o && n[0] % 2 === 0) a.push([n[0], n[1], n[2], 2]);
     }
     return a;
   },
 
+  seaVar: function (a, v) {
+    var o = [], i, n, k = 0;
+    for (i = 0; i < a.length; i++) {
+      o.push(a[i]);
+      n = a[i + 1];
+      if (v === 'dot') {
+        if (a[i][2] === 1 && k < 3) { a[i][2] = 2 / 3; o.push([a[i][0] + 2 / 3, a[i][1], 1 / 3, 0]); k++; }
+      } else if (n && Math.abs(n[1] - a[i][1]) === 2 && a[i][2] >= 1 && n[0] - a[i][0] >= 1 && n[0] - a[i][0] <= a[i][2] + 0.01) {
+        a[i][2] = n[0] - a[i][0] - 1 / 3;
+        o.push([n[0] - 1 / 3, (a[i][1] + n[1]) / 2, 1 / 3, 0]);
+      }
+    }
+    return o;
+  },
+
   melFit: function (s, idx) {
     var p = this.pc, a = this.melShape(s), i;
-    var d = (p.minor ? this.degMin : this.degMaj)[p.prog[idx]];
+    var d = this.degs(p)[p.prog[idx]];
     var rs = (p.tonic + d[0]) % 12, cs = this.chordScale(p, d);
     if (this.mus.avoid && cs[2] === 4) {
       var moved = {};
@@ -1511,7 +1665,7 @@ var Snd = {
     var r0 = F.r0, semi = F.semi, cs = F.cs;
     T += M.sync || 0;
     var ct = [0, cs[2], 7], PV = [1, 0.5, 0.26, 0.42], PP = [p.pan, -0.35, 0.4, -p.pan];
-    var key = p.minor ? this.scMin : this.scMaj, B = p.beat;
+    var key = this.scale(p), B = p.beat, sea = !!p.sea;
     var folV = Math.pow(p.padLv || 1, 2 * (M.follow || 0));
     var acc = M.acc > 0 && this.accWant(p, p.k), accMidi = -1, last = p.lastMel;
     if (acc && M.accUp) {
@@ -1539,7 +1693,7 @@ var Snd = {
       var q = {
         t: T + n[0] * B + (this.pr() - 0.5) * 0.02,
         f: 440 * Math.pow(2, (midi - 69) / 12),
-        v: M.mel * (s.lv || 1) * PV[part] * (even ? 1 : 0.85) * (0.92 + 0.08 * this.pr()) * folV * (isAcc ? M.acc : 1),
+        v: M.mel * (s.lv || 1) * PV[part] * (even ? 1 : (sea && n[0] % 1 > 0.01 ? 0.72 : 0.85)) * (0.92 + 0.08 * this.pr()) * folV * (isAcc ? M.acc : 1),
         d: Math.max(0.3, (isAcc ? Math.max(n[2], 2) : n[2]) * B), tone: p.tone, pan: PP[part], tail: isAcc ? M.accTail : 1,
         part: part, k: p.k, sec: s.sec, mot: s.m, strong: !part && even,
         ct: F.pcs.indexOf(((midi % 12) + 12) % 12) >= 0, midi: midi, seed: p.seed, acc: isAcc ? 1 : 0, lead: 0
@@ -1557,12 +1711,12 @@ var Snd = {
       else for (i = 0; i < NF.a.length; i++) if (!NF.a[i][3] && NF.a[i][0] === 0) A = NF.r0 + NF.semi(NF.a[i][1]);
       if (A > 0) {
         p.accA = { k: p.k + 1, midi: A };
-        var la = 8 - (M.leadAt || 1);
+        var la = 8 - (sea ? 1 / 3 : (M.leadAt || 1));
         if (M.lead && lastOn < la - 0.5) {
           var inKey = function (m) { return key.indexOf(((m - 52 - p.tonic) % 12 + 24) % 12) >= 0; };
           var L = A - 1;
           if (!inKey(L)) L = A - 2;
-          if (L === lastMidi) {
+          if (L === lastMidi && !sea) {
             if (L === A - 2) L = A - 1;
             else if (M.leadKey) { L--; while (!inKey(L)) L--; }
             else L = A - 2;
@@ -1583,12 +1737,13 @@ var Snd = {
     if (!(M.arp > 0)) return;
     var arc = s && this.arpArc[s.sec], j = 0;
     while (arc && p.k - j - 1 >= 0 && p.plan[p.k - j - 1].sec === s.sec) j++;
-    var d = (p.minor ? this.degMin : this.degMaj)[p.prog[p.idx]];
+    var d = this.degs(p)[p.prog[p.idx]];
     var night = p.night, st = M.arpStep * (night ? 1.5 : 1), sub = 4, b = 1e9;
     [3, 4, 6].forEach(function (n) { var e = Math.abs(p.beat / n - st); if (e < b) { b = e; sub = n; } });
     var cap = Math.min(p.center - 1, 64), pc = (4 + p.tonic + d[0]) % 12;
     var ra = cap - 12 - (((cap - 12 - pc) % 12) + 12) % 12;
-    var pats = this.arpPat[sub];
+    if (p.sea) sub = 3;
+    var pats = p.sea ? this.arpSea : this.arpPat[sub];
     var seg = { t0: T + (M.sync || 0), sw: T + 0.9, len: p.len, step: p.beat / sub, sub: sub, ra: ra, third: d[1] ? 3 : 4,
       lv: p.arp && arc ? arc[Math.min(j, arc.length - 1)] : null, peak: s && s.sec === 'вершина',
       pat: pats[(p.arpP + (s && s.sec === 'вершина' ? 1 : 0)) % pats.length], seed: p.seed, cap: cap };
@@ -1658,7 +1813,7 @@ var Snd = {
   arpHotStep: function (s, t) {
     var M = this.mus, p = this.pc;
     if (!(M.arpHot > 0) || !this.fzOn || !(M.arp > 0)) return;
-    var b = s % 16, dip = this.fzDip, d = (p.minor ? this.degMin : this.degMaj)[p.prog[p.idx]];
+    var b = s % 16, dip = this.fzDip, d = this.degs(p)[p.prog[p.idx]];
     var root = dip > 0.5 ? 0 : d[0], third = dip > 0.5 ? (p.minor ? 3 : 4) : (d[1] ? 3 : 4);
     var cap = 64, pc = (4 + p.tonic + root) % 12;
     var C = { ra: cap - 12 - (((cap - 12 - pc) % 12) + 12) % 12, third: third, cap: cap };
@@ -1725,7 +1880,7 @@ var Snd = {
     this.aim(mb.lp.frequency, p.cut * p.cutMul * p.arcCut * M.cut * (L >= 2 ? 1.3 : 1) * (1 - M.night * night) * (1 - 0.45 * dip), now, 3, 'cut');
     this.aim(mb.dg.gain, M.drone * (1 + 0.2 * night), now, 2, 'drone');
     this.aim(mb.dlp.frequency, 170 + (L >= 2 ? 40 : 0) - 40 * night, now, 2, 'dlp');
-    this.aim(mb.wind.gain, M.wind * (1 + 0.5 * night) * (p.breath ? 1.5 : 1) * (boss ? 0.6 : 1), now, 2, 'wind');
+    this.aim(mb.wind.gain, M.wind * (1 + 0.5 * night) * (p.breath ? 1.5 : 1) * (boss ? 0.6 : 1) * (p.sea ? M.seaWind : 1), now, 2, 'wind');
 
     if (night > 0.6) this.nightSt = true;
     else if (night < 0.4) this.nightSt = false;
@@ -1736,6 +1891,7 @@ var Snd = {
     if (this.favWant) { if (p.fav && !p.req) this.favWant = false; else this.musChange('fav'); }
     if (kills > this.killSeen && this.musChange('boss')) this.killSeen = kills;
     if (L > 0 && this.nightSt !== p.night) this.musChange(this.nightSt ? 'night' : 'day');
+    if (!p.rep && !!p.sea !== this.wantSea() && !(L === 0 && p.fav)) this.musChange('map');
 
     if (this.chordT < now - 2) this.chordT = now + 0.2;
     if (now + 0.3 >= this.chordT) this.chordStep(Math.max(this.chordT, now + 0.05));
@@ -1757,8 +1913,8 @@ var Snd = {
     } else if (this.dlyHot) {
       this.dlyHot = false;
       mb.aim.dLh = mb.aim.dRh = undefined;
-      mb.dL.delayTime.setTargetAtTime(Math.min(0.98, p.beat * 0.5), now, 0.5);
-      mb.dR.delayTime.setTargetAtTime(Math.min(0.98, p.beat * 0.75), now, 0.5);
+      mb.dL.delayTime.setTargetAtTime(Math.min(0.98, p.beat * this.echoK(p, 0)), now, 0.5);
+      mb.dR.delayTime.setTargetAtTime(Math.min(0.98, p.beat * this.echoK(p, 1)), now, 0.5);
     }
 
     var hw = (L === 2 && on) ? 1 : 0;
@@ -1779,6 +1935,10 @@ var Snd = {
 
   melNote: function (t, f, vol, dur, tone, pan, tail, cm) {
     var c = this.ctx, T = this.tones[tone] || this.tones.piano, dk = T.dk * (tail || 1);
+    if (T.sea) {
+      if (!this.mb.wMel[tone]) this.seaBuild();
+      if (T.sus) { this.seaNote(t, f, vol, dur, T, tone, pan, tail, cm); return; }
+    }
     var o = c.createOscillator(), lp = c.createBiquadFilter(), g = c.createGain(), o2 = null, g2 = null;
     o.setPeriodicWave(this.mb.wMel[tone] || this.mb.wMel.piano);
     o.frequency.value = f;
@@ -1820,11 +1980,64 @@ var Snd = {
     };
   },
 
+  seaNote: function (t, f, vol, dur, T, tone, pan, tail, cm) {
+    var c = this.ctx, mb = this.mb, w = mb.wMel[tone], rel = T.rel * (tail || 1);
+    var o = c.createOscillator(), lp = c.createBiquadFilter(), g = c.createGain(), o2 = null, vib = null, vg = null;
+    var v = vol * T.lv, end = t + dur + rel * 7;
+    o.setPeriodicWave(w);
+    o.frequency.value = f;
+    lp.type = 'lowpass';
+    lp.Q.value = 0.5;
+    var top = Math.min(this.mus.melCut, f * T.br) * (cm || 1), low = Math.max(f * 1.2, top * 0.55);
+    lp.frequency.setValueAtTime(low, t);
+    lp.frequency.setTargetAtTime(top, t, T.atk * 1.5);
+    lp.frequency.setTargetAtTime(low, t + dur, rel * 2);
+    g.gain.setValueAtTime(0, t);
+    g.gain.setTargetAtTime(v, t, T.atk / 3);
+    g.gain.setTargetAtTime(v * T.sus, t + T.atk, T.dk * (tail || 1));
+    g.gain.setTargetAtTime(0, t + dur, rel);
+    o.connect(lp);
+    if (T.det) {
+      o2 = c.createOscillator();
+      o2.setPeriodicWave(w);
+      o2.frequency.value = f;
+      o.detune.value = -T.det;
+      o2.detune.value = T.det;
+      o2.connect(lp);
+    }
+    if (T.vib) {
+      vib = c.createOscillator();
+      vg = c.createGain();
+      vib.frequency.value = T.vib;
+      vg.gain.setValueAtTime(0, t);
+      vg.gain.setTargetAtTime(T.vibD, t + 0.25, 0.3);
+      vib.connect(vg);
+      vg.connect(o.detune);
+    }
+    lp.connect(g);
+    var pn = c.createStereoPanner ? c.createStereoPanner() : null;
+    if (pn) {
+      pn.pan.value = pan || 0;
+      g.connect(pn);
+      pn.connect(mb.keys);
+    } else g.connect(mb.keys);
+    o.start(t);
+    o.stop(end);
+    if (o2) { o2.start(t); o2.stop(end); }
+    if (vib) { vib.start(t); vib.stop(end); }
+    o.onended = function () {
+      g.disconnect(); lp.disconnect();
+      if (vg) vg.disconnect();
+      if (pn) pn.disconnect();
+    };
+  },
+
   musReplay: function (rec) {
     if (!this.mb || !rec) return;
     var f = rec.from;
     this.pc = this.makePiece(f ? { tonic: f.tonic, minor: f.minor, tone: f.tone, mot: f.mot, prog: f.prog } : null,
-      !!rec.night, rec.fav ? this.favPiece : { seed: rec.seed });
+      !!rec.night, rec.fav ? this.favPiece : { seed: rec.seed, sea: !!rec.sea });
+    this.pc.rep = 1;
     this.killSeen = this.wantKills();
     this.pieceStart(this.ctx.currentTime + 0.1, false);
   },
@@ -1834,7 +2047,7 @@ var Snd = {
     if (!p || !this.ctx) return;
     var self = this, list = [];
     var rec = {
-      at: new Date().toISOString(), ver: window.CFG && CFG.version, seed: p.seed, fav: p.fav, night: p.night, from: p.from,
+      at: new Date().toISOString(), ver: window.CFG && CFG.version, seed: p.seed, fav: p.fav, night: p.night, sea: p.sea, from: p.from,
       tonic: p.tonic, minor: p.minor, prog: p.prog, bpm: Math.round(p.bpm * 10) / 10, tone: p.tone, center: p.center,
       mot: p.mot.map(function (k) { return self.motifs[k].n; }), cut: Math.round(p.cut), det: Math.round(p.det * 10) / 10,
       sec: Math.round((this.ctx.currentTime - p.t0) * 10) / 10, slot: p.k, part: p.plan[p.k] && p.plan[p.k].sec,
@@ -1953,7 +2166,7 @@ var Snd = {
   beat: function (s, t, lv) {
     var b = s % 16, bar = Math.floor(s / 16), p = this.pc;
     var night = this.mood > 0.5, hot = this.hot, M = this.mb.drum;
-    var d = (p.minor ? this.degMin : this.degMaj)[p.prog[p.idx]];
+    var d = this.degs(p)[p.prog[p.idx]];
     var root = this.note(this.E1, (p.tonic + (this.fzDip > 0.5 ? 0 : d[0])) % 12);
     var rnd = function (k) { var x = Math.sin(s * 12.9898 + k * 78.233) * 43758.5453; return x - Math.floor(x); };
     var phrase = Math.floor(bar / 2);
@@ -1978,7 +2191,7 @@ var Snd = {
     if (b === 0 && bar % 2 === 0) this.horn(t, root * 2, 1.4, 0.07, M);
     if (b % 2 === 1 && rnd(6) < 0.35) this.tom(t, 130, 0.16, M);
     if ((b === 0 || b === 6 || b === 10) && bar % 2 === 1 && mot(b) < 0.5) {
-      var sc = p.minor ? this.fluteMin : this.fluteMaj;
+      var sc = p.sea ? (p.minor ? this.fluteDor : this.fluteMix) : (p.minor ? this.fluteMin : this.fluteMaj);
       var fb = 220 * Math.pow(2, ((p.tonic + 7) % 12) / 12) * (night ? 0.5 : 1);
       this.flute(t, fb * Math.pow(2, sc[Math.floor(mot(b * 3 + 1) * sc.length)] / 12), 0.5 + Math.floor(mot(b + 5) * 3) * 0.35, 0.045, M);
     }

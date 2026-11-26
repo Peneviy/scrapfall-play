@@ -4,12 +4,31 @@ var World = {
   near: [],
   crates: [],
   tmp: [],
+  sea: false,
+  isles: [],
+  isleSets: [],
+  camps: [],
+  isleDefs: {},
+  nDefs: 0,
+  K: {
+    isle: { chance: 0.2, camp: 0.6, depth: 2400, tiers: 4, grow: 0.22 },
+    camp: { spawn: 1100, wake: 240, drop: 2000, guards: 3, guardEvery: 3, guardsMax: 4, bossHp: 1.5,
+            chest: 6, chestPerMin: 0.5, chestMax: 14,
+            tierHp: 0.3, tierGuard: 1, tierGuardHp: 0.2, tierChest: 0.5, tierMax: 3, buff: 1, card: 3 },
+    mine: { touch: 2 }
+  },
 
-  reset: function () {
+  reset: function (theme) {
     this.chunks = {};
     this.nChunks = 0;
     this.near.length = 0;
     this.crates.length = 0;
+    this.isles.length = 0;
+    this.isleSets.length = 0;
+    this.camps.length = 0;
+    this.isleDefs = {};
+    this.nDefs = 0;
+    this.sea = (theme || (window.Maps ? Maps.theme() : 'scrap')) === 'sea';
   },
 
   rng: function (cx, cy) {
@@ -36,8 +55,9 @@ var World = {
     var c = this.chunks[key];
     if (c) return c;
 
-    c = { walls: [], crates: [] };
-    if (!(cx === 0 && cy === 0)) {
+    c = { walls: [], crates: [], isles: [], camp: null };
+    if (this.sea) this.fillSea(c, cx, cy);
+    else if (!(cx === 0 && cy === 0)) {
       var r = this.rng(cx, cy);
       if (r() < 0.55) {
         var ox = cx * this.block, oy = cy * this.block;
@@ -82,9 +102,243 @@ var World = {
     return c;
   },
 
+  fillSea: function (c, cx, cy) {
+    if (cx === 0 && cy === 0) return;
+    var b = this.block, ox = cx * b, oy = cy * b, i, j, K = this.K;
+    var r = this.rng(cx + 131, cy - 977);
+    var def = this.isleDef(cx, cy);
+    var over = [];
+    for (i = -1; i <= 1; i++) {
+      for (j = -1; j <= 1; j++) {
+        var nd = (i || j) ? this.isleDef(cx + i, cy + j) : null;
+        if (!nd) continue;
+        for (var oq = 0; oq < nd.set.length; oq++) {
+          var os = nd.set[oq];
+          if (os.x + os.r > ox && os.x - os.r < ox + b && os.y + os.r > oy && os.y - os.r < oy + b) over.push(os);
+        }
+      }
+    }
+    var roll = r();
+    if (def) {
+      var ix = def.x, iy = def.y, R0 = def.r, tier = def.tier;
+      c.isles = def.set;
+      var nr = 1 + Math.floor(r() * 2) + (tier >> 1);
+      for (i = 0; i < nr; i++) {
+        var ra = r() * 6.28, rd = R0 * (0.55 + r() * 0.2);
+        var rh = r() < 0.5, rw = rh ? 60 + r() * 40 : 24 + r() * 8, rhh = rh ? 24 + r() * 8 : 60 + r() * 40;
+        c.walls.push({ x: ix + Math.cos(ra) * rd - rw / 2, y: iy + Math.sin(ra) * rd - rhh / 2, w: rw, h: rhh, kind: 'ruin' });
+      }
+      var camp = r() < K.isle.camp;
+      if (def.first || camp) c.camp = { x: ix, y: iy, st: 0, list: [], crates: c.crates, tier: tier, seed: def.seed };
+      else if (r() < 0.6) {
+        var ca = r() * 6.28, kx0 = ix + Math.cos(ca) * R0 * 0.3, ky0 = iy + Math.sin(ca) * R0 * 0.3;
+        if (!this.inWalls(c.walls, kx0, ky0, 16)) c.crates.push({ x: kx0, y: ky0, r: 15, hp: 40, dead: false, hit: 0 });
+      }
+      if (tier >= 2 && def.set.length > 2) {
+        var far = def.set[def.set.length - 1];
+        if (!this.inWalls(c.walls, far.x, far.y, 16)) c.crates.push({ x: far.x, y: far.y, r: 15, hp: 40, dead: false, hit: 0 });
+      }
+    } else if (roll < 0.775) {
+      var count = 1 + Math.floor(r() * 3), wreck = false;
+      for (i = 0; i < count; i++) {
+        var kr = r(), kind = kr < 0.34 ? 'box' : (kr < 0.64 ? 'heap' : (kr < 0.92 ? 'rock' : 'wreck'));
+        if (kind === 'wreck' && wreck) kind = 'rock';
+        var hz = r() < 0.5, lw, sh;
+        if (kind === 'box') { lw = 90 + r() * 200; sh = 40 + r() * 60; }
+        else if (kind === 'heap') { lw = 90 + r() * 70; sh = 70 + r() * 50; }
+        else if (kind === 'rock') { lw = 70 + r() * 120; sh = 50 + r() * 60; }
+        else { lw = 150 + r() * 60; sh = 56 + r() * 16; wreck = true; }
+        var w2 = hz ? lw : sh, h2 = hz ? sh : lw;
+        var wx = ox + 60 + r() * (b - w2 - 120), wy = oy + 60 + r() * (b - h2 - 120);
+        if (kind !== 'rock' && this.inIsles(over, wx + w2 / 2, wy + h2 / 2, 30)) { if (kind === 'wreck') wreck = false; kind = 'rock'; }
+        c.walls.push({ x: wx, y: wy, w: w2, h: h2, kind: kind });
+      }
+      if (r() < 0.75) {
+        var base = c.walls[Math.floor(r() * c.walls.length)];
+        var side = r() < 0.5 ? -1 : 1;
+        var kx = base.x + base.w / 2 + side * (base.w / 2 + 28), ky = base.y + base.h / 2 + (r() - 0.5) * base.h;
+        if (this.inWalls(c.walls, kx, ky, 14)) kx = base.x + base.w / 2 - side * (base.w / 2 + 28);
+        if (!this.inWalls(c.walls, kx, ky, 14)) c.crates.push({ x: kx, y: ky, r: 15, hp: 40, dead: false, hit: 0 });
+      }
+    }
+    var nb = r() < 0.55 ? 1 + Math.floor(r() * 3) : 0;
+    for (var bi = 0; bi < nb; bi++) {
+      var bx = ox + 60 + r() * (b - 120), by = oy + 60 + r() * (b - 120), pair = r() < 0.4;
+      if (this.inWalls(c.walls, bx, by, 24) || this.inIsles(c.isles, bx, by, 40) || this.inIsles(over, bx, by, 40)) continue;
+      c.crates.push({ x: bx, y: by, r: 11, hp: 12, dead: false, hit: 0, ex: true });
+      if (pair && !this.inWalls(c.walls, bx + 26, by + 10, 10)) c.crates.push({ x: bx + 26, y: by + 10, r: 11, hp: 12, dead: false, hit: 0, ex: true });
+    }
+    for (var ci = 0; ci < c.crates.length; ci++) {
+      if (c.crates[ci].ex) continue;
+      var lr2 = r() * 12;
+      c.crates[ci].loot = lr2 < 4 ? 'scrap' : (lr2 < 7 ? 'heal' : (lr2 < 9 ? 'rage' : (lr2 < 11 ? 'haste' : 'shield')));
+    }
+  },
+
+  tier: function (x, y) {
+    var K = this.K.isle;
+    return Math.min(K.tiers, Math.floor(Math.sqrt(x * x + y * y) / K.depth));
+  },
+
+  isleDef: function (cx, cy) {
+    var key = cx + ':' + cy, D = this.isleDefs, d = D[key];
+    if (d !== undefined) return d;
+    d = null;
+    var K = this.K.isle, b = this.block, ox = cx * b, oy = cy * b;
+    var r = this.rng(cx + 7919, cy - 3571);
+    var first = cx === 0 && cy === -1, roll = r();
+    if (!(cx === 0 && cy === 0) && (first || roll < K.chance)) {
+      var ix = ox + 260 + r() * (b - 520), iy = oy + 260 + r() * (b - 520);
+      if (first) { ix = ox + 430; iy = oy + 330; }
+      var t = first ? 0 : this.tier(ix, iy);
+      var R0 = (135 + r() * 65) * (1 + K.grow * t), n = 2 + Math.floor(r() * 3) + (t >> 1);
+      var set = [{ x: ix, y: iy, r: R0, main: 1 }];
+      for (var i = 1; i < n; i++) {
+        var la = r() * 6.28, lr = R0 * (0.5 + r() * 0.3);
+        set.push({ x: ix + Math.cos(la) * R0 * 0.85, y: iy + Math.sin(la) * R0 * 0.85, r: lr, main: 0 });
+      }
+      d = { x: ix, y: iy, r: R0, tier: t, set: set, first: first, seed: Math.floor(r() * 1e6) };
+    }
+    if (this.nDefs > 1500) { D = this.isleDefs = {}; this.nDefs = 0; }
+    D[key] = d;
+    this.nDefs++;
+    return d;
+  },
+
+  inIsles: function (isles, x, y, pad) {
+    for (var i = 0; i < isles.length; i++) {
+      var q = isles[i], dx = x - q.x, dy = y - q.y, rr = q.r + pad;
+      if (rr > 0 && dx * dx + dy * dy < rr * rr) return true;
+    }
+    return false;
+  },
+  isleAt: function (x, y) {
+    var b = this.block, cx0 = Math.floor(x / b), cy0 = Math.floor(y / b);
+    for (var cx = cx0 - 1; cx <= cx0 + 1; cx++) {
+      for (var cy = cy0 - 1; cy <= cy0 + 1; cy++) if (this.inIsles(this.chunk(cx, cy).isles, x, y, 0)) return true;
+    }
+    return false;
+  },
+  land: function (x, y, pad) { return this.isles.length > 0 && this.inIsles(this.isles, x, y, pad || 0); },
+
+  campTick: function () {
+    var p = Game.player, K = this.K.camp, i, j;
+    for (i = 0; i < this.camps.length; i++) {
+      var c = this.camps[i], d2 = U.dist2(p.x, p.y, c.x, c.y);
+      if (c.st === 0) {
+        if (d2 < K.spawn * K.spawn && d2 > 420 * 420) this.campSpawn(c);
+      } else if (c.st === 1) {
+        if (d2 > K.drop * K.drop) {
+          for (j = 0; j < c.list.length; j++) c.list[j].dead = true;
+          c.list.length = 0; c.st = 0;
+          continue;
+        }
+        var hit = d2 < K.wake * K.wake;
+        for (j = 0; j < c.list.length && !hit; j++) hit = c.list[j].dead || c.list[j].hp < c.list[j].maxHp;
+        if (hit) this.campWake(c);
+      } else if (c.st === 2) {
+        var alive = 0;
+        for (j = 0; j < c.list.length; j++) if (!c.list[j].dead) alive++;
+        if (!alive) this.campClear(c);
+      }
+    }
+  },
+  campLead: [['brute'], ['brute', 'charger'], ['shellback', 'splitter', 'charger'], ['shellback', 'splitter', 'brute'], ['shellback', 'splitter']],
+  leadHp: { brute: 1, charger: 2, shellback: 0.3, splitter: 1.2 },
+  campGuard: ['grunt', 'grunt', 'spitter', 'runner', 'spitter', 'charger', 'brute'],
+  campSpawn: function (c) {
+    var K = this.K.camp, T = c.tier || 0, seed = c.seed || 0, i, e;
+    c.list.length = 0;
+    var pool = this.campLead[Math.min(T, this.campLead.length - 1)], lead = pool[seed % pool.length];
+    e = Enemies.spawn(lead, c.x, c.y - 14, true, true);
+    if (e) {
+      e.hp *= K.bossHp * (1 + K.tierHp * T) * (this.leadHp[lead] || 1); e.maxHp = e.hp;
+      e.r *= 1.12 + 0.04 * T; e.coins *= 2 + T; e.xp *= 2 + T; e.mini = true;
+      if (T >= 2 && !e.esp) { var xp0 = e.xp; Enemies.eliteSpell(e); e.xp = xp0; }
+      if (e.esp === 2) e.esh = e.eshMax = e.maxHp * Enemies.K.esp.shield;
+      c.list.push(e);
+    }
+    for (i = 0; i < T - 2; i++) {
+      e = Enemies.spawn(i ? 'spitter' : 'brute', c.x + (i ? 60 : -60), c.y + 30, true, true);
+      if (e) c.list.push(e);
+    }
+    var n = K.guards + Math.min(K.guardsMax, Math.floor(Game.time / 60 / K.guardEvery)) + K.tierGuard * T;
+    var kinds = Math.min(this.campGuard.length, 3 + T);
+    for (i = 0; i < n; i++) {
+      var a = i / n * 6.283 + 0.4, rad = 66 + (i % 3) * 22 + T * 16;
+      e = Enemies.spawn(this.campGuard[(i + seed) % kinds], c.x + Math.cos(a) * rad, c.y + Math.sin(a) * rad, false, true);
+      if (e) { e.hp *= 1 + K.tierGuardHp * T; e.maxHp = e.hp; e.ang = a; c.list.push(e); }
+    }
+    for (i = 0; i < c.list.length; i++) { c.list[i].zz = true; c.list[i].camp = c; }
+    c.st = c.list.length ? 1 : 0;
+  },
+  campWake: function (c) {
+    c.st = 2;
+    for (var i = 0; i < c.list.length; i++) c.list[i].zz = false;
+    FX.text(c.x, c.y - 44, I18N.t((c.tier || 0) >= 2 ? 'campWake2' : 'campWake'), CFG.col.debuff, 16);
+    FX.ring(c.x, c.y, 20, 150, CFG.col.debuff, 0.5, 3);
+    Snd.play('aggro');
+  },
+  campClear: function (c) {
+    c.st = 3;
+    c.list.length = 0;
+    c.crates.push({ x: c.x, y: c.y, r: 17, hp: 60, dead: false, hit: 0, chest: true, loot: 'chest', tier: c.tier || 0 });
+    FX.ring(c.x, c.y, 10, 120, CFG.col.ally, 0.6, 4);
+    FX.burst(c.x, c.y, 16, '#e8d2a0', 180, 0.6, 3);
+    FX.text(c.x, c.y - 40, I18N.t('campChest'), CFG.col.ally, 16);
+    Snd.play('buy');
+  },
+  chestOpen: function (c) {
+    var K = this.K.camp, T = c.tier || 0, i;
+    c.dead = true;
+    for (i = 0; i < this.camps.length; i++) if (this.camps[i].crates.indexOf(c) >= 0) this.camps[i].st = 4;
+    FX.blast(c.x, c.y, 70, '#ffd27d');
+    FX.burst(c.x, c.y, 26, '#ffd27d', 280, 0.8, 4);
+    FX.ring(c.x, c.y, 8, 110, '#ffd27d', 0.5, 4);
+    FX.shake(2);
+    Snd.play('crateBreak');
+    var n = Math.min(K.chestMax + K.tierMax * T, Math.round((K.chest + Game.time / 60 * K.chestPerMin) * (1 + K.tierChest * T)));
+    for (i = 0; i < n; i++) {
+      var a = i / n * 6.283, rad = 30 + (i % (n > 14 ? 3 : 2)) * 16;
+      Game.drops.push({ x: c.x + Math.cos(a) * rad, y: c.y + Math.sin(a) * rad, r: 13, t: 'scrap', life: 45, bob: i, crate: true });
+    }
+    Game.drops.push({ x: c.x, y: c.y, r: 13, t: 'heal', life: 45, bob: 0, crate: true });
+    if (T >= K.buff) {
+      var bf = ['rage', 'haste', 'shield'], b0 = Math.floor(Math.random() * 3);
+      for (i = 0; i < Math.min(2, T); i++) {
+        Game.drops.push({ x: c.x + (i ? 24 : -24), y: c.y - 84, r: 13, t: this.freshBuff(bf[(b0 + i) % 3]), life: 45, bob: i * 2, crate: true });
+      }
+    }
+    if (T >= K.card && Game.player && Game.player.alive) {
+      Player.grantLevel(Game.player);
+      FX.text(c.x, c.y - 62, I18N.t('campCard'), CFG.col.tech, 18);
+    }
+  },
+
+  mineTick: function () {
+    var p = Game.player, near = this.tmp, pad = this.K.mine.touch, i, j, rr;
+    for (i = 0; i < this.crates.length; i++) {
+      var c = this.crates[i];
+      if (!c.ex || c.dead || this.land(c.x, c.y)) continue;
+      rr = p.r + c.r + pad;
+      if (p.alive && U.dist2(p.x, p.y, c.x, c.y) < rr * rr) { this.explode(c); continue; }
+      near.length = 0;
+      Game.grid.query(c.x, c.y, c.r + 40, near);
+      for (j = 0; j < near.length; j++) {
+        var e = near[j];
+        if (e.dead || e.zz || e.type === 'swarm' || e.def.decoy) continue;
+        rr = e.r + c.r + pad;
+        if (U.dist2(e.x, e.y, c.x, c.y) < rr * rr) { this.explode(c); break; }
+      }
+    }
+  },
+
   refresh: function (x, y, radius) {
     this.near.length = 0;
     this.crates.length = 0;
+    this.isles.length = 0;
+    this.isleSets.length = 0;
+    this.camps.length = 0;
     var b = this.block;
     var x0 = Math.floor((x - radius) / b), x1 = Math.floor((x + radius) / b);
     var y0 = Math.floor((y - radius) / b), y1 = Math.floor((y + radius) / b);
@@ -93,6 +347,9 @@ var World = {
         var c = this.chunk(cx, cy);
         for (var i = 0; i < c.walls.length; i++) this.near.push(c.walls[i]);
         for (var j = 0; j < c.crates.length; j++) if (!c.crates[j].dead) this.crates.push(c.crates[j]);
+        for (var q = 0; q < c.isles.length; q++) this.isles.push(c.isles[q]);
+        if (c.isles.length) this.isleSets.push(c.isles);
+        if (c.camp) this.camps.push(c.camp);
       }
     }
     if (this.nChunks > 220) {
@@ -196,6 +453,7 @@ var World = {
     c.hit = 0.1;
     if (c.hp > 0) { Snd.play('crate'); return; }
     if (c.ex) { this.explode(c); return; }
+    if (c.chest) { this.chestOpen(c); return; }
     c.dead = true;
     FX.blast(c.x, c.y, 40, '#ffcf7a');
     FX.burst(c.x, c.y, 14, '#c9a06a', 200, 0.5, 3);
@@ -281,6 +539,16 @@ var World = {
 
   draw: function (ctx) {
     var i;
+    for (i = 0; i < this.isles.length; i++) {
+      var q = this.isles[i];
+      ctx.fillStyle = '#b8a070';
+      ctx.beginPath(); ctx.arc(q.x, q.y, q.r + 10, 0, Math.PI * 2); ctx.fill();
+    }
+    for (i = 0; i < this.isles.length; i++) {
+      q = this.isles[i];
+      ctx.fillStyle = '#e2cf9c';
+      ctx.beginPath(); ctx.arc(q.x, q.y, q.r - 4, 0, Math.PI * 2); ctx.fill();
+    }
     for (i = 0; i < this.near.length; i++) {
       var w = this.near[i];
       ctx.fillStyle = 'rgba(0,0,0,.45)';
@@ -310,6 +578,7 @@ var World = {
         continue;
       }
       var med = c.loot === 'heal';
+      if (c.chest) GlowCache.draw(ctx, 'rgba(255,210,125,.5)', c.x, c.y, c.r * 2.8, 0.6 + 0.4 * Math.sin(Game.time * 5));
       if (med) GlowCache.draw(ctx, 'rgba(126,224,138,.45)', c.x, c.y, c.r * 2.6, 0.55 + 0.45 * Math.sin(Game.time * 5));
       ctx.save();
       ctx.translate(c.x, c.y);

@@ -78,7 +78,8 @@ var Content = {
     { id: 'loot', ru: { n: 'Магнит', d: '+6% лома за рейд' }, en: { n: 'Magnet', d: '+6% scrap per raid' } },
     { id: 'cd', ru: { n: 'Затвор', d: '-3% времени между выстрелами' }, en: { n: 'Bolt', d: '-3% time between shots' } },
     { id: 'radius', ru: { n: 'Резонатор', d: '+4% радиуса взрывов, колец и аур' }, en: { n: 'Resonator', d: '+4% radius of blasts, rings and auras' } },
-    { id: 'tech', ru: { n: 'Балласт', d: '+5% урона турелей, спутников, разряда и ленты' }, en: { n: 'Ballast', d: '+5% damage from turrets, shards, arcs and tether' } }
+    { id: 'tech', ru: { n: 'Балласт', d: '+5% урона турелей, спутников, разряда и ленты' }, en: { n: 'Ballast', d: '+5% damage from turrets, shards, arcs and tether' } },
+    { id: 'regen', need: 'sea', ru: { n: 'Ремкомплект', d: '+0.5 здоровья в секунду за уровень: машина чинится сама' }, en: { n: 'Repair kit', d: '+0.5 health per second per level: your machine repairs itself' } }
   ],
 
   char: function (id) {

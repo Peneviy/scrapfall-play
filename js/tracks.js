@@ -25,7 +25,17 @@ var Tracks = {
       of: ['ОРБИТЫ', 'РЕАКТОРА', 'МАЯКА', 'АНТЕНН', 'ПУСТОШИ', 'СТАРЫХ МАШИН', 'ДАЛЬНЕГО СИГНАЛА', 'РЖАВЫХ ЗВЕЗД',
         'ПОКИНУТОЙ СТАНЦИИ', 'МЕДНЫХ ПРОВОДОВ', 'ПОСЛЕДНЕГО СПУТНИКА', 'ПУСТЫХ ТРАСС', 'СПЯЩЕГО ЗАВОДА', 'НЕОНОВОГО ДОЖДЯ',
         'ЧУЖОГО НЕБА', 'ЗАБЫТОГО КОДА', 'СТЕКЛЯННЫХ ДЮН', 'НУЛЕВОГО ЧАСА', 'ТИХОГО КОСМОСА', 'ОСТЫВШЕГО ЯДРА',
-        'ЖЕЛЕЗНОГО МОРЯ', 'ДОЛГОЙ ДОРОГИ', 'СЕВЕРНОГО ШЛЮЗА', 'ПЕРВОЙ ИСКРЫ']
+        'ЖЕЛЕЗНОГО МОРЯ', 'ДОЛГОЙ ДОРОГИ', 'СЕВЕРНОГО ШЛЮЗА', 'ПЕРВОЙ ИСКРЫ'],
+      sea: {
+        day: ['ПРИЛИВ', 'ШТИЛЬ', 'ПЛЕСК', 'СОЛЬ', 'ПЕНА', 'ПАРУС', 'БЛИК', 'ЗЫБЬ', 'ПРИЧАЛ', 'ЗОВ', 'ПЕСНЯ', 'ДЫХАНИЕ',
+          'КОЛЫБЕЛЬ', 'БЕРЕГ', 'ЧАЙКА', 'РАССВЕТ'],
+        night: ['ОТЛИВ', 'ГЛУБИНА', 'МАЯК', 'БЕЗДНА', 'МГЛА', 'ОМУТ', 'ПРИБОЙ', 'ЗАТИШЬЕ', 'ДНО', 'МОЛЧАНИЕ', 'СИЯНИЕ',
+          'ПОКОЙ', 'КОЛОКОЛ', 'ОГОНЕК', 'ТЕЧЕНИЕ', 'ВЕЧЕР'],
+        of: ['ТИХОЙ ВОДЫ', 'ВСТРЕЧНОГО ВЕТРА', 'РЖАВЫХ ЯКОРЕЙ', 'ЗАБЫТЫХ КОРАБЛЕЙ', 'ЛУННОЙ ДОРОЖКИ', 'СПЯЩЕГО ЗАТОНА',
+          'ДОЛГОГО ПЛАВАНИЯ', 'ТЕМНОЙ ВОДЫ', 'СЕДЫХ ВОЛН', 'ЗАТОПЛЕННЫХ УЛИЦ', 'ДАЛЕКОЙ ГРОЗЫ', 'ЧУЖИХ МОРЕЙ',
+          'БЕЗЫМЯННОГО МЫСА', 'УТРЕННЕГО ТУМАНА', 'СТАРОЙ ЛОДКИ', 'ОТКРЫТОГО МОРЯ', 'УТОНУВШИХ ЗВЕЗД', 'ПОСЛЕДНЕЙ ГАВАНИ',
+          'СЕВЕРНЫХ ШИРОТ', 'ПУСТЫХ ПАЛУБ', 'МОКРОГО ПЕСКА', 'ПЕРЕЛЕТНЫХ ПТИЦ', 'МЕДЛЕННОЙ ВОЛНЫ', 'ЗЕЛЕНОГО ЛУЧА']
+      }
     },
     en: {
       day: ['ECHO', 'LIGHT', 'DUST', 'WIND', 'TRACE', 'VOICE', 'MEMORY', 'MORNING', 'WARMTH', 'WHISPER', 'NOON', 'SHARD',
@@ -36,49 +46,68 @@ var Tracks = {
         'OF A DISTANT SIGNAL', 'OF RUSTED STARS', 'OF AN ABANDONED STATION', 'OF COPPER WIRES', 'OF THE LAST SATELLITE',
         'OF EMPTY HIGHWAYS', 'OF A SLEEPING FACTORY', 'OF NEON RAIN', 'OF A FOREIGN SKY', 'OF FORGOTTEN CODE',
         'OF GLASS DUNES', 'OF THE ZERO HOUR', 'OF QUIET SPACE', 'OF A COOLED CORE', 'OF THE IRON SEA', 'OF THE LONG ROAD',
-        'OF THE NORTH GATE', 'OF THE FIRST SPARK']
+        'OF THE NORTH GATE', 'OF THE FIRST SPARK'],
+      sea: {
+        day: ['TIDE', 'CALM', 'SPLASH', 'SALT', 'FOAM', 'SAIL', 'SHIMMER', 'SWELL', 'PIER', 'CALL', 'SONG', 'BREATH',
+          'CRADLE', 'SHORE', 'GULL', 'DAWN'],
+        night: ['EBB', 'DEPTH', 'LIGHTHOUSE', 'ABYSS', 'GLOOM', 'UNDERTOW', 'SURF', 'LULL', 'SEABED', 'HUSH', 'GLOW',
+          'REPOSE', 'BELL', 'LANTERN', 'CURRENT', 'EVENING'],
+        of: ['OF STILL WATER', 'OF THE HEADWIND', 'OF RUSTED ANCHORS', 'OF FORGOTTEN SHIPS', 'OF THE MOONLIT PATH',
+          'OF THE SLEEPING BACKWATER', 'OF THE LONG VOYAGE', 'OF DARK WATER', 'OF GREY WAVES', 'OF FLOODED STREETS',
+          'OF A DISTANT STORM', 'OF FOREIGN SEAS', 'OF THE NAMELESS CAPE', 'OF MORNING FOG', 'OF AN OLD BOAT',
+          'OF THE OPEN SEA', 'OF DROWNED STARS', 'OF THE LAST HARBOUR', 'OF NORTHERN LATITUDES', 'OF EMPTY DECKS',
+          'OF WET SAND', 'OF PASSING BIRDS', 'OF A SLOW WAVE', 'OF THE GREEN FLASH']
+      }
     }
   },
 
   ICON: {
     prev: '<svg viewBox="0 0 16 16"><path d="M3 3h2v10H3zM13 3v10L6 8z"/></svg>',
     next: '<svg viewBox="0 0 16 16"><path d="M11 3h2v10h-2zM3 3v10l7-5z"/></svg>',
+    pause: '<svg viewBox="0 0 16 16"><path d="M4 3h3v10H4zM9 3h3v10H9z"/></svg>',
+    go: '<svg viewBox="0 0 16 16"><path d="M4.5 2.5v11l9-5.5z"/></svg>',
     fav: '<svg viewBox="0 0 16 16"><path d="M8 14S2 10 2 5.8C2 3.7 3.6 2.5 5.2 2.5c1.1 0 2.2.6 2.8 1.6.6-1 1.7-1.6 2.8-1.6C12.4 2.5 14 3.7 14 5.8 14 10 8 14 8 14z"/></svg>',
     list: '<svg viewBox="0 0 16 16"><path d="M2 3.6h12v1.7H2zM2 7.1h12v1.7H2zM2 10.6h12v1.7H2z"/></svg>'
   },
 
   rec: function (p) {
-    return { s: p.seed >>> 0, n: p.night ? 1 : 0, m: p.minor ? 1 : 0, v: p.fav ? 1 : 0, f: p.from || null };
+    var r = { s: p.seed >>> 0, n: p.night ? 1 : 0, m: p.minor ? 1 : 0, v: p.fav ? 1 : 0, f: p.from || null };
+    if (p.sea) r.w = 1;
+    return r;
   },
-  key: function (r) { return r.s + ':' + (r.n ? 1 : 0); },
+  key: function (r) { return r.s + ':' + (r.n ? 1 : 0) + (r.w ? 'w' : ''); },
   same: function (a, b) { return !!a && !!b && this.key(a) === this.key(b); },
 
   name: function (r) {
     var en = I18N.lang !== 'ru', fx = this.fixed[r.s];
-    if (fx) return fx[en ? 1 : 0];
-    var w = this.W[en ? 'en' : 'ru'], a = (r.n || r.m) ? w.night : w.day, s = r.s >>> 0;
+    if (fx && !r.w) return fx[en ? 1 : 0];
+    var w = this.W[en ? 'en' : 'ru'], s = r.s >>> 0;
+    if (r.w) w = w.sea;
+    var a = (r.n || r.m) ? w.night : w.day;
     return a[s % a.length] + ' ' + w.of[Math.floor(s / 131) % w.of.length];
   },
 
   code: function (r) {
-    var f = r.f, c = 'sf:' + (r.s >>> 0).toString(36) + '.' + (r.n ? 1 : 0) + (r.m ? 1 : 0) + (r.v ? 1 : 0);
+    var f = r.f, c = 'sf:' + (r.s >>> 0).toString(36) + '.' + (r.n ? 1 : 0) + (r.m ? 1 : 0) + (r.v ? 1 : 0) + (r.w ? 1 : '');
     if (f) c += '.' + f.tonic + '-' + (f.minor ? 1 : 0) + '-' + f.tone + '-' + (f.mot || []).join('_') + '-' + (f.prog || []).join('_');
     return c;
   },
   parse: function (c) {
-    var m = /sf:([0-9a-z]+)\.([01])([01])([01])(?:\.(\d+)-([01])-([a-z]+)-([\d_]*)-([\d_]*))?/.exec(String(c || ''));
+    var m = /sf:([0-9a-z]+)\.([01])([01])([01])([01])?(?:\.(\d+)-([01])-([a-z]+)-([\d_]*)-([\d_]*))?/.exec(String(c || ''));
     if (!m) return null;
     var nums = function (s) { return s ? s.split('_').map(Number) : []; };
-    return { s: parseInt(m[1], 36) >>> 0, n: +m[2], m: +m[3], v: +m[4],
-      f: m[5] === undefined ? null : { tonic: +m[5], minor: m[6] === '1', tone: m[7], mot: nums(m[8]), prog: nums(m[9]) } };
+    var r = { s: parseInt(m[1], 36) >>> 0, n: +m[2], m: +m[3], v: +m[4],
+      f: m[6] === undefined ? null : { tonic: +m[6], minor: m[7] === '1', tone: m[8], mot: nums(m[9]), prog: nums(m[10]) } };
+    if (m[5] === '1') r.w = 1;
+    return r;
   },
 
   ready: function () { return !!(window.Snd && Snd.mb && Snd.ctx && Snd.pc); },
   cur: function () { return this.ready() ? this.rec(Snd.pc) : null; },
   time: function () {
     if (!this.ready()) return null;
-    var p = Snd.pc;
-    return { t: Math.max(0, Snd.ctx.currentTime - p.t0), d: p.plan.length * p.len };
+    var p = Snd.pc, now = Snd.musPaused ? (Snd.musHoldT || 0) : Snd.ctx.currentTime;
+    return { t: Math.max(0, now - p.t0), d: p.plan.length * p.len };
   },
 
   onStart: function (p) {
@@ -89,10 +118,18 @@ var Tracks = {
     this.pos = -1;
   },
 
+  paused: function () { return !!(window.Snd && Snd.musPaused); },
+  pause: function () {
+    if (!this.ready()) return false;
+    Snd.musPause(!Snd.musPaused);
+    return true;
+  },
+
   play: function (r, quiet) {
     if (!this.ready() || !r) return false;
+    if (Snd.musPaused) Snd.musPause(false);
     this.nav = !!quiet;
-    try { Snd.musReplay({ seed: r.s, night: !!r.n, fav: !!r.v, from: r.f }); } finally { this.nav = false; }
+    try { Snd.musReplay({ seed: r.s, night: !!r.n, fav: !!r.v, from: r.f, sea: !!r.w }); } finally { this.nav = false; }
     return true;
   },
   next: function () {
@@ -100,6 +137,7 @@ var Tracks = {
     var h = this.hist;
     if (this.pos >= 0 && this.pos < h.length - 1) { this.pos++; return this.play(h[this.pos], true); }
     this.pos = -1;
+    if (Snd.musPaused) Snd.musPause(false);
     Snd.newPiece(Snd.ctx.currentTime + 0.1);
     return true;
   },
@@ -149,12 +187,13 @@ var Tracks = {
     if (!el) return;
     var I = this.ICON;
     el.innerHTML = '<button type="button" class="mp-b" data-mp="prev">' + I.prev + '</button>' +
+      '<button type="button" class="mp-b mp-pp" data-mp="pause">' + I.pause + '</button>' +
       '<button type="button" class="mp-b" data-mp="next">' + I.next + '</button>' +
       '<button type="button" class="mp-b mp-fav" data-mp="fav">' + I.fav + '</button>' +
       '<button type="button" class="mp-name" data-mp="copy"><b></b><i></i></button>' +
       (listEl ? '<button type="button" class="mp-b" data-mp="list">' + I.list + '</button>' : '');
     this.bars.push({ el: el, list: listEl || null, name: el.querySelector('.mp-name b'), time: el.querySelector('.mp-name i'),
-      fav: el.querySelector('.mp-fav'), shown: '' });
+      fav: el.querySelector('.mp-fav'), pp: el.querySelector('.mp-pp'), held: false, shown: '' });
   },
 
   init: function () {
@@ -197,6 +236,8 @@ var Tracks = {
       B.name.textContent = name;
       B.time.textContent = tm ? U.time(tm.t) + ' / ' + U.time(tm.d) : '';
       B.fav.classList.toggle('on', this.isFav(r));
+      var held = this.paused();
+      if (B.held !== held) { B.held = held; B.pp.innerHTML = held ? this.ICON.go : this.ICON.pause; B.pp.classList.toggle('on', held); }
       if (B.list && !B.list.classList.contains('hidden') && (force || B.shown !== key + this.hist.length)) {
         B.shown = key + this.hist.length;
         this.renderList(B.list, r);

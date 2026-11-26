@@ -28,7 +28,7 @@ var Player = {
         rate: (1 / ch.rate) * m.cd,
         speed: CFG.player.speed * ch.speed * m.spd,
         maxHp: Math.round(CFG.player.hp * ch.hp * m.hp),
-        regen: CFG.player.regen,
+        regen: CFG.player.regen + (m.regen || 0),
         pickup: CFG.player.pickup * ch.pickup,
         xp: m.xp,
         count: 0, spread: 0, pierce: 0, splash: 0, ricochet: 0, chain: 0,

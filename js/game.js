@@ -307,10 +307,12 @@ var Game = {
     Input.update();
     UI.tickCtrlHint(dt);
     World.refresh(this.player.x, this.player.y, this.viewRadius() + 400);
+    if (World.sea) World.campTick();
     Player.update(this.player, dt);
     Enemies.director(dt);
     Enemies.update(dt);
     Bosses.update(dt);
+    if (World.sea) World.mineTick();
     Player.updateBullets(dt);
     Player.updateTurrets(dt);
     Player.updateEvo(dt);
@@ -640,6 +642,15 @@ var Game = {
     var cx = x0 + size / 2, cy = y0 + size / 2;
     var i, o, mx, my;
 
+    if (World.isles.length) {
+      ctx.fillStyle = '#c9b480';
+      for (i = 0; i < World.isles.length; i++) {
+        o = World.isles[i];
+        ctx.beginPath();
+        ctx.arc(cx + (o.x - p.x) * k, cy + (o.y - p.y) * k, Math.max(2, o.r * k), 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
     ctx.fillStyle = iron ? '#a08566' : '#4e8496';
     for (i = 0; i < World.near.length; i++) {
       o = World.near[i];
@@ -650,7 +661,21 @@ var Game = {
     for (i = 0; i < World.crates.length; i++) {
       o = World.crates[i];
       ctx.fillStyle = o.ex ? '#ff5a3c' : (o.loot === 'heal' ? CFG.col.heal : CFG.col.ally);
+      if (o.chest) { ctx.fillRect(cx + (o.x - p.x) * k - 3, cy + (o.y - p.y) * k - 3, 6, 6); continue; }
       ctx.fillRect(cx + (o.x - p.x) * k - 1.5, cy + (o.y - p.y) * k - 1.5, 3, 3);
+    }
+
+    for (i = 0; i < World.camps.length; i++) {
+      o = World.camps[i];
+      if (o.st >= 3) continue;
+      mx = cx + (o.x - p.x) * k;
+      my = cy + (o.y - p.y) * k;
+      ctx.strokeStyle = (o.tier || 0) >= World.K.camp.card ? '#ffd27d' : '#ff5a3c';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(mx - 3, my - 3); ctx.lineTo(mx + 3, my + 3);
+      ctx.moveTo(mx + 3, my - 3); ctx.lineTo(mx - 3, my + 3);
+      ctx.stroke();
     }
 
     for (i = 0; i < this.enemies.length; i++) {
@@ -708,6 +733,47 @@ var Game = {
     ctx.fillRect(x, y, w * k, 4);
     ctx.fillStyle = 'rgba(0,0,0,.4)';
     for (var t = 1; t < 5; t++) ctx.fillRect(x + w * t / 5, y, 1, 4);
+    this.overBars(ctx, p, x, y - 1, w, false);
+  },
+
+  _obIds: ['mute', 'frz', 'slow', 'hook', 'fire'],
+  overBars: function (ctx, p, x, y, w, label) {
+    var dmax = Spells.dashMax(p), cd = Spells.dashCd(p) || 1, i;
+    var dn = (p.dashCdT <= 0 ? 1 : 0) + (dmax > 1 ? p.dashQ : 0);
+    var prog = dn >= dmax ? 0 : U.clamp(1 - (p.dashCdT > 0 ? p.dashCdT : p.dashQT) / cd, 0, 1);
+    var mute = p.muteT > 0, sw = (w - (dmax - 1)) / dmax;
+    ctx.fillStyle = 'rgba(20,14,9,.8)';
+    ctx.fillRect(x - 2, y - 4, w + 4, 4);
+    for (i = 0; i < dmax; i++) {
+      var sx = x + i * (sw + 1);
+      if (i < dn) { ctx.fillStyle = mute ? '#8a7a9c' : '#6fe3c3'; ctx.fillRect(sx, y - 3, sw, 3); }
+      else if (i === dn && prog > 0) { ctx.fillStyle = mute ? 'rgba(138,122,156,.6)' : 'rgba(111,227,195,.5)'; ctx.fillRect(sx, y - 3, sw * prog, 3); }
+    }
+
+    var d = Player.debuffs(p), M = p.dbfM || (p.dbfM = {}), ids = this._obIds, row = 0;
+    for (i = 0; i < ids.length; i++) {
+      var id = ids[i], at = d.indexOf(id);
+      if (at < 0) { M[id] = 0; continue; }
+      var t = d[at + 1], k = 1;
+      if (t > 0) { if (!(M[id] >= t)) M[id] = t; k = t / M[id]; }
+      var top = y - 9 - (label ? 10 : 5) * row, col = CFG.col.debuffs[id] || CFG.col.debuff;
+      row++;
+      ctx.fillStyle = 'rgba(20,14,9,.8)';
+      ctx.fillRect(x - 2, top, w + 4, 5);
+      if (!(t > 0)) ctx.globalAlpha = 0.55 + 0.45 * Math.sin(this.time * 10);
+      ctx.fillStyle = col;
+      ctx.fillRect(x, top + 1, w * k, 3);
+      ctx.globalAlpha = 1;
+      if (label) {
+        ctx.font = '700 9px Verdana, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = 'rgba(0,0,0,.75)';
+        var nm = I18N.t('debuff_' + id);
+        ctx.strokeText(nm, x + w + 6, top + 5);
+        ctx.fillText(nm, x + w + 6, top + 5);
+      }
+    }
   },
 
   drawBossMarker: function (ctx) {

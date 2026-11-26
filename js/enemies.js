@@ -62,7 +62,7 @@ var Enemies = {
   extraTick: function (dt) {
     var T = this.extraT, K = this.K;
     for (var k in T) {
-      if (Game.time < this.defs[k].from) continue;
+      if (Game.time < this.fromT(this.defs[k])) continue;
       if ((T[k] -= dt) > 0) continue;
       T[k] = K[k].every;
       if (k === 'link' && this.freeChains() >= K.link.max) continue;
@@ -91,17 +91,21 @@ var Enemies = {
   dmgMult: function () { return (1 + CFG.scale.dmgPerMin * (Finale.growT() / 60)) * this.cycleMult() * Maps.k('dmg'); },
   speedMult: function () { return Math.min(1.6, 1 + CFG.scale.speedPerMin * (Finale.growT() / 60)); },
 
+  fromT: function (d) { var sp = Maps.def().sp; return sp && sp.from ? d.from * sp.from : d.from; },
+  fromB: function (d) { var sp = Maps.def().sp; return (d.fromBoss || 0) - ((sp && sp.fromBoss) || 0); },
+
   pickType: function (plain) {
-    var pool = [], K = this.K;
+    var pool = [], K = this.K, sp = Maps.def().sp;
     for (var k in this.defs) {
       var d = this.defs[k];
-      if (k === 'boss' || !d.w || Game.time < d.from) continue;
-      if (d.fromBoss && Game.bossIndex < d.fromBoss) continue;
+      if (k === 'boss' || !d.w || Game.time < this.fromT(d)) continue;
+      if (d.fromBoss && Game.bossIndex < this.fromB(d)) continue;
       if (d.nest && this.nNest >= K.nests) continue;
       if (d.roller && this.nRoll >= K.roller.max) continue;
       if (d.link && (plain || this.freeChains() >= K.link.max)) continue;
       var w = d.w;
       if (k === 'grunt' && Game.time > 120) w *= 0.5;
+      if (sp && sp.small && (k === 'grunt' || k === 'swarm')) w *= sp.small;
       pool.push({ w: w, k: k });
     }
     if (!pool.length) return 'grunt';
@@ -132,7 +136,8 @@ var Enemies = {
       cast: 0, castT: 0, castA: 0, castL: 0, castM: 0, castX: 0, castY: 0, tgt: null, ward: 0, wardBy: null,
       esp: 0, esh: 0, eshMax: 0, rep: false,
       lk: null, lkI: 0, lkX: 0, lkY: 0, lkA: 0, lkIn: false, lkU: 0, lkV: 0,
-      tautT: 0
+      tautT: 0,
+      camp: null, mini: false
     };
     if (d.caster) { this.nCast[type]++; e.shootCd = U.rand(this.K[type].first[0], this.K[type].first[1]); }
     if (d.roller) this.nRoll++;
@@ -159,7 +164,7 @@ var Enemies = {
     var p = Game.player, far = Game.viewRadius() * 1.05, best = null, bd = far * far;
     for (var i = 0; i < list.length; i++) {
       var o = list[i];
-      if (o.dead || o.boss || o.elite || o.wave || o.def.nest || o.def.pylon || o.lk) continue;
+      if (o.dead || o.boss || o.elite || o.wave || o.def.nest || o.def.pylon || o.lk || o.camp) continue;
       var dx = o.x - p.x, dy = o.y - p.y, d2 = dx * dx + dy * dy;
       if (d2 > bd) { bd = d2; best = o; }
     }
@@ -237,8 +242,8 @@ var Enemies = {
   },
 
   spawnMin: function () {
-    var s = CFG.spawn, t = Game.time;
-    var m = Math.max(t / 60, s.plateau * U.clamp(t / s.rampT, 0, 1));
+    var s = CFG.spawn, t = Game.time, sp = Maps.def().sp;
+    var m = Math.max(t / 60, ((sp && sp.plateau) || s.plateau) * U.clamp(t / s.rampT, 0, 1));
     var lv = Game.player ? Game.player.level : 1;
     var ahead = lv - (1 + t / s.lvlPace);
     if (t < s.adaptUntil && ahead > 0) m += Math.min(s.adaptMax, ahead * s.adaptPerLvl);
@@ -246,7 +251,8 @@ var Enemies = {
   },
 
   opening: function () {
-    var p = Game.player, list = CFG.spawn.opening, total = 0, n = 0, type, i;
+    var sp = Maps.def().sp;
+    var p = Game.player, list = (sp && sp.opening) || CFG.spawn.opening, total = 0, n = 0, type, i;
     for (type in list) total += list[type];
     for (type in list) {
       var def = this.defs[type];
@@ -298,8 +304,8 @@ var Enemies = {
     var out = [], defs = this.defs;
     for (var k in defs) {
       var d = defs[k];
-      if (k === 'boss' || d.nest || d.link || d.roller || d.caster || Game.time < d.from) continue;
-      if (d.fromBoss && Game.bossIndex < d.fromBoss) continue;
+      if (k === 'boss' || d.nest || d.link || d.roller || d.caster || Game.time < this.fromT(d)) continue;
+      if (d.fromBoss && Game.bossIndex < this.fromB(d)) continue;
       out.push(k);
     }
     out.sort(function (a, b) { return defs[b].hp - defs[a].hp; });
@@ -330,7 +336,8 @@ var Enemies = {
 
   spawnGroup: function (min, type) {
     type = type || this.pickType();
-    var elite = Game.time > CFG.elite.after && U.chance(CFG.elite.chance * (Nakal.has(3) ? CFG.nakal.eliteK : 1));
+    var msp = Maps.def().sp;
+    var elite = Game.time > CFG.elite.after * ((msp && msp.from) || 1) && U.chance(CFG.elite.chance * (Nakal.has(3) ? CFG.nakal.eliteK : 1));
     var def = this.defs[type];
     var packChance = Math.min(0.6, CFG.spawn.packChance + min * 0.05);
     if (def.beetle || def.link || def.roller || def.caster) this.firstSeen(type, def);
@@ -1254,6 +1261,7 @@ var Enemies = {
       else if (e.def.caster) NC[e.type]++;
 
       if (e.flash > 0) e.flash -= dt;
+      if (e.camp && e.zz) { e.vx = e.vy = 0; continue; }
       if (e.ward > 0 && ((e.ward -= dt) <= 0 || e.wardBy.dead)) { e.ward = 0; e.wardBy = null; }
       var sp = e.speed;
       if (e.slowT > 0) { e.slowT -= dt; sp *= 0.6; }

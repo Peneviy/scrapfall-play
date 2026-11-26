@@ -17,7 +17,7 @@ var Save = {
       gun: 'pistol',
       skins: { rust: 1 },
       skin: 'rust',
-      up: { dmg: 0, hp: 0, spd: 0, xp: 0, loot: 0, cd: 0, radius: 0, tech: 0 },
+      up: { dmg: 0, hp: 0, spd: 0, xp: 0, loot: 0, cd: 0, radius: 0, tech: 0, regen: 0 },
       up10: 1,
       bosses: {},
       prestige: 0, prestigeOld: 0, nakal: -1,
@@ -119,7 +119,7 @@ var Save = {
   },
 
   upMax: 10,
-  upBase: { dmg: 400, hp: 350, spd: 460, xp: 520, loot: 580, cd: 630, radius: 720, tech: 751.5 },
+  upBase: { dmg: 400, hp: 350, spd: 460, xp: 520, loot: 580, cd: 630, radius: 720, tech: 751.5, regen: 800 },
   upCost: function (key, lvl) {
     if (lvl === undefined) lvl = this.data.up[key] || 0;
     var base = this.upBase[key] || 400;
@@ -129,7 +129,7 @@ var Save = {
     if ((this.data.up[key] || 0) >= this.upMax) return false;
     var cost = this.upCost(key);
     if (!this.pay(cost)) return false;
-    this.data.up[key]++;
+    this.data.up[key] = (this.data.up[key] || 0) + 1;
     this.flush(true);
     return true;
   },
@@ -151,6 +151,7 @@ var Save = {
       cd: 1 - 0.03 * u.cd,
       radius: 1 + 0.04 * (u.radius || 0),
       tech: 1 + 0.05 * (u.tech || 0),
+      regen: 0.5 * (u.regen || 0),
       enemyHp: (1 + p * N.hp) * mh,
       startLevel: 1 + p * N.startLevel
     };

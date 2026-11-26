@@ -15,7 +15,8 @@ var Icons = {
     loot: '<path d="M5 3h4v9a3 3 0 0 0 6 0V3h4v9a7 7 0 0 1-14 0z"/><path d="M5 7h4M15 7h4"/>',
     cd: '<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>',
     radius: '<circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="6.5"/><circle cx="12" cy="12" r="10" stroke-dasharray="3 3"/>',
-    tech: '<rect x="5" y="5" width="14" height="14" rx="2"/><path d="M9 9h6v6H9z"/><path d="M5 9H2M5 15H2M22 9h-3M22 15h-3"/>'
+    tech: '<rect x="5" y="5" width="14" height="14" rx="2"/><path d="M9 9h6v6H9z"/><path d="M5 9H2M5 15H2M22 9h-3M22 15h-3"/>',
+    regen: '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V4h6v3"/><path d="M12 10.5v6M9 13.5h6"/>'
   },
 
   svg: function (name, size) {

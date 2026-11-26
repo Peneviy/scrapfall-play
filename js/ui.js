@@ -1247,15 +1247,18 @@ var UI = {
         var lvl = Save.data.up[u.id] || 0;
         var max = lvl >= Save.upMax;
         var cost = Save.upCost(u.id);
+        var lock = !!u.need && !Maps.open(u.need);
         var dots = '';
         for (var k = 0; k < Save.upMax; k++) dots += '<i class="' + (k < lvl ? 'on' : '') + '"></i>';
         var div = document.createElement('div');
-        div.className = 'item' + (lvl > 0 ? ' owned' : '');
+        div.className = 'item' + (lvl > 0 ? ' owned' : '') + (lock ? ' locked' : '');
         div.innerHTML = '<div class="u-ic">' + Icons.svg(u.id, 30) + '</div>' +
           '<h4>' + I18N.name(u) + '</h4><p>' + I18N.desc(u) + '</p>' +
           '<div class="lvl-dots">' + dots + '</div>' +
-          (max ? '<div class="price">' + I18N.t('lvlMax') + '</div>' : self.buyHtml(cost));
+          (lock ? '<div class="price">' + I18N.t('upNeedMap', { m: Maps.name(u.need) }) + '</div>'
+            : (max ? '<div class="price">' + I18N.t('lvlMax') + '</div>' : self.buyHtml(cost)));
         div.onclick = function () {
+          if (lock) { Snd.play('deny'); self.toast(I18N.t('upNeedMap', { m: Maps.name(u.need) })); return; }
           if (self.buyUpgrade(u.id)) self.renderShop();
         };
         list.appendChild(div);

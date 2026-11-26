@@ -127,19 +127,47 @@ var Models = {
   STEEL: '#3d3f42',
   RUST: '#8a4a2a',
 
-  enemy: function (type, d) {
+  enemy: function (type, d, hull) {
     var M = this, B = M.B, C = M.C, K = M.K, S = M.S, O = M.O, T = M.T;
     var body = d.body, trim = d.trim, dark = M.DARK, metal = M.METAL;
     var top = M.shade(body, 1.6);
     var HALF = Math.PI / 2;
-    return this.build(function (add) {
+    var boat = hull === 'boat';
+    var afloat = { grunt: 1, runner: 1, brute: 1, charger: 1, hooker: 1, spitter: 1, shellback: 1, splitter: 1, medic: 1, muter: 1 };
+    var ks = boat && afloat[type] ? 0.8 : 1;
+    return this.build(function (raw) {
+      var add = ks === 1 ? raw : function (g, c, x, y, z, rx, ry, rz, sx, sy, sz, lit) {
+        sx = sx || 1;
+        raw(g, c, (x || 0) * ks, (y || 0) * ks + 0.08, (z || 0) * ks, rx, ry, rz,
+          sx * ks, (sy === undefined ? sx : sy) * ks, (sz === undefined ? sx : sz) * ks, lit);
+      };
+      var leg = boat ? function () {} : add;
+      var iron = M.shade(body, 0.5), rim = '#26221f', gun = '#d6c39a', foam = '#8fd0d8';
+      var boatH = function (len, hw, x, bow) {
+        if (!boat) return;
+        var R = hw / 0.866, bz = bow / (1.5 * R), x1 = x + len / 2, x0 = x - len / 2;
+        raw(B(len, 0.4, hw * 2 + 0.14), gun, x, 0.2, 0);
+        raw(C(R * 1.08, R * 1.08, 0.4, 3), gun, x1 + bow * 1.08 / 3, 0.2, 0, 0, HALF, 0, 1, 1, bz);
+        raw(B(len - 0.04, 0.1, hw * 2 - 0.1), iron, x, 0.4, 0);
+        raw(C(R * 0.9, R * 0.9, 0.1, 3), iron, x1 - 0.04 + bow * 0.9 / 3, 0.4, 0, 0, HALF, 0, 1, 1, bz);
+        raw(B(0.24, 0.36, 0.4), metal, x0 - 0.1, 0.34, 0);
+        var wl = 0.8, wr = hw * 0.72 / 0.866;
+        raw(C(wr, wr, 0.02, 3), foam, x0 - 0.16 - wl * 2 / 3, 0.02, 0, 0, HALF, 0, 1, 1, wl / (1.5 * wr));
+      };
+      var boatR = function (r) {
+        if (!boat) return;
+        raw(C(r, r * 0.92, 0.36, 10), iron, 0, 0.18, 0);
+        raw(T(r, 0.15, 5, 12), gun, 0, 0.3, 0, HALF);
+        raw(T(r * 0.62, 0.05, 4, 10), rim, 0, 0.37, 0, HALF);
+      };
       if (type === 'grunt') {
         add(B(1.3, 1.0, 1.4), body, -0.05, 1.0, 0);
         add(B(1.42, 0.16, 1.52), top, -0.05, 1.56, 0);
         add(B(1.0, 0.06, 0.18), trim, -0.1, 1.66, 0);
         add(B(0.5, 0.75, 1.0), metal, -0.78, 1.05, 0);
-        add(B(0.34, 0.6, 0.34), dark, 0.05, 0.3, 0.42);
-        add(B(0.34, 0.6, 0.34), dark, 0.05, 0.3, -0.42);
+        leg(B(0.34, 0.6, 0.34), dark, 0.05, 0.3, 0.42);
+        leg(B(0.34, 0.6, 0.34), dark, 0.05, 0.3, -0.42);
+        boatH(1.7, 0.8, -0.2, 0.75);
         add(B(0.95, 0.22, 0.22), metal, 0.45, 0.95, 0.82);
         add(B(0.95, 0.22, 0.22), metal, 0.45, 0.95, -0.82);
         add(B(0.14, 0.24, 0.7), trim, 0.66, 1.18, 0, 0, 0, 0, 1, 1, 1, 'glow');
@@ -151,8 +179,9 @@ var Models = {
         add(K(0.13, 0.5, 4), metal, -0.65, 1.15, 0);
         for (var i = 0; i < 4; i++) {
           var lx = i < 2 ? 0.4 : -0.6, lz = i % 2 ? 0.38 : -0.38;
-          add(B(0.13, 0.75, 0.13), dark, lx, 0.38, lz, lz * 0.6, 0, lx * 0.4);
+          leg(B(0.13, 0.75, 0.13), dark, lx, 0.38, lz, lz * 0.6, 0, lx * 0.4);
         }
+        boatH(1.6, 0.46, -0.25, 1.0);
         add(B(0.1, 0.12, 0.5), trim, 0.82, 0.95, 0, 0, 0, 0, 1, 1, 1, 'glow');
       } else if (type === 'swarm') {
         add(S(0.7, 7, 4), body, 0, 0.8, 0, 0, 0, 0, 1, 0.6, 1);
@@ -168,19 +197,21 @@ var Models = {
         add(C(0.17, 0.24, 0.95, 6), metal, 0.42, 1.7, 0, 0, 0, -1.1);
         for (var j = 0; j < 3; j++) {
           var la = j / 3 * Math.PI * 2;
-          add(B(0.2, 0.5, 0.2), dark, Math.cos(la) * 0.55, 0.22, Math.sin(la) * 0.55);
+          leg(B(0.2, 0.5, 0.2), dark, Math.cos(la) * 0.55, 0.22, Math.sin(la) * 0.55);
         }
+        boatR(0.98);
         add(T(0.8, 0.07, 4, 12), trim, 0, 1.12, 0, HALF, 0, 0, 1, 1, 1, 'glow');
         add(S(0.14, 5, 4), trim, 0.85, 2.05, 0, 0, 0, 0, 1, 1, 1, 'glow');
       } else if (type === 'brute') {
         add(B(1.4, 1.2, 1.6), body, -0.1, 1.08, 0);
         add(B(0.8, 0.45, 2.15), top, 0.05, 1.62, 0);
-        add(B(0.5, 1.1, 0.5), dark, 0.35, 0.72, 1.05);
-        add(B(0.5, 1.1, 0.5), dark, 0.35, 0.72, -1.05);
-        add(B(0.62, 0.5, 0.62), metal, 0.45, 0.25, 1.05);
-        add(B(0.62, 0.5, 0.62), metal, 0.45, 0.25, -1.05);
-        add(B(0.48, 0.5, 0.5), dark, -0.25, 0.25, 0.42);
-        add(B(0.48, 0.5, 0.5), dark, -0.25, 0.25, -0.42);
+        leg(B(0.5, 1.1, 0.5), dark, 0.35, 0.72, 1.05);
+        leg(B(0.5, 1.1, 0.5), dark, 0.35, 0.72, -1.05);
+        leg(B(0.62, 0.5, 0.62), metal, 0.45, 0.25, 1.05);
+        leg(B(0.62, 0.5, 0.62), metal, 0.45, 0.25, -1.05);
+        leg(B(0.48, 0.5, 0.5), dark, -0.25, 0.25, 0.42);
+        leg(B(0.48, 0.5, 0.5), dark, -0.25, 0.25, -0.42);
+        boatH(1.9, 1.12, -0.15, 0.85);
         add(B(0.1, 0.18, 0.9), trim, 0.62, 1.32, 0, 0, 0, 0, 1, 1, 1, 'glow');
       } else if (type === 'charger') {
         add(B(1.35, 0.7, 1.15), body, -0.18, 0.72, 0);
@@ -188,8 +219,9 @@ var Models = {
         add(B(0.25, 0.95, 1.9), metal, 0.68, 0.58, 0, 0, 0, -0.35);
         add(K(0.14, 0.75, 4), metal, 1.0, 0.95, 0.6, 0, 0, -HALF);
         add(K(0.14, 0.75, 4), metal, 1.0, 0.95, -0.6, 0, 0, -HALF);
-        add(B(1.3, 0.42, 0.26), dark, -0.15, 0.26, 0.62);
-        add(B(1.3, 0.42, 0.26), dark, -0.15, 0.26, -0.62);
+        leg(B(1.3, 0.42, 0.26), dark, -0.15, 0.26, 0.62);
+        leg(B(1.3, 0.42, 0.26), dark, -0.15, 0.26, -0.62);
+        boatH(1.5, 0.7, -0.3, 1.1);
         add(C(0.08, 0.1, 0.7, 5), dark, -0.72, 1.3, 0.35);
         add(B(0.1, 0.12, 0.62), trim, 0.55, 1.08, 0, 0, 0, 0, 1, 1, 1, 'glow');
       } else if (type === 'shellback') {
@@ -198,8 +230,9 @@ var Models = {
         add(B(0.48, 0.38, 0.52), dark, 0.98, 0.45, 0);
         for (var t = 0; t < 4; t++) {
           var ta = t * HALF + HALF / 2;
-          add(B(0.32, 0.4, 0.32), dark, Math.cos(ta) * 0.75, 0.2, Math.sin(ta) * 0.75);
+          leg(B(0.32, 0.4, 0.32), dark, Math.cos(ta) * 0.75, 0.2, Math.sin(ta) * 0.75);
         }
+        boatR(1.14);
         add(T(0.98, 0.06, 4, 6), trim, 0, 0.72, 0, HALF, 0, 0, 1, 1, 1, 'glow');
         add(B(0.08, 0.1, 0.36), trim, 1.22, 0.5, 0, 0, 0, 0, 1, 1, 1, 'glow');
       } else if (type === 'splitter') {
@@ -208,11 +241,13 @@ var Models = {
           var sa = sp / 3 * Math.PI * 2;
           add(S(0.32, 6, 4), metal, Math.cos(sa) * 0.8, 0.62, Math.sin(sa) * 0.8);
         }
+        boatR(0.92);
         add(T(0.66, 0.06, 4, 12), trim, 0, 1.05, 0, HALF, 0, 0, 1, 1, 1, 'glow');
         add(S(0.12, 5, 4), trim, 0.58, 1.25, 0, 0, 0, 0, 1, 1, 1, 'glow');
       } else if (type === 'nest') {
         add(K(1.0, 1.15, 7), body, 0, 0.58, 0);
         add(C(1.05, 1.18, 0.25, 7), dark, 0, 0.12, 0);
+        if (boat) add(T(1.16, 0.15, 5, 12), rim, 0, 0.2, 0, HALF);
         add(B(0.55, 0.3, 0.4), metal, 0.45, 0.62, 0.3, 0.3, 0.5, 0.2);
         add(B(0.4, 0.25, 0.6), M.RUST, -0.4, 0.5, -0.35, -0.2, 0.9, 0.1);
         add(C(0.12, 0.12, 0.7, 5), dark, -0.2, 0.9, 0.45, 0.5, 0, 0.3);
@@ -223,6 +258,7 @@ var Models = {
         add(S(0.24, 6, 4), trim, 0, 1.18, 0, 0, 0, 0, 1, 1, 1, 'glow');
       } else if (type === 'pylon') {
         add(C(0.9, 1.05, 0.3, 6), dark, 0, 0.15, 0);
+        if (boat) add(T(1.02, 0.14, 5, 12), rim, 0, 0.2, 0, HALF);
         for (var pl = 0; pl < 3; pl++) {
           var pa = pl / 3 * Math.PI * 2;
           add(B(0.22, 1.3, 0.22), metal, Math.cos(pa) * 0.45, 0.8, Math.sin(pa) * 0.45, Math.sin(pa) * 0.35, 0, -Math.cos(pa) * 0.35);
@@ -232,6 +268,7 @@ var Models = {
         add(O(0.42), trim, 0, 3.05, 0, 0, 0, 0, 1, 1.4, 1, 'glow');
       } else if (type === 'comb') {
         add(C(0.95, 1.05, 1.1, 6), body, 0, 0.55, 0);
+        if (boat) add(T(1.08, 0.14, 5, 12), rim, 0, 0.2, 0, HALF);
         add(C(1.0, 1.0, 0.12, 6), dark, 0, 1.12, 0);
         for (var cb = 0; cb < 6; cb++) {
           var cba = cb / 6 * Math.PI * 2;
@@ -251,7 +288,14 @@ var Models = {
         add(B(0.4, 0.08, 0.08), dark, 1.1, 0.35, -0.16, 0, -0.5, 0);
         for (var bl = 0; bl < 6; bl++) {
           var bx = (bl % 3 - 1) * 0.45, bz = bl < 3 ? 0.7 : -0.7;
-          add(B(0.09, 0.09, 0.6), dark, bx, 0.2, bz, bz * 0.5, 0, 0);
+          leg(B(0.09, 0.09, 0.6), dark, bx, 0.2, bz, bz * 0.5, 0, 0);
+        }
+        if (boat) {
+          add(T(0.82, 0.11, 5, 12), rim, -0.1, 0.22, 0, HALF);
+          for (var hn = 0; hn < 5; hn++) {
+            var hna = hn / 5 * Math.PI * 2;
+            add(C(0.05, 0.07, 0.3, 5), metal, -0.1 + Math.cos(hna) * 0.62, 0.78, Math.sin(hna) * 0.5, Math.sin(hna) * 0.7, 0, -Math.cos(hna) * 0.7);
+          }
         }
         add(S(0.3, 6, 4), trim, -0.3, 1.0, 0, 0, 0, 0, 1, 0.7, 1, 'glow');
       } else if (type === 'link') {
@@ -277,17 +321,19 @@ var Models = {
         add(B(0.26, 0.12, 0.9), trim, -0.15, 1.52, 0, 0, 0, 0, 1, 1, 1, 'glow');
         add(C(0.08, 0.1, 0.7, 5), metal, 0.45, 1.25, 0, 0, 0, -1.0);
         add(S(0.16, 5, 4), trim, 0.8, 1.48, 0, 0, 0, 0, 1, 1, 1, 'glow');
-        add(B(0.16, 0.55, 0.16), dark, 0.1, 0.27, 0.32);
-        add(B(0.16, 0.55, 0.16), dark, 0.1, 0.27, -0.32);
-        add(B(0.16, 0.55, 0.16), dark, -0.35, 0.27, 0);
+        leg(B(0.16, 0.55, 0.16), dark, 0.1, 0.27, 0.32);
+        leg(B(0.16, 0.55, 0.16), dark, 0.1, 0.27, -0.32);
+        leg(B(0.16, 0.55, 0.16), dark, -0.35, 0.27, 0);
+        boatR(0.8);
       } else if (type === 'hooker') {
         add(B(1.2, 0.9, 1.1), body, -0.15, 0.85, 0, 0, 0, 0.15);
         add(C(0.42, 0.42, 0.9, 8), dark, -0.55, 1.45, 0, HALF, 0, 0);
         add(C(0.46, 0.46, 0.12, 8), trim, -0.55, 1.45, 0.48, HALF, 0, 0, 1, 1, 1, 'glow');
         add(B(1.1, 0.18, 0.18), metal, 0.6, 1.2, 0.45, 0, 0, 0.2);
         add(T(0.26, 0.07, 4, 8), trim, 1.18, 1.0, 0.45, 0, 0, 0, 1, 1, 1, 'glow');
-        add(B(0.3, 0.7, 0.3), dark, 0.1, 0.32, 0.38);
-        add(B(0.3, 0.7, 0.3), dark, 0.1, 0.32, -0.38);
+        leg(B(0.3, 0.7, 0.3), dark, 0.1, 0.32, 0.38);
+        leg(B(0.3, 0.7, 0.3), dark, 0.1, 0.32, -0.38);
+        boatH(1.5, 0.68, -0.25, 0.8);
         add(B(0.1, 0.12, 0.5), trim, 0.48, 1.12, -0.1, 0, 0, 0, 1, 1, 1, 'glow');
       } else if (type === 'muter') {
         add(B(1.3, 0.8, 1.3), body, 0, 0.6, 0);
@@ -297,14 +343,22 @@ var Models = {
         add(S(0.2, 5, 4), trim, 0, 1.55, 0, 0, 0, 0, 1, 1, 1, 'glow');
         for (var mu = 0; mu < 4; mu++) {
           var mua = mu * HALF + HALF / 2;
-          add(B(0.3, 0.4, 0.3), dark, Math.cos(mua) * 0.6, 0.2, Math.sin(mua) * 0.6);
+          leg(B(0.3, 0.4, 0.3), dark, Math.cos(mua) * 0.6, 0.2, Math.sin(mua) * 0.6);
         }
+        boatR(1.05);
         add(B(0.1, 0.12, 0.55), trim, 0.68, 0.7, 0, 0, 0, 0, 1, 1, 1, 'glow');
       } else {
         add(B(1.4, 1.2, 1.4), body, 0, 0.9, 0);
         add(B(0.12, 0.2, 0.7), trim, 0.72, 1.1, 0, 0, 0, 0, 1, 1, 1, 'glow');
       }
     });
+  },
+
+  boatDims: {
+    scav: { hw: 1.1, x0: -1.4, x1: 1.0, bow: 1.2 },
+    brute: { hw: 1.28, x0: -1.5, x1: 1.15, bow: 1.3 },
+    ranger: { hw: 0.95, x0: -1.4, x1: 1.1, bow: 1.25 },
+    rigger: { hw: 1.2, x0: -1.4, x1: 0.95, bow: 1.2 }
   },
 
   player: function (charId, sk, gunId, hull) {
@@ -315,18 +369,31 @@ var Models = {
     var chassis = this.build(function (add) {
       var trk = boat ? function () {} : add;
       if (boat) {
-        var hw = { brute: 1.0, ranger: 0.72, rigger: 0.9 }[charId] || 0.88;
-        var wood = '#3a2c26', deck = '#8a6a45';
-        var R = hw / 0.866, bow = 0.9, bz = bow / (1.5 * R);
-        add(B(1.5, 0.5, hw * 2), wood, -0.25, 0.3, 0);
-        add(C(R, R, 0.5, 3), wood, 0.5 + bow / 3, 0.3, 0, 0, HALF, 0, 1, 1, bz);
-        add(B(1.52, 0.14, hw * 2 + 0.05), body, -0.25, 0.44, 0);
-        add(B(1.4, 0.06, hw * 2 - 0.2), deck, -0.25, 0.57, 0);
-        add(C(R * 0.8, R * 0.8, 0.06, 3), deck, 0.5 + bow * 0.8 / 3, 0.57, 0, 0, HALF, 0, 1, 1, bz);
-        add(B(1.5, 0.08, 0.08), steel, -0.25, 0.6, hw - 0.04);
-        add(B(1.5, 0.08, 0.08), steel, -0.25, 0.6, -hw + 0.04);
-        add(B(0.26, 0.5, 0.5), metal, -1.1, 0.45, 0);
-        add(B(0.14, 0.14, 0.3), dark, -1.28, 0.2, 0);
+        var bd = M.boatDims[charId] || M.boatDims.scav;
+        var hw = bd.hw, bx0 = bd.x0, bx1 = bd.x1, bow = bd.bow, bl = bx1 - bx0, bc = (bx0 + bx1) / 2;
+        var wood = '#3a2c26', deck = '#8a6a45', seam = '#6b4f33';
+        var R = hw / 0.866, bz = bow / (1.5 * R);
+        var tri = function (k, h, col, y) {
+          add(C(R * k, R * k, h, 3), col, bx1 + bow * k / 3, y, 0, 0, HALF, 0, 1, 1, bz);
+        };
+        add(B(bl, 0.55, hw * 2), wood, bc, 0.28, 0);
+        tri(1, 0.55, wood, 0.28);
+        add(B(bl + 0.02, 0.12, hw * 2 + 0.04), '#7a2f24', bc, 0.09, 0);
+        tri(1.02, 0.12, '#7a2f24', 0.09);
+        add(B(bl + 0.04, 0.14, hw * 2 + 0.08), body, bc, 0.5, 0);
+        tri(1.04, 0.14, body, 0.5);
+        add(B(bl - 0.12, 0.06, hw * 2 - 0.22), deck, bc, 0.6, 0);
+        tri(0.86, 0.06, deck, 0.6);
+        for (var sx = bx0 + 0.35; sx < bx1 - 0.1; sx += 0.45) add(B(0.03, 0.065, hw * 2 - 0.26), seam, sx, 0.6, 0);
+        for (var sd = -1; sd <= 1; sd += 2) {
+          add(B(bl, 0.07, 0.07), steel, bc, 0.67, sd * (hw - 0.04));
+          add(T(0.17, 0.07, 4, 8), dark, bx0 + 0.5, 0.3, sd * (hw + 0.07));
+          add(T(0.17, 0.07, 4, 8), dark, bx1 - 0.3, 0.3, sd * (hw + 0.07));
+        }
+        add(C(0.06, 0.06, 0.18, 5), steel, bx1 + bow * 0.55, 0.72, 0);
+        add(T(0.19, 0.07, 4, 10), '#e8672e', bx0 + 0.3, 0.68, -(hw - 0.42), HALF);
+        add(B(0.3, 0.55, 0.55), metal, bx0 - 0.12, 0.5, 0);
+        add(B(0.16, 0.16, 0.34), dark, bx0 - 0.3, 0.16, 0);
       }
       if (charId === 'brute') {
         trk(B(2.1, 0.6, 0.6), dark, 0, 0.32, 0.85);
@@ -537,9 +604,9 @@ var Models = {
     var d = {}, src = M.kitDims[charId] || M.kitDims.scav, k;
     for (k in src) d[k] = src[k];
     if (boat) {
-      var hw = { brute: 1.0, ranger: 0.72, rigger: 0.9 }[charId] || 0.88;
-      d.side = hw; d.fy = 0.6; d.fz = charId === 'rigger' ? 0.78 : hw - 0.2;
-      d.hl = 1.0; d.front = 1.3; d.x0 = -0.6; d.x1 = 0.48;
+      var bd = M.boatDims[charId] || M.boatDims.scav;
+      d.side = bd.hw; d.fy = 0.63; d.fz = bd.hw - 0.2;
+      d.hl = -bd.x0 - 0.05; d.front = bd.x1 + bd.bow - 0.12; d.x0 = -0.75; d.x1 = 0.7;
     }
     skills = skills || {};
     evo = evo || {};
@@ -884,6 +951,88 @@ var Models = {
     });
   },
 
+  crateSea: function () {
+    var M = this, B = M.B, C = M.C, T = M.T, HALF = Math.PI / 2;
+    return this.build(function (add) {
+      add(T(1.5, 0.32, 6, 14), '#e8672e', 0, 0.28, 0, HALF);
+      for (var i = 0; i < 4; i++) {
+        var a = i * HALF + 0.4;
+        add(B(0.52, 0.7, 0.74), '#f2ead8', Math.cos(a) * 1.5, 0.28, Math.sin(a) * 1.5, 0, -a, 0);
+      }
+      add(C(1.3, 1.3, 0.14, 10), '#8a6a45', 0, 0.48, 0);
+      add(B(1.8, 1.5, 1.8), '#6b4a2a', 0, 1.3, 0, 0, 0.3);
+      add(B(1.87, 0.18, 1.87), '#c9a24a', 0, 0.9, 0, 0, 0.3);
+      add(B(1.87, 0.18, 1.87), '#c9a24a', 0, 1.7, 0, 0, 0.3);
+      add(B(0.8, 0.6, 0.6), '#5d5752', 0.1, 2.35, 0.1, 0, 1.1);
+      add(B(0.07, 1.7, 0.07), '#3a3632', -0.6, 2.9, -0.6);
+      add(B(0.55, 0.36, 0.05), '#ffd27d', -0.32, 3.55, -0.6, 0, 0, 0, 1, 1, 1, 'glow');
+    });
+  },
+
+  seaMine: function () {
+    var M = this, C = M.C, S = M.S, T = M.T, HALF = Math.PI / 2;
+    return this.build(function (add) {
+      add(S(0.74, 9, 6), '#2a2c30', 0, 0.5, 0);
+      add(T(0.75, 0.08, 4, 12), '#b3301c', 0, 0.5, 0, HALF);
+      for (var i = 0; i < 6; i++) {
+        var a = i / 6 * Math.PI * 2;
+        add(C(0.06, 0.1, 0.36, 5), '#6a6f76', Math.cos(a) * 0.72, 0.86, Math.sin(a) * 0.72, Math.sin(a) * 0.9, 0, -Math.cos(a) * 0.9);
+      }
+      add(C(0.07, 0.11, 0.34, 5), '#6a6f76', 0, 1.36, 0);
+      add(C(0.1, 0.1, 0.1, 6), '#ffb347', 0, 1.56, 0, 0, 0, 0, 1, 1, 1, 'glow');
+    });
+  },
+
+  chest: function () {
+    var M = this, B = M.B, C = M.C, HALF = Math.PI / 2;
+    return this.build(function (add) {
+      add(B(2.4, 1.2, 1.6), '#6b4226', 0, 0.6, 0);
+      add(C(0.8, 0.8, 2.4, 10), '#7a4d2c', 0, 1.2, 0, 0, 0, HALF);
+      for (var i = -1; i <= 1; i += 2) {
+        add(B(0.22, 1.26, 1.66), '#e8b84a', i * 0.8, 0.6, 0);
+        add(C(0.84, 0.84, 0.22, 10), '#e8b84a', i * 0.8, 1.2, 0, 0, 0, HALF);
+      }
+      add(B(2.46, 0.12, 1.66), '#4a2c18', 0, 1.2, 0);
+      add(B(0.34, 0.44, 0.1), '#ffd27d', 0, 1.0, 0.84, 0, 0, 0, 1, 1, 1, 'glow');
+      add(B(1.2, 0.08, 0.08), '#ffd27d', 0, 1.26, 0.84, 0, 0, 0, 1, 1, 1, 'glow');
+    });
+  },
+
+  raft: function () {
+    var M = this, C = M.C, T = M.T, B = M.B, HALF = Math.PI / 2;
+    return this.build(function (add) {
+      add(C(1.3, 1.18, 0.34, 8), '#2c2a2a', 0, 0.12, 0);
+      add(C(1.22, 1.22, 0.06, 8), '#4d4844', 0, 0.3, 0);
+      add(T(1.3, 0.11, 5, 8), '#1c1a19', 0, 0.22, 0, HALF);
+      add(C(0.62, 0.62, 0.34, 3), '#2c2a2a', 1.42, 0.12, 0, 0, HALF, 0);
+      for (var i = 0; i < 4; i++) {
+        var a = i * HALF + HALF / 2;
+        add(B(0.3, 0.3, 0.3), '#6a5a4a', Math.cos(a) * 1.0, 0.42, Math.sin(a) * 1.0);
+      }
+    });
+  },
+
+  isle: function (set) {
+    var M = this, C = M.C, x0 = set[0].x, y0 = set[0].y;
+    return this.build(function (add) {
+      var layer = function (pad, y, col, min, k) {
+        for (var i = 0; i < set.length; i++) {
+          var q = set[i], rr = q.r * (k || 1) + pad;
+          if (q.r < (min || 0) || rr < 8) continue;
+          add(C(rr, rr, 0.02, 30), col, q.x - x0, y, q.y - y0, 0, i * 0.37);
+        }
+      };
+      layer(52, 0.05, '#3f9fb2');
+      layer(30, 0.09, '#5cc0c2');
+      layer(19, 0.13, '#eafaff');
+      layer(15, 0.17, '#cdb37c');
+      layer(-4, 0.25, '#ecdcae');
+      layer(-34, 0.3, '#f3e6bd', 0, 1);
+      layer(0, 0.34, '#8dbf5c', 105, 0.5);
+      layer(0, 0.37, '#74a84c', 150, 0.3);
+    });
+  },
+
   turret: function () {
     var B = this.B, C = this.C, M = this;
     var base = this.build(function (add) {
@@ -1015,6 +1164,27 @@ var Models = {
         add(M.K(0.5, 1.0, 8), '#ffffff', 0, 1.0, 0);
         add(B(0.07, 0.9, 0.07), '#3a3632', 0, 1.85, 0);
         add(B(0.2, 0.2, 0.2), '#ffe9a8', 0, 2.3, 0);
+      } else if (kind === 'palm') {
+        var tk = '#8a6a48';
+        add(C(0.2, 0.27, 1.3, 6), tk, 0, 0.65, 0, 0, 0, -0.1);
+        add(C(0.17, 0.2, 1.3, 6), tk, 0.18, 1.85, 0, 0, 0, -0.2);
+        add(C(0.14, 0.17, 1.2, 6), tk, 0.48, 3.0, 0, 0, 0, -0.3);
+        for (var pf = 0; pf < 8; pf++) {
+          var pfa = pf / 8 * Math.PI * 2 + 0.2;
+          add(B(1.8, 0.07, 0.46), pf % 2 ? '#3f9a4a' : '#5cb85c', 0.68 + Math.cos(pfa) * 0.85, 3.42, Math.sin(pfa) * 0.85, 0, -pfa, -0.4);
+        }
+        add(M.S(0.34, 6, 4), '#4a8f48', 0.68, 3.7, 0);
+        add(M.S(0.16, 5, 4), '#5a3f28', 0.56, 3.38, 0.17);
+        add(M.S(0.16, 5, 4), '#5a3f28', 0.8, 3.36, -0.12);
+      } else if (kind === 'fern') {
+        for (var fl = 0; fl < 7; fl++) {
+          var fla = fl / 7 * Math.PI * 2 + 0.3;
+          add(B(1.1, 0.05, 0.36), fl % 2 ? '#4fa24e' : '#70c05c', Math.cos(fla) * 0.5, 0.36, Math.sin(fla) * 0.5, 0, -fla, 0.5);
+        }
+        add(M.S(0.2, 5, 4), '#ffffff', 0, 0.62, 0);
+      } else if (kind === 'drift') {
+        add(C(0.2, 0.27, 3.0, 6), '#ffffff', 0, 0.12, 0, 0, 0, Math.PI / 2);
+        add(C(0.09, 0.12, 0.9, 5), '#ffffff', 0.5, 0.42, 0.2, 0.5, 0, 0.9);
       } else if (kind === 'sign') {
         add(B(0.14, 3.2, 0.14), '#5d5752', -0.7, 1.6, 0);
         add(B(0.14, 3.2, 0.14), '#5d5752', 0.7, 1.6, 0);

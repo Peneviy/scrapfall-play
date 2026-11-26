@@ -66,6 +66,8 @@ var View3D = {
     this.buildBatches();
     this.buildAtmos();
     this.walls = [];
+    if (this.isleList) for (var ii = 0; ii < this.isleList.length; ii++) this.isleList[ii].mesh3 = null;
+    this.isleList = [];
     this.bossMeshes = {};
     this.turretPool = [];
     this.pl = null;
@@ -254,9 +256,12 @@ var View3D = {
     this.ground.material.needsUpdate = true;
     this.decoKey = '';
     this.decoCache = {};
+    this.dry = false;
+    if (th === 'sea') this.foeSet('boat');
+    if (window.World && !(window.Game && Game.running)) World.reset(th);
   },
 
-  hull: function () { return this.theme === 'sea' ? 'boat' : ''; },
+  hull: function () { return this.theme === 'sea' && !this.dry ? 'boat' : ''; },
 
   buildAtmos: function () {
     var sets = { scrap: [
@@ -269,15 +274,15 @@ var View3D = {
       { t: 1.00, sky: '#d6e6f5', bounce: '#b08458', hemi: 1.45, sun: '#fff0d8', sunI: 2.5, fog: '#dcb98f', ground: '#ffffff', sunDir: [-0.6, 1.25, 0.45], dark: 0 }
     ],
     sea: [
-      { t: 0.00, sky: '#d4ecf7', bounce: '#5f97a8', hemi: 1.4, sun: '#fff6e4', sunI: 2.4, fog: '#a9d0d8', ground: '#ffffff', sunDir: [-0.6, 1.25, 0.45], dark: 0 },
-      { t: 0.32, sky: '#d4ecf7', bounce: '#5f97a8', hemi: 1.4, sun: '#fff6e4', sunI: 2.4, fog: '#a9d0d8', ground: '#ffffff', sunDir: [-0.6, 1.25, 0.45], dark: 0 },
+      { t: 0.00, sky: '#dcf4ff', bounce: '#5cc0d4', hemi: 1.4, sun: '#fff6e4', sunI: 2.4, fog: '#a4e6f2', ground: [0.6, 1.55, 1.68], sunDir: [-0.6, 1.25, 0.45], dark: 0 },
+      { t: 0.32, sky: '#dcf4ff', bounce: '#5cc0d4', hemi: 1.4, sun: '#fff6e4', sunI: 2.4, fog: '#a4e6f2', ground: [0.6, 1.55, 1.68], sunDir: [-0.6, 1.25, 0.45], dark: 0 },
       { t: 0.46, sky: '#a07c94', bounce: '#3a4a66', hemi: 1.15, sun: '#ffa868', sunI: 2.5, fog: '#6a4a5e', ground: '#d69a8c', sunDir: [-1, 0.55, 0.25], dark: 0.3 },
       { t: 0.60, sky: '#46598a', bounce: '#10182a', hemi: 0.8, sun: '#86a2dc', sunI: 0.75, fog: '#0c1626', ground: '#7088b4', sunDir: [0.5, 1, 0.6], dark: 1 },
       { t: 0.80, sky: '#46598a', bounce: '#10182a', hemi: 0.8, sun: '#86a2dc', sunI: 0.75, fog: '#0c1626', ground: '#7088b4', sunDir: [0.5, 1, 0.6], dark: 1 },
       { t: 0.91, sky: '#e2b0a6', bounce: '#5a7a8a', hemi: 1.2, sun: '#ffc2a2', sunI: 2.1, fog: '#b4a8b4', ground: '#ecd0c8', sunDir: [0.9, 0.6, 0.35], dark: 0.2 },
-      { t: 1.00, sky: '#d4ecf7', bounce: '#5f97a8', hemi: 1.4, sun: '#fff6e4', sunI: 2.4, fog: '#a9d0d8', ground: '#ffffff', sunDir: [-0.6, 1.25, 0.45], dark: 0 }
+      { t: 1.00, sky: '#dcf4ff', bounce: '#5cc0d4', hemi: 1.4, sun: '#fff6e4', sunI: 2.4, fog: '#a4e6f2', ground: [0.6, 1.55, 1.68], sunDir: [-0.6, 1.25, 0.45], dark: 0 }
     ] };
-    var col = function (h) { return new THREE.Color(h); };
+    var col = function (h) { return Array.isArray(h) ? new THREE.Color().setRGB(h[0], h[1], h[2]) : new THREE.Color(h); };
     for (var id in sets) {
       for (var i = 0; i < sets[id].length; i++) {
         var k = sets[id][i];
@@ -439,21 +444,8 @@ var View3D = {
     var M = Models;
 
     this.matGhost = View3D.ghostMat('#e2503a', 0.5);
-    this.foes = {};
-    for (var k in Enemies.defs) {
-      if (k === 'boss' || Enemies.defs[k].decoy) continue;
-      var mdl = M.enemy(k, Enemies.defs[k]);
-      var max = CFG.scale.capHard + 20;
-      var b = add(new View3D.Batch(mdl.geo, this.matLit, max, true));
-      b.mesh.castShadow = true;
-      b.mesh.renderOrder = 2;
-      if (mdl.glow) {
-        b.glow = add(new View3D.Batch(mdl.glow, this.matGlow, max, false, b));
-        b.glow.mesh.renderOrder = 2;
-      }
-      add(new View3D.Batch(mdl.geo, this.matGhost, max, false, b)).mesh.renderOrder = 1;
-      this.foes[k] = b;
-    }
+    this.foeSets = {};
+    this.foes = this.foeSet('');
 
     var crate = M.crate();
     this.crates = add(new View3D.Batch(crate.geo, this.matLit, 80, true));
@@ -463,6 +455,20 @@ var View3D = {
     this.xbarrels = add(new View3D.Batch(xb.geo, this.matLit, 120, true));
     this.xbarrels.mesh.castShadow = true;
     add(new View3D.Batch(xb.glow, this.matGlow, 120, false, this.xbarrels));
+    var cs = M.crateSea();
+    this.cratesSea = add(new View3D.Batch(cs.geo, this.matLit, 80, true));
+    this.cratesSea.mesh.castShadow = true;
+    add(new View3D.Batch(cs.glow, this.matGlow, 80, false, this.cratesSea));
+    var sm = M.seaMine();
+    this.xmines = add(new View3D.Batch(sm.geo, this.matLit, 120, true));
+    this.xmines.mesh.castShadow = true;
+    add(new View3D.Batch(sm.glow, this.matGlow, 120, false, this.xmines));
+    var ch = M.chest();
+    this.chests = add(new View3D.Batch(ch.geo, this.matLit, 8, true));
+    this.chests.mesh.castShadow = true;
+    add(new View3D.Batch(ch.glow, this.matGlow, 8, false, this.chests));
+    this.rafts = add(new View3D.Batch(M.raft().geo, this.matLit, 16, false));
+    this.rafts.mesh.castShadow = true;
     var bl = M.blade();
     this.blades = add(new View3D.Batch(bl.geo, this.matLit, 16, false));
     this.blades.mesh.castShadow = true;
@@ -485,7 +491,8 @@ var View3D = {
     this._c = new THREE.Color();
 
     this.props = {};
-    var kinds = ['tire', 'barrel', 'barrelDown', 'plate', 'pipe', 'rock', 'bush', 'grass', 'yucca', 'deadtree', 'pole', 'sign', 'buoy'];
+    var kinds = ['tire', 'barrel', 'barrelDown', 'plate', 'pipe', 'rock', 'bush', 'grass', 'yucca', 'deadtree', 'pole', 'sign', 'buoy',
+      'palm', 'fern', 'drift'];
     this.wireCol = M.color('#2a2420');
     for (var i = 0; i < kinds.length; i++) {
       this.props[kinds[i]] = add(new View3D.Batch(M.prop(kinds[i]).geo, this.matTint, 260, true));
@@ -532,6 +539,29 @@ var View3D = {
     this.glows = add(View3D.makeDiscs(500, THREE.AdditiveBlending, 4));
     this.strips = add(View3D.makeStrips(240, THREE.AdditiveBlending, 5));
     this.lines = add(View3D.makeStrips(240, THREE.NormalBlending, 5));
+  },
+
+  foeSet: function (hull) {
+    if (this.foeSets[hull]) return this.foeSets[hull];
+    var set = {}, self = this, land = this.foeSets[''];
+    var add = function (b) { self.batches.push(b); self.scene.add(b.mesh); return b; };
+    for (var k in Enemies.defs) {
+      if (k === 'boss' || Enemies.defs[k].decoy) continue;
+      if (hull && (k === 'swarm' || k === 'roller' || k === 'larva' || k === 'link')) { set[k] = land[k]; continue; }
+      var mdl = Models.enemy(k, Enemies.defs[k], hull);
+      var max = CFG.scale.capHard + 20;
+      var b = add(new View3D.Batch(mdl.geo, this.matLit, max, true));
+      b.mesh.castShadow = true;
+      b.mesh.renderOrder = 2;
+      if (mdl.glow) {
+        b.glow = add(new View3D.Batch(mdl.glow, this.matGlow, max, false, b));
+        b.glow.mesh.renderOrder = 2;
+      }
+      add(new View3D.Batch(mdl.geo, this.matGhost, max, false, b)).mesh.renderOrder = 1;
+      set[k] = b;
+    }
+    this.foeSets[hull] = set;
+    return set;
   },
 
   rebuildHalos: function () {
@@ -586,6 +616,7 @@ var View3D = {
 
     this.syncDeco(cx, cy);
     this.syncWalls(cx, cy);
+    this.syncIsles();
     this.fadeWalls(dt);
     this.syncCrates();
     this.syncEnemies();
@@ -705,8 +736,10 @@ var View3D = {
     this.syncAtmos();
     this.forceT = undefined;
     for (i = 0; i < this.batches.length; i++) this.batches[i].begin();
+    this.dry = false;
     this.syncDeco(cx, cy);
     this.syncWalls(cx, cy);
+    this.syncIsles();
     this.syncCrates();
     for (i = 0; i < this.batches.length; i++) this.batches[i].end();
     this.renderer.render(this.scene, this.camera);
@@ -773,11 +806,12 @@ var View3D = {
     var n = 3 + Math.floor(r() * 4), i;
     for (i = 0; i < n; i++) {
       var dark = r() < 0.7;
-      res.stains.push({
+      var stn = {
         x: ox + r() * b, y: oy + r() * b, a: r() * 6.28, r: 30 + r() * 90,
         c: Models.color(dark ? stainCols[i % 2 ? 0 : 3] : stainCols[2]),
         alpha: dark ? 0.22 + r() * 0.16 : 0.2
-      });
+      };
+      if (!(sea && World.isleAt(stn.x, stn.y))) res.stains.push(stn);
     }
     var palettes = {
       tire: ['#ffffff'],
@@ -799,25 +833,46 @@ var View3D = {
     var sink = {};
     if (sea) {
       palettes.rock = ['#6f7c84', '#58656e', '#8a969c'];
-      palettes.plate = ['#8a6a45', '#6b4a2a', '#5d5752'];
+      palettes.plate = ['#8a6a45', '#6b4a2a', '#a07c52'];
       palettes.buoy = ['#d8452e', '#e8a82e', '#e6ded0'];
-      sizes.rock = 22; sizes.buoy = 12;
-      kinds = ['barrel', 'barrelDown', 'barrelDown', 'plate', 'plate', 'pipe', 'rock', 'rock', 'rock', 'tire', 'buoy', 'buoy'];
-      sink = { barrel: 0.45, barrelDown: 0.25, tire: 0.2, pipe: 0.15, rock: 0.08 };
+      palettes.drift = ['#9a7b55', '#7a6248', '#b39468'];
+      palettes.palm = ['#ffffff', '#eef4d8', '#dff0c8'];
+      palettes.fern = ['#ffffff', '#ffd0dc', '#fff0a8'];
+      palettes.sand = ['#b9a88a', '#a39474', '#cdbf9e'];
+      sizes.rock = 22; sizes.buoy = 12; sizes.drift = 13; sizes.palm = 21; sizes.fern = 13;
+      kinds = ['barrelDown', 'plate', 'plate', 'drift', 'drift', 'drift', 'rock', 'rock', 'rock', 'buoy', 'buoy'];
+      sink = { barrel: 0.45, barrelDown: 0.25, drift: 0.04, rock: 0.08 };
     }
+    var landKinds = ['palm', 'fern', 'fern', 'fern', 'rock'];
     var m = sea ? 5 + Math.floor(r() * 6) : 8 + Math.floor(r() * 9);
     for (i = 0; i < m; i++) {
       var x = ox + r() * b, y = oy + r() * b;
       var k = kinds[Math.floor(r() * kinds.length)];
       if (!free(x, y, 24)) continue;
-      var pal = palettes[k];
+      var ashore = sea && World.isleAt(x, y);
+      if (ashore) k = landKinds[Math.floor(r() * landKinds.length)];
+      var pal = palettes[ashore && k === 'rock' ? 'sand' : k];
       var ps = sizes[k] * (0.8 + r() * 0.5);
       res.props.push({
-        k: k, x: x, y: y, a: r() * 6.28, s: ps, dy: sink[k] ? -sink[k] * ps : 0,
+        k: k, x: x, y: y, a: r() * 6.28, s: ps, dy: sink[k] && !ashore ? -sink[k] * ps : 0,
         c: Models.color(pal[Math.floor(r() * pal.length)])
       });
       if (!sea && k === 'tire' && r() < 0.4) {
         res.props.push({ k: 'tire', x: x + 2, y: y - 1, a: r() * 6.28, s: sizes.tire, c: Models.color('#ffffff'), up: 1 });
+      }
+    }
+    if (sea) {
+      var wc = World.chunk(cx, cy), isl = wc.isles;
+      for (i = 0; i < isl.length; i++) {
+        var iq = isl[i], np = 2 + Math.floor(iq.r / 42);
+        for (var pj = 0; pj < np; pj++) {
+          var pa = r() * 6.28, pd = iq.r * (0.3 + r() * 0.55);
+          var qx2 = iq.x + Math.cos(pa) * pd, qy2 = iq.y + Math.sin(pa) * pd;
+          var pk = r() < 0.6 ? 'palm' : 'fern', pz = sizes[pk] * (0.85 + r() * 0.4), prot = r() * 6.28, pc = r();
+          if (!free(qx2, qy2, 20)) continue;
+          if (wc.camp && U.dist2(qx2, qy2, wc.camp.x, wc.camp.y) < 110 * 110) continue;
+          res.props.push({ k: pk, x: qx2, y: qy2, a: prot, s: pz, c: Models.color(palettes[pk][Math.floor(pc * 3)]) });
+        }
       }
     }
     res.wires = [];
@@ -919,7 +974,101 @@ var View3D = {
           put(B(8 + r() * 14, 1.4, dep * (0.3 + r() * 0.4)), M.RUST, tq[0], y0 + hgt + 2, tq[1] + (r() - 0.5) * dep * 0.3, 0, yaw + (r() - 0.5) * 0.4);
         }
       };
-      if (style < 0.28) {
+      var TI = function () { return M.tpl('ico', function () { return new THREE.IcosahedronGeometry(1, 0); }); };
+      var TD = function () { return M.tpl('dod', function () { return new THREE.DodecahedronGeometry(1); }); };
+      var T9 = function () { return M.tpl('T9', function () { return M.T(9, 3.6, 5, 10); }); };
+      var HP = Math.PI / 2, wi, wx, wz, wh;
+      if (w.kind === 'box') {
+        var bcols = ['#7a3424', '#2f5560', '#6b6a3a', '#8a6a2f', '#4a4f58', '#5a2f3a'];
+        var bh = 44 + r() * 10, sunk = 9 + r() * 7;
+        container(0, -sunk, long, short, bh, bcols[Math.floor(r() * bcols.length)], 0);
+        if (r() < 0.4) {
+          container((r() - 0.5) * long * 0.12, bh - sunk + 1, long * 0.8, short * 0.95, bh * 0.95,
+            bcols[Math.floor(r() * bcols.length)], (r() - 0.5) * 0.1);
+        }
+        for (wi = -1; wi <= 1; wi += 2) {
+          put(C(6, 6, 18, 8), wi < 0 ? '#2f5560' : '#8a6a2f', wi * long * 0.3, 1, short / 2 + 5, 0, 0, HP);
+          put(C(6, 6, 18, 8), '#7a3b2a', -wi * long * 0.22, 1, -short / 2 - 5, 0, 0, HP);
+        }
+      } else if (w.kind === 'heap') {
+        var woods = ['#8a6a45', '#6b4f33', '#a07c52', '#7a5c3a'], irons = ['#5d5752', '#7a3b2a', '#3d4a4f', '#8a6a2f', '#4a3e34'];
+        var ha = long / 2 - 9, hb = short / 2 - 9, nbar = Math.max(6, Math.round((long + short) / 26));
+        for (wi = 0; wi < nbar; wi++) {
+          var an = wi / nbar * 6.283 + r() * 0.2;
+          put(C(6, 6, 18, 8), wi % 3 ? '#2f5560' : '#7a3b2a', Math.cos(an) * ha, 0.5 + r() * 2, Math.sin(an) * hb, 0, -an + HP + (r() - 0.5) * 0.5, HP);
+        }
+        var npl = Math.max(5, Math.round(long * short / 1500));
+        for (wi = 0; wi < npl; wi++) {
+          put(B(26 + r() * 30, 2.4, 9 + r() * 8), woods[Math.floor(r() * 4)], (r() - 0.5) * (long - 40), 5.5 + r() * 2.5, (r() - 0.5) * (short - 30), 0, r() * 3.14, 0);
+        }
+        var nj = Math.min(22, Math.max(7, Math.floor(long * short / 900)));
+        for (wi = 0; wi < nj; wi++) {
+          wx = (r() - 0.5) * (long - 34); wz = (r() - 0.5) * (short - 30);
+          var eg = 1 - Math.max(Math.abs(wx) / (long / 2), Math.abs(wz) / (short / 2));
+          wh = 8 + r() * 26 * (0.35 + eg);
+          var kd = r();
+          if (kd < 0.4) put(B(12 + r() * 12, wh, 10 + r() * 10), woods[Math.floor(r() * 4)], wx, 7 + wh / 2, wz, (r() - 0.5) * 0.25, r() * 3, (r() - 0.5) * 0.25);
+          else if (kd < 0.6) put(T9(), '#1f1c1a', wx, 9 + r() * 14, wz, HP + (r() - 0.5) * 0.6, 0, (r() - 0.5) * 0.6);
+          else if (kd < 0.8) put(TD(), r() < 0.5 ? '#2f6f8a' : '#4d7a52', wx, 8 + wh * 0.35, wz, r(), r() * 3, 0, 12 + r() * 8, wh * 0.45, 10 + r() * 7);
+          else put(B(14 + r() * 16, 1.6, 10 + r() * 10), irons[Math.floor(r() * 5)], wx, 8 + wh * 0.6, wz, (r() - 0.5) * 0.8, r() * 3, (r() - 0.5) * 0.6);
+        }
+        occ.push([-long / 2 + 8, long / 2 - 8, 30]);
+        if (r() < 0.6) {
+          var hmx = (r() - 0.5) * long * 0.4, hmh = 70 + r() * 40;
+          put(M.C(1.3, 2, hmh, 6), '#6b5a48', hmx, hmh / 2, 0);
+          put(B(14, 9, 0.6), r() < 0.5 ? '#c8402c' : '#e6ded0', hmx + 7.5, hmh - 8, 0, 0, 0, 0.12);
+        }
+      } else if (w.kind === 'rock') {
+        var stone = ['#6f7b80', '#5a666c', '#87939a', '#4d585e', '#7a858a'], green = ['#4f9a4a', '#3d8240', '#6bb45a'];
+        var pil = Math.max(1, Math.round(long / 62)), pw2 = long / pil;
+        for (wi = 0; wi < pil; wi++) {
+          wx = -long / 2 + pw2 * (wi + 0.5);
+          var H2 = 34 + r() * 62, yy = -4, li2 = Math.floor(r() * 5);
+          put(B(pw2 * 1.02, 6, short * 1.02), '#3f4a50', wx, 1, 0, 0, (r() - 0.5) * 0.2, 0);
+          while (yy < H2) {
+            var lh2 = 10 + r() * 14, kk = 1 - Math.max(0, yy / H2) * 0.42;
+            put(B(pw2 * kk * (0.9 + r() * 0.14), lh2, short * kk * (0.88 + r() * 0.14)), stone[li2++ % 5],
+              wx + (r() - 0.5) * 7, yy + lh2 / 2, (r() - 0.5) * 7, 0, (r() - 0.5) * 0.5, 0);
+            yy += lh2;
+          }
+          occ.push([wx - pw2 / 2, wx + pw2 / 2, yy]);
+          var ng = 2 + Math.floor(r() * 3);
+          for (var gi = 0; gi < ng; gi++) {
+            put(TI(), green[Math.floor(r() * 3)], wx + (r() - 0.5) * pw2 * 0.45, yy + 2, (r() - 0.5) * short * 0.4,
+              r(), r() * 3, 0, 9 + r() * 7, 5 + r() * 4, 9 + r() * 7);
+          }
+          put(TD(), stone[li2 % 5], wx + (r() - 0.5) * pw2 * 0.7, 2, (r() < 0.5 ? -1 : 1) * short * 0.5, r(), r(), r(), 8 + r() * 5, 5, 8 + r() * 5);
+        }
+      } else if (w.kind === 'wreck') {
+        var hl = long * 0.74, hwd = short * 0.42, hc = -long * 0.1;
+        put(B(hl, 16, hwd * 2), '#4a3a30', hc, 3, 0);
+        var RR = hwd / 0.866, bwl = long * 0.24;
+        put(M.C(RR, RR, 16, 3), '#4a3a30', hc + hl / 2 + bwl / 3, 3, 0, 0, HP, 0, 1, 1, bwl / (1.5 * RR));
+        put(B(hl + 2, 2.4, hwd * 2 + 3), '#3a5a44', hc, 1.2, 0);
+        put(B(hl - 6, 1.6, hwd * 2 - 6), '#7a6248', hc, 11.6, 0);
+        for (wi = 0; wi < 5; wi++) {
+          put(B(3 + r() * 5, 1.8, hwd * (0.5 + r())), '#2a211c', hc + (r() - 0.5) * (hl - 20), 11.8, (r() - 0.5) * hwd, 0, r() * 0.6, 0);
+        }
+        var cab = -long * 0.28;
+        put(B(long * 0.2, 17, hwd * 1.3), '#b8b0a0', cab, 20, 0, 0.06, 0.1, 0.05);
+        put(B(long * 0.21, 4, hwd * 1.34), '#1f2a30', cab, 23, 0, 0.06, 0.1, 0.05);
+        put(B(long * 0.23, 2, hwd * 1.5), '#8a4a2a', cab, 29.4, 0, 0.06, 0.1, 0.05);
+        var mh2 = 46 + r() * 16, mxx = long * 0.1;
+        put(M.C(1.3, 1.9, mh2, 6), '#6b5a48', mxx + mh2 * 0.14, 11 + mh2 * 0.46, 0, 0, 0, -0.3);
+        put(B(1.2, 16, 22), '#d8ccb0', mxx + mh2 * 0.22, 11 + mh2 * 0.6, 7, 0.2, 0, -0.3);
+        put(T9(), '#e8672e', hc + hl * 0.3, 8, hwd + 2.5);
+        occ.push([-long / 2, long / 2, 14]);
+      } else if (w.kind === 'ruin') {
+        var olds = ['#b9b3a2', '#a39c8a', '#cfc8b4', '#8f8878'], nb2 = Math.max(2, Math.round(long / 20)), bw2 = long / nb2;
+        for (wi = 0; wi < nb2; wi++) {
+          wx = -long / 2 + bw2 * (wi + 0.5);
+          wh = (wi === 0 || wi === nb2 - 1) ? 26 + r() * 14 : (r() < 0.2 ? 4 : 9 + r() * 15);
+          put(B(bw2 * 0.96, wh, short * (0.8 + r() * 0.2)), olds[Math.floor(r() * 4)], wx, wh / 2, (r() - 0.5) * 3, 0, (r() - 0.5) * 0.12, 0);
+          if (r() < 0.6) put(B(bw2 * 0.8, 1.6, short * 0.7), '#6f9a5a', wx, wh + 0.8, 0, 0, r(), 0);
+          if (r() < 0.3) put(TD(), olds[Math.floor(r() * 4)], wx + (r() - 0.5) * 8, 3, (r() < 0.5 ? -1 : 1) * (short / 2 + 6), r(), r(), 0, 5, 3.5, 5);
+        }
+        occ.push([-long / 2, long / 2, 20]);
+      } else if (style < 0.28) {
         var cols = ['#7a3424', '#2f5560', '#6b6a3a', '#8a6a2f', '#4a4f58', '#5a2f3a'];
         var hgt = 46 + r() * 10;
         container(0, 0, long, short, hgt, cols[Math.floor(r() * cols.length)], 0);
@@ -1011,21 +1160,70 @@ var View3D = {
     return g;
   },
 
+  syncIsles: function () {
+    var sets = World.isleSets, frame = this.frameNo || 0, i;
+    for (i = 0; i < sets.length; i++) {
+      var s = sets[i];
+      if (!s.mesh3) {
+        s.mesh3 = new THREE.Mesh(Models.isle(s).geo, this.matLit);
+        s.mesh3.position.set(s[0].x, 0, s[0].y);
+        s.mesh3.receiveShadow = true;
+        this.scene.add(s.mesh3);
+        this.isleList.push(s);
+      }
+      s.frame3 = frame;
+    }
+    for (i = this.isleList.length - 1; i >= 0; i--) {
+      var o = this.isleList[i];
+      if (o.frame3 === frame) continue;
+      if (o.mesh3) { this.scene.remove(o.mesh3); o.mesh3.geometry.dispose(); }
+      o.mesh3 = null;
+      this.isleList.splice(i, 1);
+    }
+    var camps = World.camps, red = this.campCol || (this.campCol = Models.color('#c8402c'));
+    var gold = this.goldCol || (this.goldCol = Models.color('#ffd27d'));
+    for (i = 0; i < camps.length; i++) {
+      var c = camps[i];
+      if (c.st >= 3) continue;
+      var T = c.tier || 0, cs = 15 + T * 3, cc = T >= World.K.camp.card ? gold : red;
+      var a = this.lines.line(c.x - cs, c.y - cs, c.x + cs, c.y + cs, 6 + T, 0.46);
+      this.lines.strip(a, cc, 42, 0, 0, 0.85);
+      a = this.lines.line(c.x - cs, c.y + cs, c.x + cs, c.y - cs, 6 + T, 0.46);
+      this.lines.strip(a, cc, 42, 0, 0, 0.85);
+    }
+  },
+
   syncCrates: function () {
     var list = World.crates, white = Models.color('#ffffff');
+    var sea = World.sea, t = Game.time || 0;
     for (var i = 0; i < list.length; i++) {
       var c = list[i];
       var spin = ((c.x * 13 + c.y * 7) % 100) / 100 * 0.6;
+      var wet = sea && !World.land(c.x, c.y);
+      var bob = wet ? Math.sin(t * 2 + c.x * 0.05) * 1.3 - 1 : 0;
       if (c.ex) {
-        var bk = this.xbarrels.put(c.x, 0, c.y, spin * 5, 19, 19, 19);
-        this.xbarrels.tint(bk, white, c.hit > 0 ? 5 : 1);
+        var xbb = wet ? this.xmines : this.xbarrels;
+        var bk = xbb.put(c.x, bob, c.y, spin * 5, 19, 19, 19);
+        xbb.tint(bk, white, c.hit > 0 ? 5 : 1);
         var bsd = this.shadows.put(c.x + 3, 0.6, c.y + 4, 0, c.r * 1.3, 1, c.r * 1.3);
         this.shadows.disc(bsd, null, 0, 1.2, 1, 0.45);
         continue;
       }
-      var k = this.crates.put(c.x, 0, c.y, spin, c.r, c.r, c.r);
+      if (c.chest) {
+        var gold = this.goldCol || (this.goldCol = Models.color('#ffd27d'));
+        var ck = this.chests.put(c.x, 0, c.y, 0.5, 13, 13, 13);
+        this.chests.tint(ck, white, c.hit > 0 ? 5 : 1);
+        this.halo(c.x, 30, c.y, 50, gold, 0.5 + 0.3 * Math.sin(t * 4));
+        var cg = this.glows.put(c.x, 1, c.y, 0, 70, 1, 70);
+        this.glows.disc(cg, gold, 0, 1.4, 1, 0.5);
+        var csd = this.shadows.put(c.x + 4, 0.6, c.y + 4, 0, c.r * 1.7, 1, c.r * 1.7);
+        this.shadows.disc(csd, null, 0, 1.2, 1, 0.45);
+        continue;
+      }
+      var cb = wet ? this.cratesSea : this.crates;
+      var k = cb.put(c.x, bob, c.y, spin, c.r, c.r, c.r);
       if (k < 0) break;
-      this.crates.tint(k, white, c.hit > 0 ? 5 : 1);
+      cb.tint(k, white, c.hit > 0 ? 5 : 1);
       if (c.loot === 'heal') {
         var hy = c.r * 2.7 + 6 + Math.sin(Game.time * 3 + c.x * 0.1) * 2;
         this.heals.put(c.x, hy, c.y, Game.time * 1.5, 5, 5, 5);
@@ -1039,15 +1237,18 @@ var View3D = {
   syncEnemies: function () {
     var list = Game.enemies, t = Game.time;
     var white = Models.color('#ffffff'), elite = Models.color('#c48cff'), purple = Models.color('#a24bd6');
+    var boats = this.theme === 'sea' ? this.foeSets.boat : null, lands = this.foeSets[''];
     for (var i = 0; i < list.length; i++) {
       var e = list[i];
       if ((e.boss && e.bd) || e.def.decoy) continue;
-      var b = this.foes[e.boss ? 'brute' : e.type] || this.foes.grunt;
+      var afloat = !!boats && !World.land(e.x, e.y, e.r + 6);
+      var b = (afloat ? boats : lands)[e.boss ? 'brute' : e.type] || lands.grunt;
+      if (afloat && (e.type === 'swarm' || e.def.roller)) afloat = false;
       var r = e.boss ? e.r * 0.8 : e.r;
       var ph = t * (e.def.heavy ? 7 : 11) + e.phase;
       var hover = e.type === 'swarm' ? r * 0.5 + Math.sin(ph * 0.7) * r * 0.15 : 0;
       var nest = e.type === 'nest' || e.type === 'pylon' || e.type === 'comb';
-      var hop = nest ? 0 : Math.abs(Math.sin(ph)) * r * 0.1;
+      var hop = afloat ? Math.sin(t * 2.3 + e.phase) * r * 0.05 : (nest ? 0 : Math.abs(Math.sin(ph)) * r * 0.1);
       var swell = nest && e.shootCd < 0.7 ? 1 - e.shootCd / 0.7 : 0;
       if (e.def.larva && e.aim > 0) swell = 1 - e.aim / Bosses.K.hive.fuse;
       var blink = false;
@@ -1063,8 +1264,8 @@ var View3D = {
         var jx = e.roll === 1 ? Math.sin(t * 70) * 2.5 : 0;
         k = b.putR(e.x + jx, r * 0.75, e.y, 0, -e.ang, -e.spin, r);
       } else {
-        k = b.putR(e.x, hover + hop, e.y, Math.sin(ph) * 0.07, nest ? e.phase : -e.ang,
-          nest ? 0 : Math.cos(ph * 2) * 0.03, r);
+        k = b.putR(e.x, hover + hop, e.y, afloat ? Math.sin(t * 1.7 + e.phase) * 0.06 : Math.sin(ph) * 0.07, nest ? e.phase : -e.ang,
+          afloat ? Math.cos(t * 1.4 + e.phase) * 0.05 : (nest ? 0 : Math.cos(ph * 2) * 0.03), r);
       }
       if (k < 0) continue;
       if (e.flash > 0 || blink || (swell > 0 && e.def.larva && Math.sin(t * 40) > 0)) b.tint(k, white, 6);
@@ -1256,9 +1457,15 @@ var View3D = {
       else if (ow === 'heat' || ow === 'cool') roll = Math.sin(Game.time * 31) * 0.025;
       else if (ow === 'sit') { tilt = 0.12; sink = Math.max(sink, 0.12); }
       else if (ow === 'empty') roll = Math.sin(Game.time * 3) * 0.1;
-      g.position.set(e.x, hover + stomp - r * sink + (e.lift || 0), e.y);
-      g.rotation.set(roll, -e.ang, tilt, 'YXZ');
       var ms = r * (bd.mdl || 1);
+      var deck = 0;
+      if (this.theme === 'sea' && bd.id !== 'phantom' && !World.land(e.x, e.y)) {
+        var rs = ms * 1.08;
+        deck = rs * 0.3 + Math.sin(Game.time * 1.6 + e.phase) * 0.8;
+        this.rafts.put(e.x, deck - rs * 0.3, e.y, -e.ang, rs, rs, rs);
+      }
+      g.position.set(e.x, hover + stomp - r * sink + (e.lift || 0) + deck, e.y);
+      g.rotation.set(roll, -e.ang, tilt, 'YXZ');
       g.scale.set(ms, zz ? ms * (1 + 0.035 * Math.sin(Game.time * 1.7 + e.phase)) : ms, ms);
       if (e.flash > 0) c.mat.emissive.setScalar(e.inv ? 0.12 : 0.4);
       else if (ow === 'heat') c.mat.emissive.setRGB(0.55 + 0.2 * Math.sin(Game.time * 9), 0.16, 0.02);
@@ -1577,9 +1784,10 @@ var View3D = {
     g.add(turret);
 
     this.scene.add(g);
+    var was = this.pl && this.pl.px === p.x && this.pl.py === p.y ? this.pl.heading : p.ang;
     this.pl = {
       key: key, group: g, chassis: chassis, turret: turret, barrel: barrel, mat: mat,
-      heading: p.ang, px: p.x, py: p.y, fire: p.fireCd, recoil: 0, kit: [], kitSig: null
+      heading: was, px: p.x, py: p.y, fire: p.fireCd, recoil: 0, kit: [], kitSig: null
     };
     return this.pl;
   },
@@ -1622,6 +1830,16 @@ var View3D = {
   },
 
   syncPlayer: function (p, dt) {
+    if (this.theme === 'sea') {
+      var land = World.land(p.x, p.y, this.dry ? 34 : 28);
+      if (land !== !!this.dry) {
+        this.dryT = (this.dryT || 0) + dt;
+        if (this.dryT > 0.03 || Game.time < 0.3) {
+          this.dry = land; this.dryT = 0;
+          if (Game.time > 0.3) FX.ring(p.x, p.y, 8, 56, land ? '#e8d6a8' : '#eafaff', 0.4, 3);
+        }
+      } else this.dryT = 0;
+    } else this.dry = false;
     var v = this.playerMesh(p);
     this.syncKit(v, p);
     var sk = Content.skin(p.skin);
@@ -1643,7 +1861,7 @@ var View3D = {
       this.head.target.position.set(p.x + ca * 320, 0, p.y + sa * 320);
       this.head.target.updateMatrixWorld();
     }
-    var boat = this.theme === 'sea';
+    var boat = this.theme === 'sea' && !this.dry;
     var bob = boat ? Math.sin(Game.time * 2.4) * 0.6 - 0.3 : ((mx || my) ? Math.sin(Game.time * 26) * 0.35 : 0);
     g.position.set(p.x, bob, p.y);
     g.rotation.x = boat ? Math.sin(Game.time * 1.9) * 0.045 : 0;
@@ -2294,6 +2512,7 @@ var View3D = {
       ctx.fillRect(s.x - pw / 2, s.y, pw * hk, 5);
       ctx.fillStyle = 'rgba(0,0,0,.4)';
       for (var tk = 1; tk < 5; tk++) ctx.fillRect(s.x - pw / 2 + pw * tk / 5, s.y, 1, 5);
+      Game.overBars(ctx, p, s.x - pw / 2, s.y - 2, pw, this.w >= 560);
     }
     ctx.save();
     ctx.textAlign = 'center';

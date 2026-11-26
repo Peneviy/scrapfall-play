@@ -152,7 +152,7 @@ var Skills = {
       },
     },
     {
-      id: 'siphon', def: true, max: 1, w: 3, rar: 'leg', ic: '♡', col: '#7ee08a',
+      id: 'siphon', kind: 'spell', def: true, max: 1, w: 3, rar: 'leg', ic: '♡', col: '#b07ef5',
       syn: ['vamp', 'regen'],
       ru: { n: 'ОТБОР', d: 'Каждое двадцатое убийство лечит 2% здоровья' },
       en: { n: 'SIPHON', d: 'Every twentieth kill heals 2% health' },

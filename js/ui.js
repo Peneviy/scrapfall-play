@@ -48,6 +48,7 @@ var UI = {
     this.el('btnToMenu').onclick = function () { self.finishToMenu(); };
     this.el('btnWinNext').onclick = function () { self.winNext(); };
     this.el('btnWinTake').onclick = function () { self.finishToMenu('upgrades'); };
+    this.el('btnWinDouble').onclick = function () { self.winDouble(); };
     this.el('nkQ').onclick = function () {
       self.el('nkInfo').classList.toggle('hidden');
       Nakal.renderBox();
@@ -380,9 +381,9 @@ var UI = {
         if (h) for (var j = 0; j < h.length; j++) hc += ' c' + h[j].c;
         if (!s) {
           if (!h) { html += '<div class="sl empty"></div>'; continue; }
-          var ns = h[0].s;
-          html += '<div class="sl empty hl new' + hc + '" title="' + I18N.name(ns) + '">' +
-            '<i style="color:' + (ns.col || '#ffd27d') + '">' + ns.ic + '</i><b>+</b></div>';
+          var ns = h[0].s, ics = '';
+          for (j = 0; j < h.length; j++) ics += '<i class="n' + h[j].c + (j ? ' alt' : '') + '" style="color:' + (h[j].s.col || '#ffd27d') + '">' + h[j].s.ic + '</i>';
+          html += '<div class="sl empty hl new' + hc + '" title="' + I18N.name(ns) + '">' + ics + '<b>+</b></div>';
           continue;
         }
         var lvl = p.skills[s.id], ev = p.evo[s.id] && Evo.of(s.id);
@@ -486,7 +487,7 @@ var UI = {
       if (!s) return '';
       var lvl = p.skills[s.id] || 0, ev = p.evo[s.id] && Evo.of(s.id);
       html = '<h3><i style="color:' + (s.col || '#ffd27d') + '">' + s.ic + '</i> ' + I18N.name(s) + '</h3>' +
-        '<p>' + I18N.desc(s) + '</p>' +
+        '<p' + (ev && ev.swap ? ' class="was"' : '') + '>' + I18N.desc(s) + '</p>' +
         '<div class="stack">' + I18N.t('stack', { n: lvl, m: s.max }) + ' · ' + I18N.t(Skills.kindOf(s) === 'spell' ? 'kindSpell' : 'kindPart') + '</div>' +
         (s.at && lvl ? '<div class="next">' + s.at(lvl - 1) + '</div>' : '');
       if (ev) html += '<div class="tip-evo"><h3>★ ' + I18N.name(ev) + '</h3><p>' + I18N.desc(ev) + '</p></div>';
@@ -571,13 +572,18 @@ var UI = {
     }
     if (dmax <= 1) this.el('abDashCd').style.width = onCd ? (100 - p.dashCdT / p.st.dashCd * 100) + '%' : '0';
 
+    var dbf = Player.debuffs(p);
     var bsig = Math.ceil(p.buffs.rage) + ':' + Math.ceil(p.buffs.haste) + ':' + p.buffs.shield;
+    for (var bi = 0; bi < dbf.length; bi += 2) bsig += ':' + dbf[bi] + Math.ceil(dbf[bi + 1]);
     if (bsig !== this.buffSig) {
       this.buffSig = bsig;
-      var bh = '';
-      if (p.buffs.rage > 0) bh += '<div style="color:#ff7a5c;border-color:#ff7a5c">' + I18N.t('buff_rage') + ' <s>' + I18N.t('buffEff_rage') + '</s> ' + Math.ceil(p.buffs.rage) + '</div>';
-      if (p.buffs.haste > 0) bh += '<div style="color:#7ec8ff;border-color:#7ec8ff">' + I18N.t('buff_haste') + ' <s>' + I18N.t('buffEff_haste') + '</s> ' + Math.ceil(p.buffs.haste) + '</div>';
-      if (p.buffs.shield > 0) bh += '<div style="color:#b07ef5;border-color:#b07ef5">' + I18N.t('buff_shield') + ' <s>' + I18N.t('buffEff_shield') + '</s> ' + p.buffs.shield + '</div>';
+      var bh = '', BC = CFG.col.buff;
+      for (bi = 0; bi < dbf.length; bi += 2) {
+        bh += '<div class="bad" style="--dc:' + (CFG.col.debuffs[dbf[bi]] || CFG.col.debuff) + '">' + I18N.t('debuff_' + dbf[bi]) + ' <s>' + I18N.t('debuffEff_' + dbf[bi]) + '</s>' + (dbf[bi + 1] > 0 ? ' ' + Math.ceil(dbf[bi + 1]) : '') + '</div>';
+      }
+      if (p.buffs.rage > 0) bh += '<div style="color:' + BC.rage + ';border-color:' + BC.rage + '">' + I18N.t('buff_rage') + ' <s>' + I18N.t('buffEff_rage') + '</s> ' + Math.ceil(p.buffs.rage) + '</div>';
+      if (p.buffs.haste > 0) bh += '<div style="color:' + BC.haste + ';border-color:' + BC.haste + '">' + I18N.t('buff_haste') + ' <s>' + I18N.t('buffEff_haste') + '</s> ' + Math.ceil(p.buffs.haste) + '</div>';
+      if (p.buffs.shield > 0) bh += '<div style="color:' + BC.shield + ';border-color:' + BC.shield + '">' + I18N.t('buff_shield') + ' <s>' + I18N.t('buffEff_shield') + '</s> ' + p.buffs.shield + '</div>';
       this.el('buffStrip').innerHTML = bh;
     }
 
@@ -728,7 +734,7 @@ var UI = {
         div.innerHTML = '<div class="key">' + (n + 1) + '</div>' +
           '<div class="ic" style="color:' + (s.col || '#ffd27d') + '">' + s.ic + '</div>' +
           '<h3>' + I18N.name(s) + (ev ? ' <s>' + I18N.name(ev) + '</s>' : '') + '</h3>' +
-          '<p>' + I18N.desc(s) + '</p>' +
+          '<p>' + (ev ? (ev.swap ? '<s class="was">' + I18N.desc(s) + '</s>' : I18N.desc(s)) + '<em>' + I18N.desc(ev) + '</em>' : I18N.desc(s)) + '</p>' +
           '<div class="stack">' + (lvl ? I18N.t('stackUp', { a: lvl, n: lvl + 1, m: s.max }) : I18N.t('newSkill') + ' · ' + I18N.t(Skills.kindOf(s) === 'spell' ? 'kindSpell' : 'kindPart')) + '</div>' +
           (s.at && lvl ? '<div class="next">' + I18N.t('willBe', { v: s.at(lvl) }) + '</div>' : '');
         div.onclick = function () { self.pickCard(s); };
@@ -890,6 +896,7 @@ var UI = {
     ['btnRevive', 'btnDouble', 'btnAgain', 'btnToMenu'].forEach(function (id) { this.el(id).classList.toggle('hidden', win); }, this);
     this.el('winGoWrap').classList.toggle('hidden', !win);
     this.el('btnWinTake').classList.toggle('hidden', !win);
+    this.el('btnWinDouble').classList.toggle('hidden', !win || !!Game.doubled || !PF.canReward());
     this.el('ovScore').textContent = U.num(res.score);
     this.el('ovTime').textContent = U.time(res.time);
     this.el('ovKills').textContent = res.kills;
@@ -935,6 +942,21 @@ var UI = {
     });
   },
 
+  winDouble: function () {
+    var self = this;
+    PF.showRewarded(function () {
+      if (!Game.doubled) {
+        Game.doubled = true;
+        Game.payout *= 2;
+        self.el('ovCoins').textContent = U.num(Game.payout);
+        Snd.play('coin');
+      }
+      self.finishToMenu('upgrades', true);
+    }, function (why) {
+      self.adToast(why);
+    });
+  },
+
   again: function () {
     Game.commit();
     var self = this;
@@ -945,7 +967,7 @@ var UI = {
     }
   },
 
-  finishToMenu: function (shopTab) {
+  finishToMenu: function (shopTab, noAd) {
     Game.commit();
     Game.quit();
     var self = this;
@@ -954,7 +976,7 @@ var UI = {
       self.refreshMenu();
       if (typeof shopTab === 'string') self.openShop(shopTab);
     }
-    if (PF.canFullscreen('nav')) PF.showFullscreen(go, 'nav');
+    if (!noAd && PF.canFullscreen('nav')) PF.showFullscreen(go, 'nav');
     else go();
   },
 

@@ -12,6 +12,8 @@
 .lbp-next s,.lbp-prev s{text-decoration:none;font-variant-numeric:tabular-nums;flex:none}
 .lbp-next s{color:var(--teal)}
 .lbp-prev,.lbp-prev s{color:var(--bone3)}
+.lbp-next.me span{color:var(--gold)}
+.lb-plate .lbp-next.none{display:none}
 .lbp-next:before,.lbp-prev:before{content:"";flex:none;border:4px solid transparent}
 .lbp-next:before{border-top:0;border-bottom:5px solid var(--teal)}
 .lbp-prev:before{border-bottom:0;border-top:5px solid var(--bone3)}

@@ -266,7 +266,8 @@ var Snd = {
     rainTell: 0.8, scrapLand: 0.1, scrapWall: 0.15, scrapBack: 0.15, collapse: 1, beetleTell: 0.4,
     beetleBoom: 0.12, rope: 0.5, linkPass: 0.3, rollTell: 0.5, roll: 0.3, rollCrash: 0.3, muteTell: 0.5,
     unmute: 0.5, bubble: 0.15, fuse: 0.2, rep: 1,
-    lockClick: 0.09, lockDone: 1, lockJoin: 0.5, cableBlock: 0.25, cableBurn: 0.8 },
+    lockClick: 0.09, lockDone: 1, lockJoin: 0.5, cableBlock: 0.25, cableBurn: 0.8,
+    mine: 0.25 },
   last: {},
   recent: [],
   pickN: 0,
@@ -322,6 +323,10 @@ var Snd = {
         this.burst({ brown: true, type: 'lowpass', f0: 1700, f1: 110, dur: 0.75, vol: 0.95, shape: this.soft, verb: 0.55 });
         this.osc({ type: 'sine', f0: 72, f1: 27, dur: 0.6, vol: 0.6 });
         this.burst({ t: now + 0.05, f0: 1400, f1: 400, q: 0.5, dur: 0.18, vol: 0.06, shape: this.soft });
+        break;
+      case 'mine':
+        this.burst({ brown: true, type: 'lowpass', f0: 520 * r, f1: 90, dur: 0.32, vol: 0.42, verb: 0.12 });
+        this.osc({ type: 'sine', f0: 64 * r, f1: 30, dur: 0.3, vol: 0.34 });
         break;
       case 'splash':
         this.burst({ brown: true, type: 'lowpass', f0: 900 * r, f1: 140, dur: 0.18, vol: 0.3, verb: 0.12 });

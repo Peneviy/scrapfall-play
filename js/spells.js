@@ -6,7 +6,7 @@ var Spells = {
     rocket: { cd: function (L) { return 3.5 - 0.5 * (L - 1); }, n: function (L) { return L >= 5 ? 5 : (L >= 3 ? 4 : (L >= 2 ? 3 : 2)); },
       dmg: function (L) { return 28 + 16 * L; }, blast: function (L) { return 60 + 8 * L; },
       range: 650, sp0: 300, sp1: 560, turn: 6, life: 3,
-      hailN: 10, hailCd: 2, hailFan: 1.2, cap: 40 },
+      hailN: 10, hailCd: 5, hailK: 1.5, hailFan: 1.2, cap: 40 },
     ram: { dmg: function (L) { return 100 + 40 * L; }, knock: function (L) { return 50 + 8 * L; },
       w: function (L) { return 34 + 6 * L; }, cdK: 0.94, cdMin: 0.8, gap: 0.3,
       waveR: function (L) { return 150 + 10 * L; }, waveDmg: function (L) { return 20 + 12 * L; }, waveKnock: 55 },
@@ -84,7 +84,7 @@ var Spells = {
       if (s.circ && mute) continue;
       if ((s.life -= dt) <= 0) { this.saws.splice(i, 1); continue; }
       var nx = s.x + s.vx * dt, ny = s.y + s.vy * dt;
-      if (World.blocked(nx, ny)) {
+      if (World.blocked(nx, ny) && !(s.circ && World.blocked(s.x, s.y))) {
         if (World.blocked(nx, s.y)) s.vx = -s.vx;
         if (World.blocked(s.x, ny)) s.vy = -s.vy;
         if (!World.blocked(nx, s.y) && !World.blocked(s.x, ny)) { s.vx = -s.vx; s.vy = -s.vy; }
@@ -183,7 +183,7 @@ var Spells = {
       }
       if (!boom) continue;
       this.rockets.splice(i, 1);
-      this.blast(r.x, r.y, N.blast(L) * p.st.radius, N.dmg(L) * k);
+      this.blast(r.x, r.y, N.blast(L) * p.st.radius, N.dmg(L) * k * (r.h ? N.hailK : 1));
     }
   },
 

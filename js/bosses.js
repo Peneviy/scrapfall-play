@@ -2,7 +2,7 @@ var Bosses = {
 
   list: [
     {
-      id: 'crusher', shape: 4, hpMul: 1, dmgMul: 1, speed: 40, r: 46,
+      id: 'crusher', shape: 4, hpMul: 1, dmgMul: 1.15, speed: 40, r: 46,
       body: '#3a4a56', trim: '#f0a24a',
       ru: { n: 'ДРОБИТЕЛЬ', d: 'Бьет кольцом пуль, но в кольце всегда есть дыра' },
       en: { n: 'CRUSHER', d: 'Fires a ring of bullets, but the ring always has a gap' },
@@ -27,7 +27,7 @@ var Bosses = {
         if (e.t1 <= 0) {
           e.t1 = U.rand(K.cd[0], K.cd[1]);
           e.aim = K.tell;
-          e.chargeAng = e.ang + U.rand(-K.off, K.off);
+          e.chargeAng = e.ang + (Math.random() < 0.5 ? -1 : 1) * U.rand(K.off[0], K.off[1]);
           Bosses.mark({ k: 'fan', x: e.x, y: e.y, a: e.chargeAng, hw: K.gap / 2, r: 560, t: K.tell, c: '#d8f6ff', o: e, safe: true, follow: true,
             ring: K.n, rc: e.bd.trim, rin: e.r });
           Snd.play('tell');
@@ -45,7 +45,7 @@ var Bosses = {
     },
 
     {
-      id: 'driller', shape: 3, hpMul: 0.85, dmgMul: 1.4, speed: 34, r: 42,
+      id: 'driller', shape: 3, hpMul: 0.85, dmgMul: 1.6, speed: 34, r: 42,
       body: '#5a3b2c', trim: '#ffb07a',
       ru: { n: 'БУРИЛЬЩИК', d: 'Таранит по прямой, не разбирая стен' },
       en: { n: 'DRILLER', d: 'Rams in a straight line, walls or not' },
@@ -95,7 +95,7 @@ var Bosses = {
     },
 
     {
-      id: 'weaver', shape: 6, hpMul: 0.95, dmgMul: 0.9, speed: 46, r: 40,
+      id: 'weaver', shape: 6, hpMul: 0.95, dmgMul: 1.05, speed: 46, r: 40,
       body: '#3f5c3a', trim: '#b6e07a',
       ru: { n: 'ТКАЧ', d: 'Прячется за опорами и тянет нити' },
       en: { n: 'WEAVER', d: 'Hides behind pylons and pulls threads' },
@@ -167,7 +167,7 @@ var Bosses = {
     },
 
     {
-      id: 'frostmaw', shape: 5, hpMul: 1.15, dmgMul: 1.1, speed: 52, r: 44,
+      id: 'frostmaw', shape: 5, hpMul: 1.15, dmgMul: 1.25, speed: 52, r: 44,
       body: '#2f4f66', trim: '#7ec8ff',
       ru: { n: 'МОРОЗНИК', d: 'Пускает по земле ледяное кольцо' },
       en: { n: 'FROSTMAW', d: 'Sends an icy ring crawling across the ground' },
@@ -317,7 +317,7 @@ var Bosses = {
     }
 ,
     {
-      id: 'sapper', shape: 3, hpMul: 0.9, dmgMul: 1.1, speed: 58, r: 40,
+      id: 'sapper', shape: 3, hpMul: 0.9, dmgMul: 1.25, speed: 58, r: 40,
       body: '#5a4a2c', trim: '#ffd27d',
       ru: { n: 'ПОДРЫВНИК', d: 'Сыплет минами, а мины рвутся цепью' },
       en: { n: 'SAPPER', d: 'Scatters mines that blow up in a chain' },
@@ -337,7 +337,7 @@ var Bosses = {
       }
     },
     {
-      id: 'lancer', shape: 4, hpMul: 1, dmgMul: 1.25, speed: 64, r: 38,
+      id: 'lancer', shape: 4, hpMul: 1, dmgMul: 1.45, speed: 64, r: 38,
       body: '#40325c', trim: '#c0a8ff',
       ru: { n: 'КОПЕЙЩИК', d: 'Мечет копья, и они встают стеной' },
       en: { n: 'LANCER', d: 'Throws spears that stick up as walls' },
@@ -820,7 +820,7 @@ var Bosses = {
 
   K: {
     chase: { from: 650, k: 0.9, max: 720, on: 950, off: 700, tp: 1600, tpT: 3, tpTell: 1.1, tpMin: 560, tpMax: 720 },
-    crusher: { n: 20, gap: 1.05, sp: 200, tell: 0.8, cd: [2.2, 2.8], off: 0.85, salvos: 3, heat: 3, heatK: 2 },
+    crusher: { n: 20, gap: 1.05, sp: 200, tell: 0.8, cd: [2.2, 2.8], off: [0.65, 1.15], salvos: 3, heat: 3, heatK: 2 },
     driller: { sp: 900, time: 1.0, stuck: 3, stuckK: 2, dig: 1.0, digK: 1.3 },
     sapper: { stun: 2, stunK: 1.5, self: 0.02, chain: 0.12 },
     frostmaw: { tell: 0.75, cd: [4, 5], sp: 150, max: 560, band: 34, frz: 1, tired: 2, tiredK: 1.5 },
@@ -1165,7 +1165,7 @@ var Bosses = {
         if (Math.abs(d - w.r) < (w.band || KF.band) / 2 + p.r * 0.5 && p.dashT <= 0 && p.inv <= 0) {
           w.hit = true;
           p.hurt(w.dmg);
-          if (!w.q) { p.frzT = KF.frz; FX.burst(p.x, p.y, 14, '#bfe8ff', 160, 0.5, 3); Snd.play('freeze'); }
+          if (!w.q) { p.frzT = KF.frz; Player.debuffText(p, 'frz'); FX.burst(p.x, p.y, 14, '#bfe8ff', 160, 0.5, 3); Snd.play('freeze'); }
         }
       }
       if (w.r >= w.max || w.o.dead) F.splice(i, 1);
@@ -1323,10 +1323,12 @@ var Bosses = {
         ctx.arc(m.x, m.y, m.r, 0, Math.PI * 2);
         ctx.stroke();
       } else if (m.k === 'fan') {
-        ctx.moveTo(m.x, m.y);
-        ctx.arc(m.x, m.y, m.r, m.a - m.hw, m.a + m.hw);
-        ctx.closePath();
-        ctx.fill();
+        if (!m.ring) {
+          ctx.moveTo(m.x, m.y);
+          ctx.arc(m.x, m.y, m.r, m.a - m.hw, m.a + m.hw);
+          ctx.closePath();
+          ctx.fill();
+        }
         if (m.ring) {
           ctx.strokeStyle = m.rc; ctx.lineWidth = 6;
           ctx.beginPath();

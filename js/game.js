@@ -45,6 +45,7 @@ var Game = {
       CFG.view.minScale, CFG.view.maxScale);
     View3D.resize(w, h, this.dpr);
     this.redraw = true;
+    if (window.PF && document.body) document.body.classList.toggle('pf-fsbtn', PF.kind === 'pikabu' && PF.isFull(w, h));
   },
 
   zoomBy: function (dir) {
@@ -246,7 +247,9 @@ var Game = {
     }
   },
 
+  healMax: 6,
   spawnHeal: function (x, y) {
+    if (this.heals.length >= this.healMax) this.heals.shift();
     this.heals.push({ x: x, y: y, r: 9, life: 20 });
   },
 
@@ -353,7 +356,6 @@ var Game = {
       h.life -= dt;
       if (h.life <= 0) { this.heals.splice(i, 1); continue; }
       if (p.hp >= p.st.maxHp) continue;
-      if (p.st.grab > 0) this.pull(h, p, dt);
       if (U.dist2(h.x, h.y, p.x, p.y) < (p.r + h.r + 6) * (p.r + h.r + 6)) {
         p.heal(p.st.maxHp * 0.07);
         FX.text(p.x, p.y - 20, '+' + Math.round(p.st.maxHp * 0.07 * p.healK), CFG.col.heal, 15);
@@ -365,6 +367,7 @@ var Game = {
 
   updateDrops: function (dt) {
     var p = this.player;
+    if (p.fullT > 0) p.fullT -= dt;
     for (var i = this.drops.length - 1; i >= 0; i--) {
       var d = this.drops[i];
       d.life -= dt;
@@ -374,7 +377,10 @@ var Game = {
       if ((p.st.grab > 0 || crateHeal) && !(d.t === 'heal' && p.hp >= p.st.maxHp)) this.pull(d, p, dt, crateHeal ? 230 : 0);
       var rr = p.r + d.r + 8;
       if (U.dist2(d.x, d.y, p.x, p.y) > rr * rr) continue;
-      if (d.t === 'heal' && p.hp >= p.st.maxHp) continue;
+      if (d.t === 'heal' && p.hp >= p.st.maxHp) {
+        if (!(p.fullT > 0)) { p.fullT = 5; FX.text(p.x, p.y - 30, I18N.t('hpFull'), CFG.col.heal, 15); }
+        continue;
+      }
       this.applyDrop(d);
       this.drops.splice(i, 1);
     }
@@ -402,14 +408,14 @@ var Game = {
     } else {
       if (d.t === 'shield') p.buffs.shield = Math.min(6, p.buffs.shield + 3);
       else p.buffs[d.t] = Math.min(28, Math.max(0, p.buffs[d.t]) + 14);
-      FX.ring(p.x, p.y, 10, 70, CFG.col.tech, 0.35, 3);
-      FX.text(p.x, p.y - 26, I18N.t('buff_' + d.t), CFG.col.tech, 15);
+      FX.ring(p.x, p.y, 10, 70, CFG.col.buff[d.t], 0.35, 3);
+      FX.text(p.x, p.y - 26, I18N.t('buff_' + d.t), CFG.col.buff[d.t], 15);
       Snd.play('level');
     }
   },
 
   drawDrops: function (ctx) {
-    var colors = { scrap: '#ffd27d', heal: '#7ee08a', rage: '#ff7a5c', haste: '#7ec8ff', shield: '#b07ef5' };
+    var B = CFG.col.buff, colors = { scrap: '#ffd27d', heal: '#7ee08a', rage: B.rage, haste: B.haste, shield: B.shield };
     for (var i = 0; i < this.drops.length; i++) {
       var d = this.drops[i];
       var c = colors[d.t] || '#ffd27d';
@@ -446,7 +452,7 @@ var Game = {
       FX.ring(m.x, m.y, 10, m.r, CFG.col.enemyShot, 0.35, 4);
       FX.blast(m.x, m.y, m.r * 0.8, '#ff4d6d');
       FX.burst(m.x, m.y, 12, CFG.col.enemyShot, 220, 0.45, 3);
-      Snd.play('boom');
+      Snd.play('mine');
       if (U.dist2(m.x, m.y, p.x, p.y) < m.r * m.r) p.hurt(m.dmg);
       M.splice(i, 1);
       for (var j = 0; j < M.length; j++) {
@@ -695,7 +701,33 @@ var Game = {
       sy = (boss.y - this.cam.y) * this.scale + this.h / 2;
     }
     var pad = 42;
-    if (sx > pad && sx < this.w - pad && sy > pad && sy < this.h - pad) return;
+    if (sx > pad && sx < this.w - pad && sy > pad && sy < this.h - pad) {
+      var pl = this.player, H = CFG.boss.hint;
+      if (boss.boss && boss.state === 'fight' && pl && pl.alive && U.dist2(boss.x, boss.y, pl.x, pl.y) > H * H) {
+        var s2 = this._bp || (this._bp = {}), px, py;
+        if (View3D.on) { View3D.toScreen(pl.x, pl.y, pl.r, s2); px = s2.x; py = s2.y; }
+        else { px = (pl.x - this.cam.x) * this.scale + this.w / 2; py = (pl.y - this.cam.y) * this.scale + this.h / 2; }
+        var ha = Math.atan2(sy - py, sx - px), hr = 60 + 3 * Math.sin(this.time * 5);
+        ctx.save();
+        ctx.translate(px + Math.cos(ha) * hr, py + Math.sin(ha) * hr);
+        ctx.rotate(ha);
+        ctx.globalAlpha = 0.85;
+        ctx.fillStyle = '#f0a24a';
+        ctx.strokeStyle = '#1c150f';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(14, 0);
+        ctx.lineTo(-9, -9);
+        ctx.lineTo(-4, 0);
+        ctx.lineTo(-9, 9);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+        ctx.globalAlpha = 1;
+      }
+      return;
+    }
 
     var cx = this.w / 2, cy = this.h / 2;
     var a = Math.atan2(sy - cy, sx - cx);

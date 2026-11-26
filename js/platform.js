@@ -175,6 +175,13 @@ var PF = {
     fallback();
   },
 
+  isFull: function (w, h) {
+    try { if (window.matchMedia('(display-mode: fullscreen)').matches) return true; } catch (e) {}
+    var sw = window.screen ? screen.width : 0, sh = window.screen ? screen.height : 0;
+    if (!sw || !sh || !w || !h) return false;
+    return Math.abs(w / h - sw / sh) < 0.02 && w >= sw * 0.8;
+  },
+
   _pkbBoot: function (sdk, done) {
     var self = this;
     this.pkb = sdk;

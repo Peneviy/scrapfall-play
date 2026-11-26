@@ -5,16 +5,16 @@ var Enemies = {
     swarm: { hp: 9, speed: 96, dmg: 5, r: 9, coins: 0.35, xp: 1.5, body: '#6e5a7a', trim: '#b79ad6', from: 32, w: 7, pack: 6 },
     spitter: { hp: 30, speed: 52, dmg: 11, r: 14, coins: 1, xp: 4, body: '#5c7a48', trim: '#b6e07a', from: 70, w: 3.5, ranged: true, keep: 250 },
     brute: { hp: 120, speed: 44, dmg: 18, r: 24, coins: 2, xp: 9, body: '#33505e', trim: '#e2a05c', from: 100, w: 3, heavy: true },
-    charger: { hp: 55, speed: 60, dmg: 22, r: 18, coins: 1.2, xp: 5, body: '#8a4030', trim: '#ffc27a', from: 150, w: 4, charger: true, fromBoss: 1, ru: 'Таран', en: 'Rammer' },
+    charger: { hp: 55, speed: 60, dmg: 15, r: 18, coins: 1.2, xp: 5, body: '#8a4030', trim: '#ffc27a', from: 150, w: 4, charger: true, fromBoss: 1, ru: 'Таран', en: 'Rammer' },
     shellback: { hp: 260, speed: 34, dmg: 24, r: 27, coins: 3, xp: 12, body: '#2c4a44', trim: '#8fe0c8', from: 200, w: 2, heavy: true, armor: 0.45, fromBoss: 2, ru: 'Панцирь', en: 'Shellback' },
     splitter: { hp: 90, speed: 70, dmg: 14, r: 20, coins: 1.5, xp: 6, body: '#6a4a7a', trim: '#d0a6ff', from: 240, w: 3.5, split: true, fromBoss: 3, ru: 'Делитель', en: 'Splitter' },
     nest: { hp: 420, speed: 0, dmg: 0, r: 30, coins: 6, xp: 26, body: '#2f5a3a', trim: '#9ff2a8', from: 300, w: 2.5, nest: true, fromBoss: 4, ru: 'Гнездо', en: 'Nest' },
     beetle: { hp: 45, speed: 160, dmg: 32, r: 12, coins: 0.2, xp: 0.8, body: '#5a2a24', trim: '#ff5a3a', from: 180, w: 0, beetle: true, ru: 'Жук', en: 'Beetle' },
     link: { hp: 45, speed: 82, dmg: 12, r: 14, coins: 0.4, xp: 1.5, body: '#3a3f4a', trim: '#7ae0ff', from: 240, w: 0, link: true, ru: 'Звено', en: 'Link' },
     roller: { hp: 240, speed: 46, dmg: 20, r: 30, coins: 2.5, xp: 8, body: '#7a6650', trim: '#ffb35c', from: 300, w: 0, heavy: true, armor: 0.6, roller: true, ru: 'Каток', en: 'Roller' },
-    medic: { hp: 16, speed: 74, dmg: 6, r: 13, coins: 0.6, xp: 3, body: '#35574a', trim: '#7dffa8', from: 360, w: 0, caster: true, medic: true, keep: 240, ru: 'Лекарь', en: 'Medic' },
-    hooker: { hp: 70, speed: 66, dmg: 14, r: 17, coins: 1, xp: 4, body: '#5c4a36', trim: '#ffd84a', from: 480, w: 0, caster: true, hooker: true, keep: 300, ru: 'Крючник', en: 'Grappler' },
-    muter: { hp: 55, speed: 60, dmg: 8, r: 16, coins: 1, xp: 4, body: '#3a3352', trim: '#c58bff', from: 600, w: 0, caster: true, muter: true, keep: 380, ru: 'Глушитель', en: 'Silencer' },
+    medic: { hp: 26, speed: 74, dmg: 6, r: 13, coins: 0.6, xp: 3, body: '#35574a', trim: '#7dffa8', from: 360, w: 0, caster: true, medic: true, keep: 240, ru: 'Лекарь', en: 'Medic' },
+    hooker: { hp: 105, speed: 66, dmg: 14, r: 17, coins: 1, xp: 4, body: '#5c4a36', trim: '#ffd84a', from: 480, w: 0, caster: true, hooker: true, keep: 300, ru: 'Крючник', en: 'Grappler' },
+    muter: { hp: 85, speed: 60, dmg: 8, r: 16, coins: 1, xp: 4, body: '#3a3352', trim: '#c58bff', from: 600, w: 0, caster: true, muter: true, keep: 380, ru: 'Глушитель', en: 'Silencer' },
     pylon: { hp: 100, speed: 0, dmg: 0, r: 20, coins: 0.3, xp: 3, body: '#34502f', trim: '#b6e07a', from: 1e9, w: 0, pylon: true, heavy: true },
     comb: { hp: 100, speed: 0, dmg: 0, r: 24, coins: 0.3, xp: 3, body: '#4a3a5c', trim: '#d9c26a', from: 1e9, w: 0, pylon: true, comb: true, heavy: true },
     larva: { hp: 12, speed: 150, dmg: 0, r: 12, coins: 0, xp: 1, body: '#6e4a3a', trim: '#ff9a4a', from: 1e9, w: 0, larva: true },
@@ -26,17 +26,17 @@ var Enemies = {
     nests: 2,
     spitAim: 0.45,
     beetle: { every: 6, n: 3, flank: 150, touchK: 0.4, fuseD: 60, fuse: 1.0, shell: 0.7, r: 110, foeDmg: 25, c: '#ff3b3b' },
-    link: { every: 15, n: 4, gap: 92, ropeMax: 240, ropeK: 1.5, slow: 1.2, ropeCd: 1.0, pass: 7, passTell: 0.6, orbit: 120, max: 2,
+    link: { every: 10, n: 4, gap: 92, ropeMax: 240, ropeK: 1.5, slow: 1.2, ropeCd: 1.0, pass: 7, passTell: 0.6, orbit: 120, max: 3,
       grow: [480, 720, 960],
       taut: 190, snapT: 0.5, wrapOn: 420, wrapOff: 600, wrapR: 135, wrapIn: 55, wrapSpin: 0.3, wrapSp: 1.4 },
-    lock: { from: [330, 540, 780], gap: 100, near: 1100, R: 42, hexR: 40, gather: 170, come: 420, formMax: 4, turn: 0.5, stuck: 1.5, ghost: 2.5, ring2: 10, out: 12,
+    lock: { from: [330, 540, 780], gap: 60, near: 1100, R: 42, hexR: 40, gather: 170, come: 420, formMax: 4, turn: 0.5, stuck: 1.5, ghost: 2.5, ring2: 10, out: 12,
       grow: 600, cellEvery: 55, chainEvery: 75, cells: 7, links: 24, joinMax: 8, big: 4, bigTurn: 0.6,
       heatFrom: 600, h0: 0.2, n0: 4, n1: 18, hot: 0.3, burnK: 1.4, fire: 3, fireK: 0.12, burnR: 12,
       payCells: 5, payCoins: 4, payXp: 15, payScore: 60 },
     roller: { every: 20, cd: 8, first: [2.5, 4], near: 620, tell: 1.0, sp: 560, len: 1300, hit: 0.35, stun: 1.2, max: 2, c: '#ffb35c' },
     medic: { every: 10, max: 3, cd: 6, first: [1.5, 3], range: 300, ward: 3, cut: 0.6, c: '#7dffa8' },
     hooker: { every: 13, max: 2, cd: 7, first: [2, 4], near: 520, len: 560, tell: 0.6, lead: 0.35, sp: 1500, w: 30, pull: 950, pullT: 0.8, catchK: 0.6, c: '#ffd84a' },
-    muter: { every: 16, max: 2, cd: 10, first: [2, 4], near: 640, r: 125, tell: 1.0, mute: 3, c: '#c58bff' },
+    muter: { every: 16, max: 2, cd: 10, first: [2, 4], near: 640, r: 125, tell: 1.2, mute: 3, c: '#c58bff' },
     esp: { xp: 0.6, fast: 1.6, fastMax: 180, shield: 0.6, r: 120, t: 1.0, k: 1.4, c: ['', '#ffe066', '#5fd4ff', '#ff3b3b'] }
   },
   booms: [],
@@ -449,6 +449,7 @@ var Enemies = {
             c.cd = K.ropeCd;
             p.hurt(c.lit.dmg * K.ropeK);
             p.slowT = Math.max(p.slowT, K.slow);
+            Player.debuffText(p, 'slow');
             FX.bolt(a.x, a.y, b.x, b.y, c.lit.def.trim);
             Snd.play('rope');
             FX.burst(p.x, p.y, 8, c.lit.def.trim, 160, 0.35, 3);
@@ -938,8 +939,9 @@ var Enemies = {
       if (lk.burn) {
         p.fireD = p.fireT > 0 ? Math.max(p.fireD, n * L.fireK) : n * L.fireK;
         p.fireT = L.fire;
+        Player.debuffText(p, 'fire');
         FX.burst(p.x, p.y, 14, '#ffb35c', 200, 0.5, 4);
-      } else p.slowT = Math.max(p.slowT, K.slow);
+      } else { p.slowT = Math.max(p.slowT, K.slow); Player.debuffText(p, 'slow'); }
       FX.bolt(a.x, a.y, b.x, b.y, col);
       Snd.play('rope');
       FX.burst(p.x, p.y, 8, col, 160, 0.35, 3);
@@ -953,7 +955,7 @@ var Enemies = {
     var bx = p.x + Math.cos(back) * rd, by = p.y + Math.sin(back) * rd, e, c;
     if ((lk.cellT -= dt) <= 0) {
       lk.cellT = L.cellEvery;
-      if (lk.hx.length < L.cells) {
+      if (lk.hx.length < L.cells && lk.nl > 0) {
         e = this.lockFree(lk.x, lk.y, L.near * 0.7);
         if (!e) { e = this.put('shellback', bx + U.rand(-50, 50), by + U.rand(-50, 50)); if (e) this.hexDebt++; }
         if (e && this.lockAddHex(lk, e)) { if (lk.joinT < 0) lk.joinT = 0; }
@@ -1174,6 +1176,7 @@ var Enemies = {
       if (p.alive && p.dashT <= 0 && U.dist2(hx, hy, p.x, p.y) < hr * hr) {
         e.cast = 3; e.castT = K.pullT;
         p.hook = e;
+        Player.debuffText(p, 'hook');
         p.hurt(e.dmg * K.catchK);
         FX.burst(p.x, p.y, 10, K.c, 180, 0.35, 3);
         FX.shake(5);
@@ -1220,6 +1223,7 @@ var Enemies = {
     FX.ring(e.castX, e.castY, K.r * 0.3, K.r, K.c, 0.4, 4);
     if (p.alive && U.dist2(p.x, p.y, e.castX, e.castY) < K.r * K.r) {
       p.muteT = Math.max(p.muteT, K.mute);
+      Player.debuffText(p, 'mute');
       if (p.tethers) p.tethers.length = 0;
       FX.burst(p.x, p.y, 12, K.c, 140, 0.5, 3);
       Snd.play('mute');

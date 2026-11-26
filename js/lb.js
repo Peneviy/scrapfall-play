@@ -73,7 +73,7 @@ var LB = {
         self.rows = d.rows; self.total = d.total | 0; self.at = Date.now(); self.rowsTier = tr;
         self.seasons = d.season !== undefined;
         self.noArch = d.arch === 0;
-        if (d.me) self.me = { s: d.me.s, r: d.me.r };
+        self.me = d.me ? { s: d.me.s, r: d.me.r } : null;
         if (!self.seasons) self.syncBest();
       }
       if (cb) cb(!!(d && d.rows));
@@ -129,8 +129,10 @@ var LB = {
       L.j = j;
       L.rank = this.rankAt(x, j);
       var up = j > 0 ? this.rows[j - 1] : null;
-      L.next = up ? this.nm(up[2], up[3]) : '';
-      L.gap = up ? '+' + U.num(up[1] - x + 1) : '';
+      var mine = this.me && this.me.s > x && (!up || this.me.s <= up[1]) ? this.me.s : 0;
+      L.self = mine > 0;
+      L.next = mine ? I18N.t('lbYou') + ' · ' + this.myName() : (up ? this.nm(up[2], up[3]) : '');
+      L.gap = mine ? '+' + U.num(mine - x + 1) : (up ? '+' + U.num(up[1] - x + 1) : '');
       var dn = j < this.rows.length ? this.rows[j] : null;
       L.prev = dn ? this.nm(dn[2], dn[3]) : '';
       L.lead = dn ? '-' + U.num(x - dn[1]) : '';
@@ -164,9 +166,10 @@ var LB = {
     var rank = '#' + L.rank;
     if (this._rank !== rank) { this._rank = rank; this._r.textContent = rank; }
     var fl = L.flashT > now;
-    var n = L.next || I18N.t('lbLead'), g = L.next ? L.gap : '';
+    var n = L.next, g = L.next ? L.gap : '';
     var pt = fl ? L.flashText : L.prev, pg = fl ? L.flashMore : L.lead;
-    if (this._n !== n) { this._n = n; this._nm.textContent = n; }
+    if (this._n !== n) { this._n = n; this._nm.textContent = n; this._nx.classList.toggle('none', !n); }
+    if (this._me !== !!L.self) { this._me = !!L.self; this._nx.classList.toggle('me', this._me); }
     if (this._g !== g) { this._g = g; this._gp.textContent = g; }
     if (this._p !== pt) { this._p = pt; this._pn.textContent = pt; this._pv.classList.toggle('hidden', !pt); }
     if (this._pl !== pg) { this._pl = pg; this._pg.textContent = pg; }
@@ -339,6 +342,7 @@ var LB = {
     $('hud').appendChild(p);
     this.plate = p;
     this._r = p.querySelector('.lbp-rank b');
+    this._nx = p.querySelector('.lbp-next');
     this._nm = p.querySelector('.lbp-next span');
     this._gp = p.querySelector('.lbp-next s');
     this._pv = p.querySelector('.lbp-prev');
@@ -432,32 +436,32 @@ var LB = {
 
   words: function () {
     var W = {
-      ru: { lbWorld: 'мир', lbAnon: 'Игрок #{n}', lbPassed: 'обогнал {n}', lbLead: 'впереди никого', lbTop10: 'ТОП-10 мира!', lbFirst: '№1 в мире!',
+      ru: { lbWorld: 'мир', lbAnon: 'Игрок #{n}', lbPassed: 'обогнал {n}', lbYou: 'вы', lbTop10: 'ТОП-10 мира!', lbFirst: '№1 в мире!',
         lbYour: 'Твоё место в мире: #{r} из {t}', lbNoRec: 'Сыграй рейд, чтобы попасть в мировой рейтинг', lbLoading: 'Загружаю рейтинг...',
         lbFail: 'Рейтинг не загрузился. Твой рекорд: {n}', lbNick: 'Ник в рейтинге', lbNickBtn: 'Сменить ник', lbNickOk: 'Ник сохранён',
         lbNickBad: 'Такой ник не подойдёт, в рейтинге будет {n}', lbOver: '#{r} в мире', lbUp: 'было #{r}', lbLvl: 'ур. {n}',
         lbSeason: 'Сезон {n}', lbArchive: 'Архив', lbArchiveHint: 'Рекорды до финала (до версии 0.20.44)', lbArchNo: 'В архиве твоих очков нет', lbWait: 'место уточняется' },
-      en: { lbWorld: 'world', lbAnon: 'Player #{n}', lbPassed: 'passed {n}', lbLead: 'nobody ahead', lbTop10: 'World top 10!', lbFirst: '#1 in the world!',
+      en: { lbWorld: 'world', lbAnon: 'Player #{n}', lbPassed: 'passed {n}', lbYou: 'you', lbTop10: 'World top 10!', lbFirst: '#1 in the world!',
         lbYour: 'Your world place: #{r} of {t}', lbNoRec: 'Play a raid to join the world ranking', lbLoading: 'Loading ranking...',
         lbFail: 'Ranking did not load. Your best: {n}', lbNick: 'Name in ranking', lbNickBtn: 'Change name', lbNickOk: 'Name saved',
         lbNickBad: 'That name will not do, the ranking shows {n}', lbOver: '#{r} world', lbUp: 'was #{r}', lbLvl: 'lv {n}',
         lbSeason: 'Season {n}', lbArchive: 'Archive', lbArchiveHint: 'Records from before the finale (before 0.20.44)', lbArchNo: 'No score of yours in the archive', lbWait: 'rank pending' },
-      tr: { lbWorld: 'dünya', lbAnon: 'Oyuncu #{n}', lbPassed: '{n} geçildi', lbLead: 'önünde kimse yok', lbTop10: 'Dünya ilk 10!', lbFirst: 'Dünyada 1 numara!',
+      tr: { lbWorld: 'dünya', lbAnon: 'Oyuncu #{n}', lbPassed: '{n} geçildi', lbYou: 'sen', lbTop10: 'Dünya ilk 10!', lbFirst: 'Dünyada 1 numara!',
         lbYour: 'Dünya sıran: #{r} / {t}', lbNoRec: 'Dünya sıralamasına girmek için bir baskın oyna', lbLoading: 'Sıralama yükleniyor...',
         lbFail: 'Sıralama yüklenmedi. En iyin: {n}', lbNick: 'Sıralamadaki adın', lbNickBtn: 'Adını değiştir', lbNickOk: 'Ad kaydedildi',
         lbNickBad: 'Bu ad olmaz, sıralamada {n} görünecek', lbOver: 'dünyada #{r}', lbUp: 'önce #{r}', lbLvl: 'sv {n}',
         lbSeason: 'Sezon {n}', lbArchive: 'Arşiv', lbArchiveHint: 'Finalden önceki rekorlar (0.20.44 öncesi)', lbArchNo: 'Arşivde puanın yok', lbWait: 'sıra bekleniyor' },
-      de: { lbWorld: 'welt', lbAnon: 'Spieler #{n}', lbPassed: '{n} überholt', lbLead: 'niemand vor dir', lbTop10: 'Welt-Top 10!', lbFirst: 'Platz 1 weltweit!',
+      de: { lbWorld: 'welt', lbAnon: 'Spieler #{n}', lbPassed: '{n} überholt', lbYou: 'du', lbTop10: 'Welt-Top 10!', lbFirst: 'Platz 1 weltweit!',
         lbYour: 'Dein Weltplatz: #{r} von {t}', lbNoRec: 'Spiel einen Raid, um in die Weltrangliste zu kommen', lbLoading: 'Rangliste lädt...',
         lbFail: 'Rangliste nicht geladen. Dein Bestwert: {n}', lbNick: 'Name in der Rangliste', lbNickBtn: 'Namen ändern', lbNickOk: 'Name gespeichert',
         lbNickBad: 'Dieser Name geht nicht, angezeigt wird {n}', lbOver: 'Welt #{r}', lbUp: 'vorher #{r}', lbLvl: 'St. {n}',
         lbSeason: 'Saison {n}', lbArchive: 'Archiv', lbArchiveHint: 'Rekorde vor dem Finale (vor 0.20.44)', lbArchNo: 'Im Archiv hast du keine Punkte', lbWait: 'Platz wird geprüft' },
-      es: { lbWorld: 'mundo', lbAnon: 'Jugador #{n}', lbPassed: 'superaste a {n}', lbLead: 'nadie delante', lbTop10: '¡Top 10 mundial!', lbFirst: '¡N.º 1 del mundo!',
+      es: { lbWorld: 'mundo', lbAnon: 'Jugador #{n}', lbPassed: 'superaste a {n}', lbYou: 'tú', lbTop10: '¡Top 10 mundial!', lbFirst: '¡N.º 1 del mundo!',
         lbYour: 'Tu puesto mundial: #{r} de {t}', lbNoRec: 'Juega una incursión para entrar en el ranking mundial', lbLoading: 'Cargando ranking...',
         lbFail: 'El ranking no cargó. Tu mejor marca: {n}', lbNick: 'Nombre en el ranking', lbNickBtn: 'Cambiar nombre', lbNickOk: 'Nombre guardado',
         lbNickBad: 'Ese nombre no vale, se verá {n}', lbOver: 'mundo #{r}', lbUp: 'antes #{r}', lbLvl: 'nv {n}',
         lbSeason: 'Temporada {n}', lbArchive: 'Archivo', lbArchiveHint: 'Récords de antes del final (antes de 0.20.44)', lbArchNo: 'No tienes puntos en el archivo', lbWait: 'puesto pendiente' },
-      pt: { lbWorld: 'mundo', lbAnon: 'Jogador #{n}', lbPassed: 'passou {n}', lbLead: 'ninguém à frente', lbTop10: 'Top 10 mundial!', lbFirst: 'Nº 1 do mundo!',
+      pt: { lbWorld: 'mundo', lbAnon: 'Jogador #{n}', lbPassed: 'passou {n}', lbYou: 'você', lbTop10: 'Top 10 mundial!', lbFirst: 'Nº 1 do mundo!',
         lbYour: 'Sua posição mundial: #{r} de {t}', lbNoRec: 'Jogue uma incursão para entrar no ranking mundial', lbLoading: 'Carregando ranking...',
         lbFail: 'O ranking não carregou. Seu melhor: {n}', lbNick: 'Nome no ranking', lbNickBtn: 'Mudar nome', lbNickOk: 'Nome salvo',
         lbNickBad: 'Esse nome não serve, aparecerá {n}', lbOver: 'mundo #{r}', lbUp: 'antes #{r}', lbLvl: 'nv {n}',

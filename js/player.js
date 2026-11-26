@@ -90,6 +90,24 @@ var Player = {
     }
   },
 
+  _dbf: [],
+  debuffs: function (p) {
+    var a = this._dbf;
+    a.length = 0;
+    if (p.muteT > 0) a.push('mute', p.muteT);
+    if (p.frzT > 0) a.push('frz', p.frzT);
+    else if (p.slowT > 0) a.push('slow', p.slowT);
+    if (p.hook) a.push('hook', 0);
+    if (p.fireT > 0) a.push('fire', p.fireT);
+    return a;
+  },
+  debuffText: function (p, id) {
+    var T = p.dbfAt || (p.dbfAt = {}), now = Date.now();
+    if (now - (T[id] || 0) < 1500) return;
+    T[id] = now;
+    FX.text(p.x, p.y - 34, I18N.t('debuff_' + id), CFG.col.debuffs[id] || CFG.col.debuff, 15);
+  },
+
   hurt: function (p, dmg, dot) {
     if (dot) {
       if (!p.alive || p.dashT > 0) return;
@@ -273,7 +291,7 @@ var Player = {
     }
 
     if (!mute && p.st.spore > 0 && (p.sporeCd -= dt) <= 0) {
-      p.sporeCd = 5;
+      p.sporeCd = p.evo.spore ? 10 : 5;
       this.spores(p);
     }
 
@@ -681,6 +699,19 @@ var Player = {
     }
   },
 
+  _tsk: [],
+  turretTarget: function (t) {
+    var skip = this._tsk;
+    skip.length = 0;
+    for (var k = 0; k < 4; k++) {
+      var e = Game.nearestEnemy(t.x, t.y, 420, skip);
+      if (!e) return null;
+      if (!World.segBlocked(t.x, t.y, e.x, e.y)) return e;
+      skip.push(e);
+    }
+    return null;
+  },
+
   updateTurrets: function (dt) {
     var p = Game.player;
     for (var i = Game.turrets.length - 1; i >= 0; i--) {
@@ -692,7 +723,8 @@ var Player = {
         continue;
       }
       t.cd -= dt;
-      var e = Game.nearestEnemy(t.x, t.y, 420);
+      if ((t.look = (t.look || 0) - dt) <= 0 || (t.tg && (t.tg.dead || t.tg.zz))) { t.look = 0.15; t.tg = this.turretTarget(t); }
+      var e = t.tg;
       if (!e) continue;
       t.ang = U.angleTo(t.x, t.y, e.x, e.y);
       if (t.cd <= 0) {

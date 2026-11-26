@@ -143,13 +143,21 @@ var Skills = {
     {
       id: 'vamp', def: true, max: 3, w: 6, rar: 'epic', ic: '♥', col: '#7ee08a',
       syn: ['regen', 'plate'],
-      ru: { n: 'Падальщик', d: 'Убитые иногда роняют аптечку, каждое двадцатое убийство лечит 2% здоровья' },
-      en: { n: 'Scavenger', d: 'Kills sometimes drop a medkit, every twentieth kill heals 2% health' },
-      vampK: [0.035, 0.06, 0.085],
-      apply: function (p, l) { var K = this.vampK; p.st.vamp += K[l - 1] - (l > 1 ? K[l - 2] : 0); if (l === 1) p.st.siphon += 1; },
+      ru: { n: 'Падальщик', d: 'Убитые иногда роняют аптечку, она лечит 7% здоровья' },
+      en: { n: 'Scavenger', d: 'Kills sometimes drop a medkit that heals 7% health' },
+      vampK: [0.02, 0.035, 0.05],
+      apply: function (p, l) { var K = this.vampK; p.st.vamp += K[l - 1] - (l > 1 ? K[l - 2] : 0); },
       at: function (l) {
-        return I18N.t('at_vamp', { n: String(Math.round(this.vampK[Math.min(l, 2)] * 1000) / 10) }) + ', ' + I18N.t('at_siphon', { n: 2 });
+        return I18N.t('at_vamp', { n: String(Math.round(this.vampK[Math.min(l, 2)] * 1000) / 10) });
       },
+    },
+    {
+      id: 'siphon', def: true, max: 1, w: 3, rar: 'leg', ic: '♡', col: '#7ee08a',
+      syn: ['vamp', 'regen'],
+      ru: { n: 'ОТБОР', d: 'Каждое двадцатое убийство лечит 2% здоровья' },
+      en: { n: 'SIPHON', d: 'Every twentieth kill heals 2% health' },
+      apply: function (p) { p.st.siphon += 1; },
+      at: function () { return I18N.t('at_siphon', { n: 2 }); },
     },
     {
       id: 'dash', def: true, max: 2, w: 7, rar: 'common', ic: '↯', col: '#6fe3c3',
@@ -209,7 +217,7 @@ var Skills = {
       apply: function () {},
       at: function (l) {
         var N = Spells.N.rocket, p = Game.player, h = p && p.evo && p.evo.rocket;
-        return I18N.t('at_rocket', { n: h ? N.hailN : N.n(l + 1), t: (h ? N.hailCd : N.cd(l + 1)).toFixed(1), d: N.dmg(l + 1) });
+        return I18N.t('at_rocket', { n: h ? N.hailN : N.n(l + 1), t: (h ? N.hailCd : N.cd(l + 1)).toFixed(1), d: Math.round(N.dmg(l + 1) * (h ? N.hailK : 1)) });
       },
     },
     {

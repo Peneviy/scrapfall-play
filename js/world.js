@@ -105,6 +105,31 @@ var World = {
     return false;
   },
 
+  segBlocked: function (x0, y0, x1, y1) {
+    var dx = x1 - x0, dy = y1 - y0;
+    for (var i = 0; i < this.near.length; i++) {
+      var w = this.near[i], t0 = 0, t1 = 1, a, b, c;
+      if (Math.abs(dx) < 1e-6) { if (x0 <= w.x || x0 >= w.x + w.w) continue; }
+      else {
+        a = (w.x - x0) / dx; b = (w.x + w.w - x0) / dx;
+        if (a > b) { c = a; a = b; b = c; }
+        if (a > t0) t0 = a;
+        if (b < t1) t1 = b;
+        if (t0 > t1) continue;
+      }
+      if (Math.abs(dy) < 1e-6) { if (y0 <= w.y || y0 >= w.y + w.h) continue; }
+      else {
+        a = (w.y - y0) / dy; b = (w.y + w.h - y0) / dy;
+        if (a > b) { c = a; a = b; b = c; }
+        if (a > t0) t0 = a;
+        if (b < t1) t1 = b;
+        if (t0 > t1) continue;
+      }
+      return true;
+    }
+    return false;
+  },
+
   freeAt: function (x, y, pad) {
     var b = this.block, cx0 = Math.floor(x / b), cy0 = Math.floor(y / b);
     for (var cx = cx0 - 1; cx <= cx0 + 1; cx++) {

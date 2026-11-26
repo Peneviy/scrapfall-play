@@ -289,6 +289,7 @@ canvas#game3d{position:fixed;inset:0;width:100%;height:100%;display:block}
 .xp-wrap span{font-weight:700;color:var(--xp);font-size:16px;min-width:20px;text-align:right;
   text-shadow:0 1px 2px #000}
 .hud-row{display:flex;gap:6px;align-items:center}
+body.pf-fsbtn .hud-row{padding-left:40px}
 .chip{background:var(--plate);clip-path:polygon(0 0,calc(100% - 7px) 0,100% 7px,100% 100%,0 100%);
   padding:3px 11px 3px 10px;font-weight:600;font-size:16px;letter-spacing:.04em;font-variant-numeric:tabular-nums;
   box-shadow:inset 3px 0 0 var(--bone3),inset 0 1px 0 rgba(255,235,200,.12)}
@@ -368,6 +369,9 @@ canvas#game3d{position:fixed;inset:0;width:100%;height:100%;display:block}
 .sl b.ev{color:var(--gold)}
 .slot-row.hot .sl.hl{opacity:.3}
 .slot-row.hot0 .sl.hl.c0,.slot-row.hot1 .sl.hl.c1,.slot-row.hot2 .sl.hl.c2{opacity:1;filter:brightness(1.3)}
+.sl.new i.alt{display:none}
+.slot-row.hot0 .sl.new.c0 i:not(.n0),.slot-row.hot1 .sl.new.c1 i:not(.n1),.slot-row.hot2 .sl.new.c2 i:not(.n2){display:none}
+.slot-row.hot0 .sl.new.c0 i.n0,.slot-row.hot1 .sl.new.c1 i.n1,.slot-row.hot2 .sl.new.c2 i.n2{display:inline}
 .sl.hl b.up{display:none}
 .slot-row.hot0 .sl.hl.c0 b.up,.slot-row.hot1 .sl.hl.c1 b.up,.slot-row.hot2 .sl.hl.c2 b.up{display:inline}
 .slot-row.hot0 .sl.hl.c0 b.cur,.slot-row.hot1 .sl.hl.c1 b.cur,.slot-row.hot2 .sl.hl.c2 b.cur{display:none}
@@ -430,6 +434,9 @@ canvas#game3d{position:fixed;inset:0;width:100%;height:100%;display:block}
 .card.evo .stack{color:var(--bone2)}
 .card.evolved{box-shadow:inset 0 5px 0 var(--gold),inset 0 0 0 1.5px rgba(242,196,106,.7),inset 0 -3px 0 rgba(0,0,0,.35)}
 .card h3 s{text-decoration:none;color:var(--gold);font-size:.68em;letter-spacing:.08em;display:block}
+.card p s.was{display:block;font-size:.88em;opacity:.55;text-decoration:line-through;text-decoration-color:rgba(255,235,200,.6)}
+.card p em{display:block;font-style:normal;color:var(--gold);margin-top:3px}
+p.was{opacity:.55;text-decoration:line-through;text-decoration-color:rgba(255,235,200,.6)}
 #skillStrip div.evo{box-shadow:inset 0 0 0 1.5px var(--gold),inset 0 0 8px rgba(242,196,106,.45);color:var(--gold)}
 #skillStrip div.evo b{color:var(--gold)}
 .ps.evo{border-color:var(--gold);box-shadow:0 0 8px rgba(242,196,106,.35)}
@@ -557,6 +564,14 @@ canvas#game3d{position:fixed;inset:0;width:100%;height:100%;display:block}
 .buff-strip div{font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
   padding:3px 9px;border-left:3px solid;background:var(--plate);pointer-events:auto}
 .buff-strip div s{text-decoration:none;font-weight:300;opacity:.85;text-transform:none}
+.buff-strip div.bad{color:var(--dc,#ff4d6d);border-left-color:var(--dc,#ff4d6d);background:linear-gradient(90deg,rgba(124,18,40,.84),rgba(58,10,22,.72));
+  box-shadow:0 0 8px rgba(255,77,109,.4);animation:badIn .25s ease-out}
+.buff-strip div.bad s{color:#ffd9de}
+@keyframes badIn{from{transform:translateX(-6px);filter:brightness(1.8)}to{transform:none;filter:none}}
+@media (max-height:480px),(max-width:639px){
+  .buff-strip{gap:4px}
+  .buff-strip div{font-size:11px;padding:2px 6px;letter-spacing:.04em}
+}
 .btn.with-ic{display:inline-flex;align-items:center;gap:8px}
 .tab.with-ic{display:inline-flex;align-items:center;gap:6px}
 .ico{flex:none}
@@ -680,4 +695,4 @@ canvas#game3d{position:fixed;inset:0;width:100%;height:100%;display:block}
 .score-break .bw b{color:#ffcf4a}
 .win-go{display:flex;flex-direction:column;align-items:center;gap:5px;max-width:min(92vw,420px)}
 .win-go-sub{font-size:13px;line-height:1.3;color:var(--bone2);text-align:center;letter-spacing:.02em}
-#btnWinTake{max-width:min(92vw,420px)}
+#btnWinTake,#btnWinDouble{max-width:min(92vw,420px)}

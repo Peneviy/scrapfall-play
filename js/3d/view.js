@@ -1080,14 +1080,6 @@ var View3D = {
         }
       }
     }
-    var pm = Game.player;
-    if (pm && pm.muteT > 0) {
-      var mk = Math.min(1, pm.muteT / 0.4), mc = this.markCol(Enemies.K.muter.c);
-      var mr = this.rings.put(pm.x, 2.2, pm.y, 0, pm.r * 2 + Math.sin(t * 10) * 3, 1, pm.r * 2 + Math.sin(t * 10) * 3);
-      this.rings.disc(mr, mc, 0.2, 0, 0.1, 0.85 * mk);
-      var mg = this.glows.put(pm.x, 1.2, pm.y, 0, pm.r * 2.6, 1, pm.r * 2.6);
-      this.glows.disc(mg, mc, 0, 1.4, 1, 0.5 * mk);
-    }
     var C = Enemies.chains;
     if (C.length) {
       var rope = this.ropeCol || (this.ropeCol = Models.color('#2a3038')), rc = this.markCol('#7ae0ff');
@@ -1361,12 +1353,12 @@ var View3D = {
         var d2 = this.glows.put(m.x, 1.5, m.y, 0, rr, 1, rr);
         this.glows.disc(d2, c, 0, 0, 0.4, 0.9);
       } else if (m.k === 'fan') {
-        for (var f = -3; f <= 3; f++) {
+        for (var f = m.ring ? 9 : -3; f <= 3; f++) {
           var fa = m.a + f / 3 * m.hw * 0.85;
           var fl = this.strips.line(m.x, m.y, m.x + Math.cos(fa) * m.r, m.y + Math.sin(fa) * m.r, 64, 2);
           this.strips.strip(fl, c, m.r, 0, 1, (0.12 + 0.3 * k) * (1 - Math.abs(f) / 6));
         }
-        for (var ed = -1; ed <= 1; ed += 2) {
+        for (var ed = m.ring ? 9 : -1; ed <= 1; ed += 2) {
           var ea = m.a + ed * m.hw;
           var el = this.lines.line(m.x, m.y, m.x + Math.cos(ea) * m.r, m.y + Math.sin(ea) * m.r, 5, 2.4);
           this.lines.strip(el, white, m.r, 0, 0, 0.35 + 0.4 * k);
@@ -1557,7 +1549,12 @@ var View3D = {
     v.turret.rotation.y = -p.ang;
     v.barrel.position.x = -v.recoil * 0.22;
     var blink = p.inv > 0 && Math.floor(p.inv * 20) % 2 === 0;
-    v.mat.emissive.setScalar(p.dashT > 0 ? 0.5 : (blink ? 0.35 : 0));
+    var em = p.dashT > 0 ? 0.5 : (blink ? 0.35 : 0), dk = 0.75 + 0.25 * Math.sin(Game.time * 9);
+    if (p.frzT > 0) v.mat.emissive.setRGB(em + 0.12 * dk, em + 0.42 * dk, em + 0.85 * dk);
+    else if (p.muteT > 0) v.mat.emissive.setRGB(em + 0.5 * dk, em + 0.16 * dk, em + 0.8 * dk);
+    else if (p.slowT > 0) v.mat.emissive.setRGB(em + 0.08 * dk, em + 0.3 * dk, em + 0.6 * dk);
+    else if (p.fireT > 0) v.mat.emissive.setRGB(em + 0.7 * dk, em + 0.25 * dk, em + 0.03 * dk);
+    else v.mat.emissive.setScalar(em);
 
     var trail = Models.color(sk.trail), gold = Models.color('#ffd27d'), white = Models.color('#ffffff');
     var s = this.shadows.put(p.x + 3, 0.6, p.y + 4, 0, r * 1.7, 1, r * 1.7);
@@ -1803,7 +1800,7 @@ var View3D = {
       this.heals.put(h.x, 9 + Math.sin(t * 3) * 2, h.y, t * 1.5, 5, 5, 5);
       this.halo(h.x, 9, h.y, 22, Models.color(CFG.col.heal), 0.6);
     }
-    var cols = { scrap: '#ffd27d', heal: '#7ee08a', rage: '#ff7a5c', haste: '#7ec8ff', shield: '#b07ef5' };
+    var BC = CFG.col.buff, cols = { scrap: '#ffd27d', heal: '#7ee08a', rage: BC.rage, haste: BC.haste, shield: BC.shield };
     for (i = 0; i < Game.drops.length; i++) {
       var d = Game.drops[i];
       if (d.life < 5 && Math.floor(d.life * 6) % 2 === 0) continue;

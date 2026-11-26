@@ -7,8 +7,8 @@
 <script>window.onPkbLoad=function(ok){window.PKB_LOADED=ok!==false;if(window.PF&&PF.onPkbLoad)PF.onPkbLoad(window.PKB_LOADED);};</script><script async src="https://games.pikabu.ru/sdk/sdk.js" onload="onPkbLoad(true)" onerror="onPkbLoad(false)"></script>
 <title>SCRAPFALL</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230a1216'/%3E%3Ccircle cx='16' cy='16' r='9' fill='%23f0a24a'/%3E%3Ccircle cx='16' cy='16' r='4' fill='%230a1216'/%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=3.02">
-<link rel="stylesheet" href="css/lb.css?v=3.02">
+<link rel="stylesheet" href="css/style.css?v=3.12">
+<link rel="stylesheet" href="css/lb.css?v=3.12">
 </head>
 <body>
 
@@ -64,11 +64,13 @@
 </div>
 
 <div id="scrLoading" class="screen">
+  <div class="ver-tag ver-tap"></div>
   <div class="logo">SCRAP<span>FALL</span></div>
   <div class="loading-bar"><i id="loadFill"></i></div>
 </div>
 
 <div id="scrMenu" class="screen hidden">
+  <div class="ver-tag ver-tap"></div>
   <div class="logo small">SCRAP<span>FALL</span></div>
   <div class="menu-mid">
     <div id="menuHero" class="hero-card">
@@ -79,6 +81,10 @@
         <div id="heroPerk" class="hero-perk"></div>
       </div>
     </div>
+    <button id="menuMap" class="map-card" type="button">
+      <i class="map-sw"></i>
+      <span class="map-info"><u data-i18n="mapWord">Карта</u><b id="menuMapName">СВАЛКА</b></span>
+    </button>
     <div class="menu-stats">
       <div><span data-i18n="best">Рекорд</span><b id="menuBest">0</b></div>
       <div class="has-tip" data-tip="nk"><span data-i18n="nakal">НАКАЛ</span><b id="menuPrestige">0</b></div>
@@ -139,6 +145,15 @@
   <button id="btnAuth" class="btn hidden" data-i18n="auth">Войти, чтобы попасть в рейтинг</button>
 </div>
 
+<div id="scrMaps" class="screen hidden">
+  <div class="top-bar">
+    <button class="back-btn" data-back="1"><span>&#8592;</span><span data-i18n="back">Вернуться</span></button>
+    <div class="scr-title" data-i18n="mapsTitle">Карты</div>
+    <div></div>
+  </div>
+  <div id="mapsList" class="maps-list"></div>
+</div>
+
 <div id="scrSettings" class="screen hidden">
   <div class="top-bar">
     <button class="back-btn" data-back="1"><span>&#8592;</span><span data-i18n="back">Вернуться</span></button>
@@ -148,6 +163,8 @@
   <div class="settings-list">
     <label class="sw"><span data-i18n="sfx">Звук</span><input type="checkbox" id="setSfx" checked></label>
     <label class="sw"><span data-i18n="music">Музыка</span><input type="checkbox" id="setMusic" checked></label>
+    <div class="sw mp-row"><div class="mp" id="mpSet"></div></div>
+    <div id="mpList" class="mp-list hidden"></div>
     <label class="sw vol"><span data-i18n="volume">Громкость</span><input type="range" id="setVol" min="0" max="100" step="5" value="70"><b id="setVolText">70%</b></label>
     <label class="sw"><span data-i18n="shake">Тряска камеры</span><input type="checkbox" id="setShake" checked></label>
     <div id="setQRow" class="sw q-sw"><span data-i18n="quality">Качество</span><span id="setQ" class="q-row"><button class="btn q" data-q="auto" data-i18n="qAuto">Авто</button><button class="btn q" data-q="high" data-i18n="qHigh">Высокое</button><button class="btn q" data-q="low" data-i18n="qLow">Низкое</button></span></div>
@@ -155,7 +172,7 @@
     <label class="sw vol"><span data-i18n="camDist">Отдаление</span><input type="range" id="setZoom" min="0" max="100" step="5" value="50"><b id="setZoomText">50%</b></label>
     <label class="sw touch-only"><span data-i18n="dashLeft">Кнопка рывка слева</span><input type="checkbox" id="setDashL"></label>
     <div class="lang-row"></div>
-    <div class="ver">v<span id="verText"></span></div>
+    <div class="ver ver-tap">v<span id="verText"></span></div>
   </div>
 </div>
 
@@ -177,6 +194,7 @@
   <div class="pause-mix">
     <label class="sw"><span data-i18n="sfx">Звук</span><input type="checkbox" id="pauseSfx" checked></label>
     <label class="sw"><span data-i18n="music">Музыка</span><input type="checkbox" id="pauseMusic" checked></label>
+    <div class="sw mp-row"><div class="mp" id="mpPause"></div></div>
     <label class="sw vol"><span data-i18n="volume">Громкость</span><input type="range" id="pauseVol" min="0" max="100" step="5" value="70"><b id="pauseVolText">70%</b></label>
     <label class="sw vol"><span data-i18n="camDist">Отдаление</span><input type="range" id="pauseZoom" min="0" max="100" step="5" value="50"><b id="pauseZoomText">50%</b></label>
   </div>
@@ -229,38 +247,40 @@
 </div>
 <div id="focusGate" class="focus-gate hidden"><span data-i18n="focusGate">Кликни по игре, чтобы продолжить</span></div>
 
-<script src="js/lib/three.min.js?v=3.02"></script>
-<script src="js/config.js?v=3.02"></script>
-<script src="js/util.js?v=3.02"></script>
-<script src="js/i18n.js?v=3.02"></script>
-<script src="js/lang/tr.js?v=3.02"></script>
-<script src="js/lang/de.js?v=3.02"></script>
-<script src="js/lang/es.js?v=3.02"></script>
-<script src="js/lang/pt.js?v=3.02"></script>
-<script src="js/icons.js?v=3.02"></script>
-<script src="js/platform.js?v=3.02"></script>
-<script src="js/metrics.js?v=3.02"></script>
-<script src="js/save.js?v=3.02"></script>
-<script src="js/nakal.js?v=3.02"></script>
-<script src="js/audio.js?v=3.02"></script>
-<script src="js/input.js?v=3.02"></script>
-<script src="js/fx.js?v=3.02"></script>
-<script src="js/world.js?v=3.02"></script>
-<script src="js/content.js?v=3.02"></script>
-<script src="js/bosses.js?v=3.02"></script>
-<script src="js/skills.js?v=3.02"></script>
-<script src="js/enemies.js?v=3.02"></script>
-<script src="js/player.js?v=3.02"></script>
-<script src="js/evo.js?v=3.02"></script>
-<script src="js/trophy.js?v=3.02"></script>
-<script src="js/spells.js?v=3.02"></script>
-<script src="js/finale.js?v=3.02"></script>
-<script src="js/3d/models.js?v=3.02"></script>
-<script src="js/3d/view.js?v=3.02"></script>
-<script src="js/game.js?v=3.02"></script>
-<script src="js/ui.js?v=3.02"></script>
-<script src="js/lb.js?v=3.02"></script>
-<script src="js/shop.js?v=3.02"></script>
-<script src="js/main.js?v=3.02"></script>
+<script src="js/lib/three.min.js?v=3.12"></script>
+<script src="js/config.js?v=3.12"></script>
+<script src="js/util.js?v=3.12"></script>
+<script src="js/i18n.js?v=3.12"></script>
+<script src="js/lang/tr.js?v=3.12"></script>
+<script src="js/lang/de.js?v=3.12"></script>
+<script src="js/lang/es.js?v=3.12"></script>
+<script src="js/lang/pt.js?v=3.12"></script>
+<script src="js/icons.js?v=3.12"></script>
+<script src="js/platform.js?v=3.12"></script>
+<script src="js/metrics.js?v=3.12"></script>
+<script src="js/save.js?v=3.12"></script>
+<script src="js/maps.js?v=3.12"></script>
+<script src="js/nakal.js?v=3.12"></script>
+<script src="js/audio.js?v=3.12"></script>
+<script src="js/input.js?v=3.12"></script>
+<script src="js/fx.js?v=3.12"></script>
+<script src="js/world.js?v=3.12"></script>
+<script src="js/content.js?v=3.12"></script>
+<script src="js/bosses.js?v=3.12"></script>
+<script src="js/skills.js?v=3.12"></script>
+<script src="js/enemies.js?v=3.12"></script>
+<script src="js/player.js?v=3.12"></script>
+<script src="js/evo.js?v=3.12"></script>
+<script src="js/trophy.js?v=3.12"></script>
+<script src="js/spells.js?v=3.12"></script>
+<script src="js/finale.js?v=3.12"></script>
+<script src="js/3d/models.js?v=3.12"></script>
+<script src="js/3d/view.js?v=3.12"></script>
+<script src="js/game.js?v=3.12"></script>
+<script src="js/ui.js?v=3.12"></script>
+<script src="js/lb.js?v=3.12"></script>
+<script src="js/shop.js?v=3.12"></script>
+<script src="js/tracks.js?v=3.12"></script>
+<script src="js/main.js?v=3.12"></script>
 </body>
 </html>

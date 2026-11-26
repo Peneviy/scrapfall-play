@@ -23,6 +23,14 @@ var World = {
     };
   },
 
+  inWalls: function (walls, x, y, pad) {
+    for (var i = 0; i < walls.length; i++) {
+      var w = walls[i];
+      if (x > w.x - pad && x < w.x + w.w + pad && y > w.y - pad && y < w.y + w.h + pad) return true;
+    }
+    return false;
+  },
+
   chunk: function (cx, cy) {
     var key = cx + ':' + cy;
     var c = this.chunks[key];
@@ -44,11 +52,10 @@ var World = {
         }
         if (r() < 0.75 && c.walls.length) {
           var base = c.walls[Math.floor(r() * c.walls.length)];
-          c.crates.push({
-            x: base.x + base.w / 2 + (r() < 0.5 ? -1 : 1) * (base.w / 2 + 26),
-            y: base.y + base.h / 2 + (r() - 0.5) * base.h,
-            r: 15, hp: 40, dead: false, hit: 0
-          });
+          var side = r() < 0.5 ? -1 : 1;
+          var kx = base.x + base.w / 2 + side * (base.w / 2 + 26), ky = base.y + base.h / 2 + (r() - 0.5) * base.h;
+          if (this.inWalls(c.walls, kx, ky, 14)) kx = base.x + base.w / 2 - side * (base.w / 2 + 26);
+          if (!this.inWalls(c.walls, kx, ky, 14)) c.crates.push({ x: kx, y: ky, r: 15, hp: 40, dead: false, hit: 0 });
         }
       }
       var nb = r() < 0.55 ? 1 + Math.floor(r() * 3) : 0;
@@ -62,7 +69,7 @@ var World = {
         }
         if (!clear) continue;
         c.crates.push({ x: bx, y: by, r: 11, hp: 12, dead: false, hit: 0, ex: true });
-        if (r() < 0.4) c.crates.push({ x: bx + 22, y: by + 8, r: 11, hp: 12, dead: false, hit: 0, ex: true });
+        if (r() < 0.4 && !this.inWalls(c.walls, bx + 22, by + 8, 10)) c.crates.push({ x: bx + 22, y: by + 8, r: 11, hp: 12, dead: false, hit: 0, ex: true });
       }
       for (var ci = 0; ci < c.crates.length; ci++) {
         if (c.crates[ci].ex) continue;

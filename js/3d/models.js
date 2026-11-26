@@ -307,24 +307,40 @@ var Models = {
     });
   },
 
-  player: function (charId, sk, gunId) {
+  player: function (charId, sk, gunId, hull) {
     var M = this, B = M.B, C = M.C, K = M.K, S = M.S, T = M.T;
     var body = sk.body, trim = sk.trim, dark = M.DARK, metal = M.METAL, steel = M.STEEL;
     var HALF = Math.PI / 2;
+    var boat = hull === 'boat';
     var chassis = this.build(function (add) {
+      var trk = boat ? function () {} : add;
+      if (boat) {
+        var hw = { brute: 1.0, ranger: 0.72, rigger: 0.9 }[charId] || 0.88;
+        var wood = '#3a2c26', deck = '#8a6a45';
+        var R = hw / 0.866, bow = 0.9, bz = bow / (1.5 * R);
+        add(B(1.5, 0.5, hw * 2), wood, -0.25, 0.3, 0);
+        add(C(R, R, 0.5, 3), wood, 0.5 + bow / 3, 0.3, 0, 0, HALF, 0, 1, 1, bz);
+        add(B(1.52, 0.14, hw * 2 + 0.05), body, -0.25, 0.44, 0);
+        add(B(1.4, 0.06, hw * 2 - 0.2), deck, -0.25, 0.57, 0);
+        add(C(R * 0.8, R * 0.8, 0.06, 3), deck, 0.5 + bow * 0.8 / 3, 0.57, 0, 0, HALF, 0, 1, 1, bz);
+        add(B(1.5, 0.08, 0.08), steel, -0.25, 0.6, hw - 0.04);
+        add(B(1.5, 0.08, 0.08), steel, -0.25, 0.6, -hw + 0.04);
+        add(B(0.26, 0.5, 0.5), metal, -1.1, 0.45, 0);
+        add(B(0.14, 0.14, 0.3), dark, -1.28, 0.2, 0);
+      }
       if (charId === 'brute') {
-        add(B(2.1, 0.6, 0.6), dark, 0, 0.32, 0.85);
-        add(B(2.1, 0.6, 0.6), dark, 0, 0.32, -0.85);
-        add(B(2.15, 0.12, 0.62), steel, 0, 0.66, 0.85);
-        add(B(2.15, 0.12, 0.62), steel, 0, 0.66, -0.85);
+        trk(B(2.1, 0.6, 0.6), dark, 0, 0.32, 0.85);
+        trk(B(2.1, 0.6, 0.6), dark, 0, 0.32, -0.85);
+        trk(B(2.15, 0.12, 0.62), steel, 0, 0.66, 0.85);
+        trk(B(2.15, 0.12, 0.62), steel, 0, 0.66, -0.85);
         add(B(1.8, 0.7, 1.3), body, -0.05, 0.85, 0);
         add(B(0.3, 0.9, 2.3), metal, 1.15, 0.5, 0, 0, 0, -0.45);
         add(B(0.7, 0.3, 1.0), steel, -0.7, 1.3, 0);
         add(B(0.1, 0.14, 0.24), trim, 1.0, 1.0, 0.45, 0, 0, 0, 1, 1, 1, 'glow');
         add(B(0.1, 0.14, 0.24), trim, 1.0, 1.0, -0.45, 0, 0, 0, 1, 1, 1, 'glow');
       } else if (charId === 'ranger') {
-        add(B(2.0, 0.45, 0.42), dark, 0, 0.26, 0.62);
-        add(B(2.0, 0.45, 0.42), dark, 0, 0.26, -0.62);
+        trk(B(2.0, 0.45, 0.42), dark, 0, 0.26, 0.62);
+        trk(B(2.0, 0.45, 0.42), dark, 0, 0.26, -0.62);
         add(B(1.9, 0.45, 0.85), body, 0, 0.62, 0);
         add(K(0.42, 0.7, 4), body, 1.2, 0.6, 0, HALF / 2, 0, -HALF, 1, 1, 0.8);
         add(B(0.06, 1.3, 0.06), steel, -0.75, 1.4, 0.3);
@@ -332,8 +348,8 @@ var Models = {
         add(B(0.1, 0.12, 0.3), trim, 1.0, 0.75, 0, 0, 0, 0, 1, 1, 1, 'glow');
         add(B(0.12, 0.12, 0.12), trim, -0.75, 2.08, 0.3, 0, 0, 0, 1, 1, 1, 'glow');
       } else if (charId === 'rigger') {
-        add(B(1.8, 0.5, 0.48), dark, 0, 0.28, 0.75);
-        add(B(1.8, 0.5, 0.48), dark, 0, 0.28, -0.75);
+        trk(B(1.8, 0.5, 0.48), dark, 0, 0.28, 0.75);
+        trk(B(1.8, 0.5, 0.48), dark, 0, 0.28, -0.75);
         add(C(0.95, 1.0, 0.6, 6), body, 0, 0.78, 0);
         add(B(0.5, 0.45, 0.6), metal, -0.75, 1.15, 0.45);
         add(B(0.08, 0.95, 0.08), steel, -0.5, 1.5, -0.55, 0, 0, 0.4);
@@ -341,10 +357,10 @@ var Models = {
         add(B(0.1, 0.12, 0.26), trim, 0.88, 0.95, 0.3, 0, 0, 0, 1, 1, 1, 'glow');
         add(B(0.1, 0.12, 0.26), trim, 0.88, 0.95, -0.3, 0, 0, 0, 1, 1, 1, 'glow');
       } else {
-        add(B(1.9, 0.55, 0.5), dark, 0, 0.3, 0.75);
-        add(B(1.9, 0.55, 0.5), dark, 0, 0.3, -0.75);
-        add(B(1.95, 0.12, 0.52), steel, 0, 0.6, 0.75);
-        add(B(1.95, 0.12, 0.52), steel, 0, 0.6, -0.75);
+        trk(B(1.9, 0.55, 0.5), dark, 0, 0.3, 0.75);
+        trk(B(1.9, 0.55, 0.5), dark, 0, 0.3, -0.75);
+        trk(B(1.95, 0.12, 0.52), steel, 0, 0.6, 0.75);
+        trk(B(1.95, 0.12, 0.52), steel, 0, 0.6, -0.75);
         add(B(1.6, 0.6, 1.1), body, 0, 0.78, 0);
         add(B(0.3, 0.55, 1.1), body, 0.88, 0.66, 0, 0, 0, -0.5);
         add(C(0.08, 0.1, 0.8, 6), dark, -0.75, 1.3, 0.42);
@@ -401,6 +417,273 @@ var Models = {
         add(B(0.22, 0.17, 0.22), steel, 1.48, my, 0);
         add(B(0.4, 0.2, 0.24), '#3a3330', 0.3, my, 0);
       }
+    });
+    return { chassis: chassis, turret: turret, barrel: barrel };
+  },
+
+  kitDims: {
+    scav: { side: 1.0, fy: 0.66, fz: 0.8, hl: 0.95, deck: 1.08, bw: 0.55, tt: 1.63, tr: 0.5, my: 1.38, front: 1.05, x0: -0.55, x1: 0.74 },
+    brute: { side: 1.15, fy: 0.72, fz: 0.9, hl: 1.05, deck: 1.2, bw: 0.65, tt: 1.84, tr: 0.62, my: 1.62, front: 1.33, x0: -0.6, x1: 0.75 },
+    ranger: { side: 0.83, fy: 0.49, fz: 0.64, hl: 1.0, deck: 0.85, bw: 0.43, tt: 1.35, tr: 0.45, my: 1.2, front: 1.25, x0: -0.3, x1: 0.84 },
+    rigger: { side: 0.99, fy: 0.53, fz: 0.82, hl: 0.9, deck: 1.08, bw: 0.95, tt: 1.62, tr: 0.48, my: 1.42, front: 0.95, x0: -0.6, x1: 0.6 }
+  },
+
+  kitRack: function (charId, d, n) {
+    if (charId === 'rigger') {
+      return [[-0.6, d.fy, d.fz], [-0.6, d.fy, -d.fz], [-0.08, d.deck, 0.74], [-0.08, d.deck, -0.74],
+        [0.42, d.deck, 0.66], [0.42, d.deck, -0.66], [0.6, d.fy, d.fz], [0.6, d.fy, -d.fz], [-0.75, 1.38, 0.45]];
+    }
+    var pts = [], per = Math.max(4, Math.ceil(n / 2)), step = (d.x1 - d.x0) / (per - 1);
+    for (var i = 0; i < per; i++) pts.push([d.x0 + i * step, d.fy, d.fz], [d.x0 + i * step, d.fy, -d.fz]);
+    return pts;
+  },
+
+  kitMods: {
+    frost: function (m, lv, M) {
+      var H = Math.PI / 2;
+      m(M.C(0.11, 0.11, 0.3, 8), '#dff1ff', 0, 0.13, 0, 0, 0, H);
+      m(M.C(0.118, 0.118, 0.08, 8), '#7ec8ff', 0, 0.13, 0, 0, 0, H, 1, 1, 1, 'glow');
+      if (lv >= 2) {
+        m(M.C(0.09, 0.09, 0.26, 8), '#dff1ff', 0, 0.33, 0, 0, 0, H);
+        m(M.C(0.098, 0.098, 0.07, 8), '#7ec8ff', 0, 0.33, 0, 0, 0, H, 1, 1, 1, 'glow');
+      }
+    },
+    regen: function (m, lv, M) {
+      m(M.B(0.24, 0.2, 0.24), '#e9ede4', 0, 0.1, 0);
+      m(M.B(0.19, 0.03, 0.065), '#7ee08a', 0, 0.21, 0, 0, 0, 0, 1, 1, 1, 'glow');
+      m(M.B(0.065, 0.03, 0.19), '#7ee08a', 0, 0.21, 0, 0, 0, 0, 1, 1, 1, 'glow');
+    },
+    vamp: function (m, lv, M) {
+      m(M.C(0.035, 0.045, 0.26, 5), M.DARK, -0.06, 0.13, 0);
+      m(M.B(0.24, 0.04, 0.05), M.STEEL, 0.03, 0.27, 0);
+      m(M.K(0.03, 0.12, 4), M.STEEL, 0.13, 0.2, 0.07, Math.PI);
+      m(M.K(0.03, 0.12, 4), M.STEEL, 0.13, 0.2, -0.07, Math.PI);
+      m(M.B(0.1, 0.1, 0.1), '#7ee08a', 0.13, 0.07, 0, 0, 0, 0, 1, 1, 1, 'glow');
+    },
+    siphon: function (m, lv, M) {
+      m(M.C(0.08, 0.1, 0.22, 7), M.DARK, 0, 0.11, 0);
+      m(M.T(0.13, 0.03, 4, 10), '#7ee08a', 0, 0.08, 0, Math.PI / 2, 0, 0, 1, 1, 1, 'glow');
+      m(M.S(0.07, 7, 5), '#ff6f8c', 0, 0.27, 0, 0, 0, 0, 1, 1, 1, 'glow');
+    },
+    orbit: function (m, lv, M) {
+      m(M.C(0.03, 0.04, 0.2, 5), M.STEEL, 0, 0.1, 0);
+      m(M.S(0.095, 7, 5), '#b07ef5', 0, 0.3, 0, 0, 0, 0, 1, 1, 1, 'glow');
+      m(M.T(0.16, 0.02, 4, 12), '#8d93a0', 0, 0.3, 0, Math.PI * 0.38, 0, 0.3);
+    },
+    turret: function (m, lv, M) {
+      m(M.C(0.11, 0.13, 0.1, 6), M.STEEL, 0, 0.05, 0);
+      m(M.B(0.17, 0.12, 0.17), '#4a3f63', 0, 0.16, 0);
+      m(M.C(0.03, 0.035, 0.22, 5), '#2a3236', 0.16, 0.17, 0, 0, 0, -Math.PI / 2);
+      m(M.B(0.07, 0.03, 0.07), '#b07ef5', -0.02, 0.235, 0, 0, 0, 0, 1, 1, 1, 'glow');
+    },
+    chain: function (m, lv, M) {
+      var H = Math.PI / 2;
+      m(M.C(0.045, 0.08, 0.3, 6), M.DARK, 0, 0.15, 0);
+      m(M.T(0.1, 0.025, 4, 10), '#8d93a0', 0, 0.12, 0, H, 0, 0);
+      m(M.T(0.08, 0.022, 4, 10), '#8d93a0', 0, 0.22, 0, H, 0, 0);
+      m(M.S(0.08, 7, 5), '#b07ef5', 0, 0.36, 0, 0, 0, 0, 1, 1, 1, 'glow');
+    },
+    nova: function (m, lv, M) {
+      m(M.C(0.08, 0.11, 0.1, 7), M.STEEL, 0, 0.05, 0);
+      m(M.T(0.13, 0.03, 4, 12), '#ffd27d', 0, 0.14, 0, Math.PI / 2, 0, 0, 1, 1, 1, 'glow');
+      m(M.S(0.05, 6, 4), '#fff3c4', 0, 0.16, 0, 0, 0, 0, 1, 1, 1, 'glow');
+    },
+    tether: function (m, lv, M) {
+      var H = Math.PI / 2;
+      m(M.B(0.2, 0.06, 0.26), M.STEEL, 0, 0.03, 0);
+      m(M.C(0.1, 0.1, 0.18, 8), M.DARK, 0, 0.15, 0, H, 0, 0);
+      m(M.C(0.105, 0.105, 0.07, 8), '#b07ef5', 0, 0.15, 0, H, 0, 0, 1, 1, 1, 'glow');
+      m(M.K(0.045, 0.16, 5), '#cfd3d6', 0.17, 0.15, 0, 0, 0, -H);
+    },
+    spore: function (m, lv, M) {
+      m(M.S(0.14, 7, 5), '#3d6a3a', 0, 0.12, 0, 0, 0, 0, 1, 0.8, 1);
+      m(M.S(0.05, 5, 4), '#7ee08a', 0.06, 0.23, 0.04, 0, 0, 0, 1, 1, 1, 'glow');
+      m(M.S(0.04, 5, 4), '#7ee08a', -0.07, 0.21, 0.03, 0, 0, 0, 1, 1, 1, 'glow');
+      m(M.S(0.04, 5, 4), '#7ee08a', 0, 0.21, -0.08, 0, 0, 0, 1, 1, 1, 'glow');
+    },
+    burn: function (m, lv, M) {
+      m(M.C(0.1, 0.13, 0.14, 7), M.DARK, 0, 0.07, 0);
+      m(M.K(0.085, 0.26, 6), '#ff7a5c', 0, 0.27, 0, 0, 0, 0, 1, 1, 1, 'glow');
+      m(M.S(0.035, 5, 4), '#ffd27d', 0, 0.41, 0, 0, 0, 0, 1, 1, 1, 'glow');
+    },
+    disc: function (m, lv, M) {
+      m(M.C(0.035, 0.045, 0.2, 5), M.STEEL, 0, 0.1, 0);
+      m(M.C(0.17, 0.17, 0.035, 10), '#c9ccd0', 0, 0.22, 0);
+      for (var i = 0; i < 6; i++) {
+        var a = i * Math.PI / 3;
+        m(M.B(0.07, 0.035, 0.05), '#c9ccd0', Math.cos(a) * 0.18, 0.22, Math.sin(a) * 0.18, 0, -a, 0);
+      }
+      m(M.C(0.06, 0.06, 0.05, 8), '#ffb35c', 0, 0.23, 0, 0, 0, 0, 1, 1, 1, 'glow');
+    },
+    rocket: function (m, lv, M) {
+      m(M.B(0.26, 0.18, 0.24), '#4c5140', 0, 0.15, 0, 0, 0, 0.4);
+      for (var i = 0; i < 4; i++) {
+        var r = i >> 1;
+        m(M.K(0.04, 0.1, 5), '#ffb35c', 0.145 - r * 0.03, 0.17 + r * 0.075, i % 2 ? 0.06 : -0.06, 0, 0, 0.4 - Math.PI / 2, 1, 1, 1, 'glow');
+      }
+    },
+    dome: function (m, lv, M) {
+      m(M.C(0.15, 0.16, 0.08, 8), M.DARK, 0, 0.04, 0);
+      m(M.S(0.13, 8, 5), '#7ee0ff', 0, 0.08, 0, 0, 0, 0, 1, 1, 1, 'glow');
+    }
+  },
+
+  kit: function (charId, sk, gunId, hull, skills, evo) {
+    var M = this, B = M.B, C = M.C, K = M.K, S = M.S, T = M.T;
+    var HALF = Math.PI / 2, g = 'glow';
+    var dark = M.DARK, steel = M.STEEL, gun = '#2a3236';
+    var GOLD = '#ffd27d', GREEN = '#7ee08a', TEAL = '#6fe3c3';
+    var boat = hull === 'boat';
+    var d = {}, src = M.kitDims[charId] || M.kitDims.scav, k;
+    for (k in src) d[k] = src[k];
+    if (boat) {
+      var hw = { brute: 1.0, ranger: 0.72, rigger: 0.9 }[charId] || 0.88;
+      d.side = hw; d.fy = 0.6; d.fz = charId === 'rigger' ? 0.78 : hw - 0.2;
+      d.hl = 1.0; d.front = 1.3; d.x0 = -0.6; d.x1 = 0.48;
+    }
+    skills = skills || {};
+    evo = evo || {};
+    var L = function (id) { return skills[id] || 0; };
+    var at = function (add, px, py, pz, s) {
+      return function (geo, hex, x, y, z, rx, ry, rz, sx, sy, sz, lit) {
+        sx = sx || 1;
+        add(geo, hex, px + (x || 0) * s, py + (y || 0) * s, pz + (z || 0) * s, rx, ry, rz,
+          sx * s, (sy === undefined ? sx : sy) * s, (sz === undefined ? sx : sz) * s, lit);
+      };
+    };
+    var rackIds = [], id;
+    for (id in skills) if (skills[id] > 0 && M.kitMods[id]) rackIds.push(id);
+
+    var chassis = this.build(function (add) {
+      var i, n, z, sg, cnt;
+      n = L('plate');
+      if (n) {
+        cnt = Math.min(3, n);
+        var len = n >= 4 ? 0.6 : 0.5, pc = '#7d8388';
+        for (i = 0; i < cnt; i++) for (sg = -1; sg <= 1; sg += 2) {
+          var px = (i - (cnt - 1) / 2) * 0.62;
+          add(B(len, 0.06, 0.22), pc, px, d.fy + 0.04, sg * (d.side + 0.07));
+          add(B(len, 0.32, 0.06), pc, px, d.fy - 0.12, sg * (d.side + 0.15));
+          if (n >= 5 || i === Math.floor(cnt / 2)) add(B(0.1, 0.03, 0.1), GREEN, px, d.fy + 0.085, sg * (d.side + 0.09), 0, 0, 0, 1, 1, 1, g);
+        }
+      }
+      n = L('thorns');
+      if (n) {
+        cnt = n >= 2 ? 5 : 3;
+        for (i = 0; i < cnt; i++) for (sg = -1; sg <= 1; sg += 2) {
+          var tx = (i - (cnt - 1) / 2) * (1.5 / cnt);
+          add(K(0.09, 0.36, 5), '#d98a3a', tx, d.fy - 0.18, sg * (d.side + 0.2), sg * HALF, 0, 0);
+          add(S(0.045, 5, 4), '#f0a24a', tx, d.fy - 0.18, sg * (d.side + 0.38), 0, 0, 0, 1, 1, 1, g);
+        }
+      }
+      n = L('boots');
+      if (n) {
+        var ey = boat ? 0.84 : d.deck - 0.24;
+        for (i = 0; i < n; i++) {
+          z = (i - (n - 1) / 2) * 0.22;
+          add(C(0.1, 0.07, 0.46, 6), steel, -d.hl - 0.12, ey, z, 0, 0, HALF);
+          add(C(0.075, 0.075, 0.04, 6), TEAL, -d.hl - 0.36, ey, z, 0, 0, HALF, 1, 1, 1, g);
+        }
+      }
+      n = L('dash');
+      if (n) for (sg = -1; sg <= 1; sg += 2) {
+        var ds = n >= 2 ? 1.25 : 1, dy = d.fy + 0.15;
+        add(C(0.17 * ds, 0.1 * ds, 0.36, 7), '#4b5a5e', -d.hl + 0.02, dy, sg * d.fz, 0, 0, HALF);
+        add(C(0.12 * ds, 0.12 * ds, 0.04, 7), TEAL, -d.hl - 0.17, dy, sg * d.fz, 0, 0, HALF, 1, 1, 1, g);
+      }
+      n = L('magnet');
+      if (n) {
+        var mg = at(add, d.tr + 0.14, d.deck + 0.07, 0, 0.85 + n * 0.15);
+        mg(B(0.1, 0.12, 0.44), '#b8443a', 0, 0, 0);
+        mg(B(0.3, 0.12, 0.11), '#b8443a', 0.18, 0, 0.165);
+        mg(B(0.3, 0.12, 0.11), '#b8443a', 0.18, 0, -0.165);
+        mg(B(0.08, 0.13, 0.12), TEAL, 0.36, 0, 0.165, 0, 0, 0, 1, 1, 1, g);
+        mg(B(0.08, 0.13, 0.12), TEAL, 0.36, 0, -0.165, 0, 0, 0, 1, 1, 1, g);
+      }
+      n = L('ram');
+      if (n) {
+        var rw = boat ? 0.3 : d.bw + 0.2, rs = n >= 5 ? 1.25 : 1;
+        cnt = boat ? (n >= 3 ? 3 : 1) : (n >= 3 ? 5 : 3);
+        add(B(0.14, 0.3, rw * 2), '#8a5a34', d.front + 0.05, 0.4, 0);
+        for (i = 0; i < cnt; i++) {
+          z = cnt > 1 ? (i - (cnt - 1) / 2) * (rw * 2 - 0.2) / (cnt - 1) : 0;
+          add(K(0.12 * rs, 0.42 * rs, 4), '#cfd3d6', d.front + 0.12 + 0.21 * rs, 0.4, z, 0, 0, -HALF);
+          add(S(0.05, 5, 4), '#ffb35c', d.front + 0.12 + 0.42 * rs, 0.4, z, 0, 0, 0, 1, 1, 1, g);
+        }
+        if (evo.ram) add(B(0.05, 0.06, rw * 2), GOLD, d.front + 0.05, 0.58, 0, 0, 0, 0, 1, 1, 1, g);
+      }
+      var pts = M.kitRack(charId, d, rackIds.length);
+      for (i = 0; i < rackIds.length && i < pts.length; i++) {
+        var pt = pts[i], lv = skills[rackIds[i]];
+        var mod = at(add, pt[0], pt[1], pt[2], 1.1 + 0.07 * Math.min(lv, 5));
+        M.kitMods[rackIds[i]](mod, lv, M);
+        if (evo[rackIds[i]]) mod(T(0.17, 0.025, 4, 10), GOLD, 0, 0.03, 0, HALF, 0, 0, 1, 1, 1, g);
+      }
+    });
+
+    var turret = this.build(function (add) {
+      var i, n, sg;
+      n = L('rapid');
+      if (n) {
+        var bz = -(d.tr + 0.13);
+        add(B(0.34, 0.2, 0.2), '#4a4436', -0.05, d.my - 0.04, bz);
+        for (i = 0; i < n; i++) add(C(0.035, 0.035, 0.17, 5), '#e6b84a', -0.19 + i * 0.07, d.my + 0.085, bz, HALF, 0, 0);
+        add(B(0.05, 0.04, 0.14), GOLD, 0.16, d.my + 0.04, bz + 0.12, 0, 0, 0, 1, 1, 1, g);
+      }
+      n = L('splash');
+      if (n) {
+        var sr = 0.15 + n * 0.02, pz = d.tr + 0.1 + sr * 0.5;
+        add(C(sr, sr, 0.12, 9), '#5a4a2c', -0.08, d.my + 0.02, pz);
+        add(C(sr * 0.4, sr * 0.4, 0.03, 7), '#f0a24a', -0.08, d.my + 0.09, pz, 0, 0, 0, 1, 1, 1, g);
+      }
+      n = L('crit');
+      if (n) {
+        var cs = at(add, -0.02, d.tt + 0.08, 0.15, 0.9 + n * 0.1);
+        cs(C(0.05, 0.05, 0.36, 6), dark, 0, 0, 0, 0, 0, -HALF);
+        cs(C(0.065, 0.05, 0.08, 6), dark, 0.2, 0, 0, 0, 0, -HALF);
+        cs(C(0.05, 0.05, 0.03, 6), GOLD, 0.25, 0, 0, 0, 0, -HALF, 1, 1, 1, g);
+        cs(B(0.06, 0.08, 0.06), steel, -0.05, -0.05, 0);
+      }
+      n = L('triple');
+      if (n) {
+        add(C(0.07, 0.08, 0.5, 6), gun, -(d.tr + 0.2), d.my, 0, 0, 0, HALF);
+        add(C(0.075, 0.075, 0.04, 6), GOLD, -(d.tr + 0.46), d.my, 0, 0, 0, HALF, 1, 1, 1, g);
+        if (n >= 2) for (sg = -1; sg <= 1; sg += 2) {
+          add(C(0.06, 0.07, 0.4, 6), gun, 0.25, d.my + 0.02, sg * (d.tr + 0.08), sg * HALF, 0, 0);
+          add(C(0.065, 0.065, 0.04, 6), GOLD, 0.25, d.my + 0.02, sg * (d.tr + 0.29), sg * HALF, 0, 0, 1, 1, 1, g);
+        }
+      }
+    });
+
+    var gd = { pistol: [0.3, 1.59, 0, 0.16], smg: [0.25, 1.37, 0, 0.2], scatter: [0.3, 1.33, 0, 0.36],
+      rail: [0.3, 2.48, 0, 0.15], flak: [0.25, 1.06, 0.2, 0.26] }[gunId] || [0.3, 1.59, 0, 0.16];
+    var x0 = gd[0], x1 = gd[1], by = d.my + gd[2], gr = gd[3];
+    var barrel = this.build(function (add) {
+      var i, n;
+      n = L('split');
+      if (n) {
+        var len = (x1 - x0) * 0.78;
+        for (i = 0; i < n; i++) {
+          var sz = (i - (n - 1) / 2) * 0.15;
+          add(C(0.045, 0.055, len, 6), gun, x0 + 0.05 + len / 2, by + 0.17, sz, 0, 0, -HALF);
+          add(C(0.05, 0.05, 0.04, 6), GOLD, x0 + 0.07 + len, by + 0.17, sz, 0, 0, -HALF, 1, 1, 1, g);
+        }
+      }
+      n = L('pierce');
+      if (n) {
+        var pl = 0.28 + n * 0.1;
+        add(K(0.06, pl, 6), '#dfe6ea', x1 + pl / 2 - 0.02, by, 0, 0, 0, -HALF);
+        add(T(0.075, 0.025, 4, 8), GOLD, x1, by, 0, 0, HALF, 0, 1, 1, 1, g);
+      }
+      n = L('ricochet');
+      for (i = 0; i < n; i++) add(T(gr, 0.035, 4, 10), GOLD, x0 + 0.38 + i * 0.2, by, 0, 0, HALF, 0, 1, 1, 1, g);
+      n = L('heavy');
+      if (n) {
+        var hx = x0 + (x1 - x0) * 0.62, hw2 = 0.34 + n * 0.04;
+        add(B(0.3, 0.2, hw2), '#3a3330', hx, by - 0.06, 0);
+        for (i = 0; i < n; i++) add(B(0.035, 0.03, hw2 * 0.9), GOLD, hx - 0.11 + i * 0.055, by + 0.05, 0, 0, 0, 0, 1, 1, 1, g);
+      }
+      if (evo[gunId]) add(T(gr * 0.9, 0.03, 4, 10), GOLD, x1 - 0.18, by, 0, 0, HALF, 0, 1, 1, 1, g);
     });
     return { chassis: chassis, turret: turret, barrel: barrel };
   },
@@ -726,6 +1009,12 @@ var Models = {
         add(B(1.6, 0.18, 0.18), '#6e5a44', 0, 8.4, 0, 0, 0, 0.12);
         add(C(0.1, 0.1, 0.35, 5), '#d8d0c0', -1.0, 9.5, 0);
         add(C(0.1, 0.1, 0.35, 5), '#d8d0c0', 1.0, 9.5, 0);
+      } else if (kind === 'buoy') {
+        add(C(0.55, 0.7, 0.5, 8), '#ffffff', 0, 0.2, 0);
+        add(C(0.58, 0.58, 0.12, 8), '#e6ded0', 0, 0.48, 0);
+        add(M.K(0.5, 1.0, 8), '#ffffff', 0, 1.0, 0);
+        add(B(0.07, 0.9, 0.07), '#3a3632', 0, 1.85, 0);
+        add(B(0.2, 0.2, 0.2), '#ffe9a8', 0, 2.3, 0);
       } else if (kind === 'sign') {
         add(B(0.14, 3.2, 0.14), '#5d5752', -0.7, 1.6, 0);
         add(B(0.14, 3.2, 0.14), '#5d5752', 0.7, 1.6, 0);

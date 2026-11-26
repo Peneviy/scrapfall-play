@@ -93,7 +93,10 @@ var Game = {
 
   start: function () {
     var d = Save.data;
+    Maps.begin();
+    View3D.setTheme(Maps.theme());
     Nakal.begin();
+    this.mapUp = '';
     this.nakalUp = 0;
     this.time = 0; this.spawnT = 0.5; this.nextBoss = CFG.boss.first;
     this.kills = 0; this.score = 0; this.runCoins = 0; this.pendingLevels = 0; this.pendingEvo = 0; this.bossKills = 0;
@@ -170,7 +173,7 @@ var Game = {
   },
 
   finalScore: function () {
-    return Math.floor((this.score + this.time * CFG.score.perSec) * Nakal.scoreK());
+    return Math.floor((this.score + this.time * CFG.score.perSec) * Nakal.scoreK() * Maps.k('score'));
   },
 
   settle: function () {
@@ -185,7 +188,7 @@ var Game = {
     this.res = {
       score: this.finalScore(), time: this.time,
       level: this.player.level, kills: this.kills,
-      won: !!this.won, bosses: this.bossKills, nakal: Nakal.tier()
+      won: !!this.won, bosses: this.bossKills, nakal: Nakal.tier(), map: Maps.cur()
     };
     return this.res;
   },
@@ -198,7 +201,7 @@ var Game = {
     this.res.coins = this.payout;
     this.res.best = Save.finishRun({
       score: this.res.score, time: this.res.time,
-      level: this.res.level, kills: this.res.kills
+      level: this.res.level, kills: this.res.kills, map: this.res.map
     });
     Save.addCoins(this.payout);
     PF.lbSubmit(this.res.score);
@@ -557,7 +560,7 @@ var Game = {
       return;
     }
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-    ctx.fillStyle = '#0a1216';
+    ctx.fillStyle = Maps.theme() === 'sea' ? '#06203a' : '#0a1216';
     ctx.fillRect(0, 0, this.w, this.h);
 
     ctx.save();
@@ -741,10 +744,10 @@ var Game = {
         ctx.save();
         ctx.translate(px + Math.cos(ha) * hr, py + Math.sin(ha) * hr);
         ctx.rotate(ha);
-        ctx.globalAlpha = 0.85;
-        ctx.fillStyle = '#f0a24a';
-        ctx.strokeStyle = '#1c150f';
-        ctx.lineWidth = 1.5;
+        ctx.globalAlpha = 0.95;
+        ctx.fillStyle = '#ff3524';
+        ctx.strokeStyle = '#fff3e0';
+        ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(14, 0);
         ctx.lineTo(-9, -9);
@@ -770,8 +773,8 @@ var Game = {
     ctx.save();
     ctx.translate(mx, my);
     ctx.rotate(a);
-    ctx.fillStyle = lair ? boss.bd.trim : '#f0a24a';
-    ctx.globalAlpha = lair ? 0.6 + 0.35 * Math.sin(this.time * 4 + boss.phase) : 0.85;
+    ctx.fillStyle = lair ? boss.bd.trim : '#ff3524';
+    ctx.globalAlpha = lair ? 0.6 + 0.35 * Math.sin(this.time * 4 + boss.phase) : 0.95;
     ctx.beginPath();
     ctx.moveTo(14, 0);
     ctx.lineTo(-10, -9);
@@ -782,6 +785,10 @@ var Game = {
       ctx.globalAlpha = 0.7;
       ctx.strokeStyle = '#1c150f';
       ctx.lineWidth = 1.5;
+      ctx.stroke();
+    } else {
+      ctx.strokeStyle = '#fff3e0';
+      ctx.lineWidth = 2;
       ctx.stroke();
     }
     ctx.restore();
@@ -887,7 +894,7 @@ var Game = {
     if (this.w < 2 || this.h < 2) return;
     var rgb = View3D.on ? View3D.vig.rgb : '0,0,0';
     var a = View3D.on ? Math.round(View3D.vig.k * 20) / 20 : 0.55;
-    if (Finale.red > 0.05) { rgb = '120,16,0'; a = Math.max(a, Math.round((0.3 + 0.35 * Finale.red) * 10) / 10); }
+    if (Finale.red > 0.05) { rgb = Maps.theme() === 'sea' ? '6,22,70' : '120,16,0'; a = Math.max(a, Math.round((0.3 + 0.35 * Finale.red) * 10) / 10); }
     var key = this.w + 'x' + this.h + ':' + rgb + ':' + a;
     if (!this.vignetteCache || this.vignetteCache.key !== key) {
       var c = document.createElement('canvas');

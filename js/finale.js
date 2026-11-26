@@ -231,8 +231,7 @@ var Finale = {
     Game.won = true;
     Game.score += CFG.score.winBonus;
     Game.scoreParts.win = CFG.score.winBonus;
-    d.wins = (d.wins || 0) + 1;
-    if (!d.winBest || Game.time < d.winBest) d.winBest = Math.floor(Game.time);
+    Game.mapUp = Maps.win();
     Game.nakalUp = Nakal.win();
     Save.flush(true);
     FX.shake(18);

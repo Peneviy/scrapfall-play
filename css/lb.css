@@ -71,3 +71,7 @@
 .lb-tiers > i{font-style:normal;font-size:13px;letter-spacing:.08em;color:var(--red);text-transform:uppercase;margin-right:4px}
 .lb-tiers .nk-st{width:28px;height:26px;font-size:14px}
 .lb-tiers:not(.hidden) ~ .board-list{top:138px}
+
+#lbHead{position:absolute;top:62px;left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:6px;padding:6px 12px 0}
+#lbHead .lb-tabs,#lbHead .lb-tiers{position:static;padding:0}
+.lb-maps .lbt{min-width:0;padding:6px 14px;font-size:13px;letter-spacing:.06em}

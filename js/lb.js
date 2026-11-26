@@ -13,6 +13,7 @@ var LB = {
   noArch: false,
   view: 0,
   tierView: 0,
+  mapView: '',
   rowsTier: -1,
 
   init: function () {
@@ -40,7 +41,7 @@ var LB = {
 
   qs: function (s, tr) {
     var L = CFG.lb || {};
-    if (tr === undefined) tr = window.Nakal ? Nakal.tier() : (L.tier | 0);
+    if (tr === undefined) tr = window.Nakal ? Maps.lbTier(Nakal.tier()) : (L.tier | 0);
     return '&season=' + (s === undefined ? (L.season | 0) : s) + '&tier=' + (tr | 0);
   },
 
@@ -63,12 +64,13 @@ var LB = {
 
   load: function (cb) {
     var self = this;
-    var tr = window.Nakal ? Nakal.tier() : 0;
+    var tr = window.Nakal ? Maps.lbTier(Nakal.tier()) : 0;
     if (this.rows && this.rowsTier === tr && Date.now() - this.at < 60000) { if (cb) cb(true); return; }
     if (this.loading) return;
     this.loading = true;
     this._get('/lb/near?id=' + encodeURIComponent(Metrics.uid) + this.qs(undefined, tr), function (d) {
       self.loading = false;
+      if (d && d.rows && d.tier !== undefined && d.tier !== tr) d = { rows: [], total: 0, season: d.season, arch: d.arch };
       if (d && d.rows) {
         self.rows = d.rows; self.total = d.total | 0; self.at = Date.now(); self.rowsTier = tr;
         self.seasons = d.season !== undefined;
@@ -205,7 +207,7 @@ var LB = {
     var body = {
       v: 1, id: Metrics.uid, pf: CFG.platform, ver: CFG.version, name: this.rawName(),
       s: Math.floor(res.score), t: Math.floor(res.time), l: res.level | 0, b: Game.bossKills | 0, k: res.kills | 0,
-      se: CFG.lb.season | 0, tr: res.nakal | 0, w: res.won ? 1 : 0
+      se: CFG.lb.season | 0, tr: Maps.lbTier(res.nakal, res.map), w: res.won ? 1 : 0
     };
     this.live = null;
     this.verdict = null;
@@ -222,7 +224,7 @@ var LB = {
         var set = Save.data.set;
         if (set.nick && d.name !== set.nick) { set.nick = d.name; Save.flush(false); }
       } else {
-        if (st === 0 || st === 429 || st >= 500 || (st === 422 && d && d.error === 'implausible')) self._pend(body);
+        if (st === 0 || st === 429 || st >= 500 || (st === 422 && d && (d.error === 'implausible' || (d.error === 'season' && body.tr > 7)))) self._pend(body);
         else self._pend(null, body);
         self.verdict = { s: body.s, ok: false };
       }
@@ -230,48 +232,66 @@ var LB = {
     });
   },
 
+  _pkey: function (tr) { var mi = (tr | 0) >> 3; return mi > 0 ? 'sf_lbq' + mi : 'sf_lbq'; },
   _pend: function (body, sent) {
     try {
-      var old = JSON.parse(localStorage.getItem('sf_lbq') || 'null');
+      var key = this._pkey((body || sent || {}).tr);
+      var old = JSON.parse(localStorage.getItem(key) || 'null');
       if (body) {
         if (!old || body.s >= old.s) {
           if (!body.q) body.q = Date.now();
-          localStorage.setItem('sf_lbq', JSON.stringify(body));
+          localStorage.setItem(key, JSON.stringify(body));
         }
-      } else if (old && sent && old.s <= sent.s) localStorage.removeItem('sf_lbq');
+      } else if (old && sent && old.s <= sent.s) localStorage.removeItem(key);
     } catch (e) {}
   },
 
   resend: function () {
-    try {
-      var b = JSON.parse(localStorage.getItem('sf_lbq') || 'null');
-      if (b && b.q && Date.now() - b.q > 14 * 864e5) { localStorage.removeItem('sf_lbq'); return; }
-      if (b && b.id === Metrics.uid) { b.name = this.rawName(); this.send(b); }
-    } catch (e) {}
+    for (var mi = 0; mi < CFG.maps.list.length; mi++) {
+      try {
+        var key = this._pkey(mi * 8);
+        var b = JSON.parse(localStorage.getItem(key) || 'null');
+        if (b && b.q && Date.now() - b.q > 14 * 864e5) { localStorage.removeItem(key); continue; }
+        if (b && b.id === Metrics.uid) { b.name = this.rawName(); this.send(b); }
+      } catch (e) {}
+    }
   },
 
-  board: function (list, view, tier) {
+  board: function (list, view, tier, map) {
     var self = this, cur = CFG.lb.season | 0;
     view = view === undefined ? cur : view;
+    var memMap = Save.data && Save.data.set.lbMap;
+    if (!map) map = this.mapView || (Maps.byId(memMap) ? memMap : Maps.sel());
+    if (view === 0 || !Maps.byId(map)) map = CFG.maps.list[0].id;
+    this.mapView = map;
+    var mem = Save.data && Save.data.set.lbTier;
+    if (tier === undefined && typeof mem === 'number' && mem >= 0 && mem <= CFG.nakal.max) tier = mem | 0;
     tier = view === 0 ? 0 : (tier === undefined ? (window.Nakal ? Nakal.sel() : 0) : tier);
     this.view = view;
     this.tierView = tier;
     this.boardList = list;
+    var code = Maps.lbTier(tier, map);
     this.markTabs();
     list.innerHTML = '';
     list.appendChild(this._line(I18N.t('lbLoading'), 'lb-head'));
     this.nickBtn.classList.remove('hidden');
-    this._get('/lb/top?n=100&id=' + encodeURIComponent(Metrics.uid) + this.qs(view, tier), function (d) {
-      if (self.view !== view || self.tierView !== tier) return;
+    this._get('/lb/top?n=100&id=' + encodeURIComponent(Metrics.uid) + this.qs(view, code), function (d) {
+      if (self.view !== view || self.tierView !== tier || self.mapView !== map) return;
       list.innerHTML = '';
       if (!d || !d.top) {
-        list.appendChild(self._line(I18N.t('lbFail', { n: U.num(Save.data.best.score) }), 'lb-head'));
+        list.appendChild(self._line(I18N.t('lbFail', { n: U.num(Maps.rec(map).best.score) }), 'lb-head'));
+        return;
+      }
+      if (view !== 0 && d.tier !== undefined && d.tier !== code) {
+        self.seasons = d.season !== undefined;
+        self.markTabs();
+        list.appendChild(self._line(I18N.t('lbMapWait'), 'lb-head'));
         return;
       }
       self.seasons = d.season !== undefined;
       self.noArch = d.arch === 0;
       self.markTabs();
-      if (d.me && view === cur && tier === self.rowsTier) self.me = { s: d.me.s, r: d.me.r };
+      if (d.me && view === cur && code === self.rowsTier) self.me = { s: d.me.s, r: d.me.r };
       if (view === 0 && self.seasons) list.appendChild(self._line(I18N.t('lbArchiveHint'), 'lb-head lb-arch'));
       list.appendChild(self._line(d.me ? I18N.t('lbYour', { r: d.me.r, t: d.total }) : I18N.t(view === 0 && self.seasons ? 'lbArchNo' : 'lbNoRec'), 'lb-head'));
       if (!d.top.length) { list.appendChild(self._line(I18N.t('boardEmpty'), 'board-row')); return; }
@@ -292,6 +312,22 @@ var LB = {
     if (!tt) return;
     tt.classList.toggle('hidden', !this.seasons || this.view === 0);
     for (var i = 0; i < this.tierBtns.length; i++) this.tierBtns[i].classList.toggle('on', i === this.tierView);
+    var mt = this.mapsEl;
+    if (mt) {
+      mt.classList.toggle('hidden', !this.seasons || this.view === 0);
+      for (i = 0; i < this.mapBtns.length; i++) {
+        var mb = this.mapBtns[i], mid = mb.getAttribute('data-id');
+        mb.classList.toggle('active', mid === this.mapView);
+        mb.textContent = I18N.t('map_' + mid);
+      }
+    }
+    this.fitHead();
+  },
+
+  fitHead: function () {
+    var h = this.headEl, bl = this.boardList || document.getElementById('boardList');
+    if (!h || !bl) return;
+    bl.style.top = h.offsetHeight > 4 ? (h.offsetTop + h.offsetHeight + 6) + 'px' : '';
   },
 
   _line: function (text, cls) {
@@ -424,11 +460,35 @@ var LB = {
     for (var ti = 0; ti <= CFG.nakal.max; ti++) {
       var tb = document.createElement('button');
       tb.type = 'button'; tb.className = 'nk-st'; tb.textContent = ti; tb.setAttribute('data-n', ti);
-      tb.onclick = function () { var n = +this.getAttribute('data-n'); if (n !== self.tierView) self.board(bl, self.view, n); };
+      tb.onclick = function () {
+        var n = +this.getAttribute('data-n');
+        if (Save.data) { Save.data.set.lbTier = n; Save.flush(false); }
+        if (n !== self.tierView) self.board(bl, self.view, n);
+      };
       tiers.appendChild(tb); this.tierBtns.push(tb);
     }
-    bl.parentNode.insertBefore(tiers, bl);
+    var maps = document.createElement('div');
+    maps.id = 'lbMaps';
+    maps.className = 'lb-tabs lb-maps hidden';
+    this.mapBtns = [];
+    for (var mi = 0; mi < CFG.maps.list.length; mi++) {
+      var mb = document.createElement('button');
+      mb.type = 'button'; mb.className = 'btn lbt'; mb.setAttribute('data-id', CFG.maps.list[mi].id);
+      mb.onclick = function () {
+        var id = this.getAttribute('data-id');
+        if (Save.data) { Save.data.set.lbMap = id; Save.flush(false); }
+        if (id !== self.mapView) self.board(bl, self.view, self.tierView, id);
+      };
+      maps.appendChild(mb); this.mapBtns.push(mb);
+    }
+    this.mapsEl = maps;
+    var head = document.createElement('div');
+    head.id = 'lbHead';
+    bl.parentNode.insertBefore(head, bl);
+    head.appendChild(tabs); head.appendChild(maps); head.appendChild(tiers);
+    this.headEl = head;
     this.tiersEl = tiers;
+    window.addEventListener('resize', function () { self.fitHead(); });
 
     document.documentElement.classList.add('lb-on');
     I18N.apply();
@@ -440,32 +500,32 @@ var LB = {
         lbYour: 'Твоё место в мире: #{r} из {t}', lbNoRec: 'Сыграй рейд, чтобы попасть в мировой рейтинг', lbLoading: 'Загружаю рейтинг...',
         lbFail: 'Рейтинг не загрузился. Твой рекорд: {n}', lbNick: 'Ник в рейтинге', lbNickBtn: 'Сменить ник', lbNickOk: 'Ник сохранён',
         lbNickBad: 'Такой ник не подойдёт, в рейтинге будет {n}', lbOver: '#{r} в мире', lbUp: 'было #{r}', lbLvl: 'ур. {n}',
-        lbSeason: 'Сезон {n}', lbArchive: 'Архив', lbArchiveHint: 'Рекорды до финала (до версии 0.20.44)', lbArchNo: 'В архиве твоих очков нет', lbWait: 'место уточняется' },
+        lbSeason: 'Сезон {n}', lbArchive: 'Архив', lbArchiveHint: 'Рекорды до финала (до версии 0.20.44)', lbArchNo: 'В архиве твоих очков нет', lbWait: 'место уточняется', lbMapWait: 'Таблица этой карты появится чуть позже. Результаты не пропадут' },
       en: { lbWorld: 'world', lbAnon: 'Player #{n}', lbPassed: 'passed {n}', lbYou: 'you', lbTop10: 'World top 10!', lbFirst: '#1 in the world!',
         lbYour: 'Your world place: #{r} of {t}', lbNoRec: 'Play a raid to join the world ranking', lbLoading: 'Loading ranking...',
         lbFail: 'Ranking did not load. Your best: {n}', lbNick: 'Name in ranking', lbNickBtn: 'Change name', lbNickOk: 'Name saved',
         lbNickBad: 'That name will not do, the ranking shows {n}', lbOver: '#{r} world', lbUp: 'was #{r}', lbLvl: 'lv {n}',
-        lbSeason: 'Season {n}', lbArchive: 'Archive', lbArchiveHint: 'Records from before the finale (before 0.20.44)', lbArchNo: 'No score of yours in the archive', lbWait: 'rank pending' },
+        lbSeason: 'Season {n}', lbArchive: 'Archive', lbArchiveHint: 'Records from before the finale (before 0.20.44)', lbArchNo: 'No score of yours in the archive', lbWait: 'rank pending', lbMapWait: 'This map gets its ranking a bit later. Results are kept' },
       tr: { lbWorld: 'dünya', lbAnon: 'Oyuncu #{n}', lbPassed: '{n} geçildi', lbYou: 'sen', lbTop10: 'Dünya ilk 10!', lbFirst: 'Dünyada 1 numara!',
         lbYour: 'Dünya sıran: #{r} / {t}', lbNoRec: 'Dünya sıralamasına girmek için bir baskın oyna', lbLoading: 'Sıralama yükleniyor...',
         lbFail: 'Sıralama yüklenmedi. En iyin: {n}', lbNick: 'Sıralamadaki adın', lbNickBtn: 'Adını değiştir', lbNickOk: 'Ad kaydedildi',
         lbNickBad: 'Bu ad olmaz, sıralamada {n} görünecek', lbOver: 'dünyada #{r}', lbUp: 'önce #{r}', lbLvl: 'sv {n}',
-        lbSeason: 'Sezon {n}', lbArchive: 'Arşiv', lbArchiveHint: 'Finalden önceki rekorlar (0.20.44 öncesi)', lbArchNo: 'Arşivde puanın yok', lbWait: 'sıra bekleniyor' },
+        lbSeason: 'Sezon {n}', lbArchive: 'Arşiv', lbArchiveHint: 'Finalden önceki rekorlar (0.20.44 öncesi)', lbArchNo: 'Arşivde puanın yok', lbWait: 'sıra bekleniyor', lbMapWait: 'Bu haritanın sıralaması biraz sonra gelecek. Sonuçlar saklanıyor' },
       de: { lbWorld: 'welt', lbAnon: 'Spieler #{n}', lbPassed: '{n} überholt', lbYou: 'du', lbTop10: 'Welt-Top 10!', lbFirst: 'Platz 1 weltweit!',
         lbYour: 'Dein Weltplatz: #{r} von {t}', lbNoRec: 'Spiel einen Raid, um in die Weltrangliste zu kommen', lbLoading: 'Rangliste lädt...',
         lbFail: 'Rangliste nicht geladen. Dein Bestwert: {n}', lbNick: 'Name in der Rangliste', lbNickBtn: 'Namen ändern', lbNickOk: 'Name gespeichert',
         lbNickBad: 'Dieser Name geht nicht, angezeigt wird {n}', lbOver: 'Welt #{r}', lbUp: 'vorher #{r}', lbLvl: 'St. {n}',
-        lbSeason: 'Saison {n}', lbArchive: 'Archiv', lbArchiveHint: 'Rekorde vor dem Finale (vor 0.20.44)', lbArchNo: 'Im Archiv hast du keine Punkte', lbWait: 'Platz wird geprüft' },
+        lbSeason: 'Saison {n}', lbArchive: 'Archiv', lbArchiveHint: 'Rekorde vor dem Finale (vor 0.20.44)', lbArchNo: 'Im Archiv hast du keine Punkte', lbWait: 'Platz wird geprüft', lbMapWait: 'Die Rangliste dieser Karte kommt etwas später. Ergebnisse bleiben erhalten' },
       es: { lbWorld: 'mundo', lbAnon: 'Jugador #{n}', lbPassed: 'superaste a {n}', lbYou: 'tú', lbTop10: '¡Top 10 mundial!', lbFirst: '¡N.º 1 del mundo!',
         lbYour: 'Tu puesto mundial: #{r} de {t}', lbNoRec: 'Juega una incursión para entrar en el ranking mundial', lbLoading: 'Cargando ranking...',
         lbFail: 'El ranking no cargó. Tu mejor marca: {n}', lbNick: 'Nombre en el ranking', lbNickBtn: 'Cambiar nombre', lbNickOk: 'Nombre guardado',
         lbNickBad: 'Ese nombre no vale, se verá {n}', lbOver: 'mundo #{r}', lbUp: 'antes #{r}', lbLvl: 'nv {n}',
-        lbSeason: 'Temporada {n}', lbArchive: 'Archivo', lbArchiveHint: 'Récords de antes del final (antes de 0.20.44)', lbArchNo: 'No tienes puntos en el archivo', lbWait: 'puesto pendiente' },
+        lbSeason: 'Temporada {n}', lbArchive: 'Archivo', lbArchiveHint: 'Récords de antes del final (antes de 0.20.44)', lbArchNo: 'No tienes puntos en el archivo', lbWait: 'puesto pendiente', lbMapWait: 'El ranking de este mapa llegará un poco más tarde. Los resultados se guardan' },
       pt: { lbWorld: 'mundo', lbAnon: 'Jogador #{n}', lbPassed: 'passou {n}', lbYou: 'você', lbTop10: 'Top 10 mundial!', lbFirst: 'Nº 1 do mundo!',
         lbYour: 'Sua posição mundial: #{r} de {t}', lbNoRec: 'Jogue uma incursão para entrar no ranking mundial', lbLoading: 'Carregando ranking...',
         lbFail: 'O ranking não carregou. Seu melhor: {n}', lbNick: 'Nome no ranking', lbNickBtn: 'Mudar nome', lbNickOk: 'Nome salvo',
         lbNickBad: 'Esse nome não serve, aparecerá {n}', lbOver: 'mundo #{r}', lbUp: 'antes #{r}', lbLvl: 'nv {n}',
-        lbSeason: 'Temporada {n}', lbArchive: 'Arquivo', lbArchiveHint: 'Recordes de antes do final (antes de 0.20.44)', lbArchNo: 'Você não tem pontos no arquivo', lbWait: 'posição pendente' }
+        lbSeason: 'Temporada {n}', lbArchive: 'Arquivo', lbArchiveHint: 'Recordes de antes do final (antes de 0.20.44)', lbArchNo: 'Você não tem pontos no arquivo', lbWait: 'posição pendente', lbMapWait: 'O ranking deste mapa chega um pouco depois. Os resultados ficam guardados' }
     };
     for (var l in W) {
       if (!I18N[l]) continue;

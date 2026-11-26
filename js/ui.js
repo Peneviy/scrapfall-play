@@ -1,5 +1,5 @@
 var UI = {
-  screens: ['scrLoading', 'scrMenu', 'scrShop', 'scrBuy', 'scrBoard', 'scrSettings', 'scrLevel', 'scrPause', 'scrOver'],
+  screens: ['scrLoading', 'scrMenu', 'scrShop', 'scrBuy', 'scrBoard', 'scrMaps', 'scrSettings', 'scrLevel', 'scrPause', 'scrOver'],
   tab: 'chars',
   lastCrate: -999,
   cards: [],
@@ -11,11 +11,22 @@ var UI = {
     var self = this;
     Icons.apply();
     this.el('verText').textContent = CFG.version;
+    var vt = document.querySelectorAll('.ver-tag');
+    for (var vi = 0; vi < vt.length; vi++) vt[vi].textContent = 'v' + CFG.version;
+    var taps = document.querySelectorAll('.ver-tap'), tapN = 0, tapT = 0;
+    var onTap = function () {
+      var now = Date.now();
+      tapN = now - tapT < 900 ? tapN + 1 : 1;
+      tapT = now;
+      if (tapN >= 3) { tapN = 0; self.sndDbg(); }
+    };
+    for (vi = 0; vi < taps.length; vi++) taps[vi].addEventListener('click', onTap);
 
     this.el('btnPlay').onclick = function () { self.startRun(); };
     this.el('btnShop').onclick = function () { self.openShop(); };
     this.el('btnModules').onclick = function () { self.openShop('upgrades'); };
     this.el('btnBoard').onclick = function () { self.openBoard(); };
+    this.el('menuMap').onclick = function () { Snd.play('pick'); self.openMaps(); };
     this.el('btnSettings').onclick = function () { self.show('scrSettings'); };
     this.el('btnFreeCoins').onclick = function () { self.freeCoins(); };
 
@@ -208,7 +219,11 @@ var UI = {
   refreshMenu: function () {
     var d = Save.data;
     this.syncAdButtons();
-    this.el('menuBest').textContent = U.num(d.best.score);
+    var mid = Maps.sel();
+    this.el('menuBest').textContent = U.num(Maps.rec(mid).best.score);
+    this.el('menuMapName').textContent = Maps.name(mid);
+    this.el('menuMap').className = 'map-card th-' + Maps.byId(mid).theme;
+    if (View3D.setTheme) View3D.setTheme(Maps.theme());
     var nr = Nakal.rank(), ns = Nakal.sel();
     this.el('menuPrestige').textContent = ns < nr ? ns + '/' + nr : ns;
     this.el('menuCoins').textContent = U.num(d.coins);
@@ -330,6 +345,27 @@ var UI = {
     Save.flush(true);
   },
 
+  sndDbg: function () {
+    var box = document.getElementById('sndDbg');
+    if (box) { clearInterval(this.sndDbgT); box.parentNode.removeChild(box); return; }
+    box = document.createElement('div');
+    box.id = 'sndDbg';
+    box.innerHTML = '<pre></pre><div><button type="button" class="btn" data-a="beep">ПИСК</button>' +
+      '<button type="button" class="btn" data-a="play">ЗВУК ИГРЫ</button><button type="button" class="btn" data-a="x">ЗАКРЫТЬ</button></div>';
+    document.body.appendChild(box);
+    var pre = box.firstChild, self = this;
+    var fill = function () { try { pre.textContent = Snd.diag().join('\n'); } catch (e) { pre.textContent = String(e); } };
+    box.addEventListener('click', function (e) {
+      var a = e.target && e.target.getAttribute && e.target.getAttribute('data-a');
+      if (a === 'beep') Snd.beep();
+      if (a === 'play') { Snd.unlock(); Snd.play('level'); }
+      if (a === 'x') self.sndDbg();
+      fill();
+    });
+    fill();
+    this.sndDbgT = setInterval(fill, 500);
+  },
+
   syncZoom: function () {
     var pct = Game.zoomPct();
     this.el('setZoom').value = pct; this.el('pauseZoom').value = pct;
@@ -350,8 +386,39 @@ var UI = {
     this.el('setVolText').textContent = pct + '%'; this.el('pauseVolText').textContent = pct + '%';
   },
 
+  openMaps: function () { this.show('scrMaps'); this.renderMaps(); },
+  renderMaps: function () {
+    var L = Maps.list(), sel = Maps.sel(), html = '', self = this, i;
+    for (i = 0; i < L.length; i++) {
+      var m = L[i], open = Maps.open(m.id), r = Maps.rec(m.id), on = m.id === sel;
+      html += '<button type="button" class="map-it th-' + m.theme + (on ? ' on' : '') + (open ? '' : ' lock') + '" data-id="' + m.id + '">' +
+        '<i class="map-sw"></i><span class="map-tx"><b>' + I18N.t('map_' + m.id) + '</b>' +
+        '<em>' + I18N.t('mapD_' + m.id) + '</em>' +
+        (open ? '<s>' + I18N.t('mapRec', { s: U.num(r.best.score), n: Math.min(CFG.nakal.max, r.prestige | 0) }) + '</s>'
+          : '<s class="need">' + I18N.t('mapNeed', { n: I18N.t('map_' + m.need) }) + '</s>') +
+        '</span><strong>' + I18N.t(on ? 'mapOn' : (open ? 'mapGo' : 'mapLock')) + '</strong></button>';
+    }
+    for (i = 0; i < CFG.maps.soon; i++) {
+      html += '<div class="map-it soon"><i class="map-sw"></i><span class="map-tx"><b>? ? ?</b><em>' +
+        I18N.t('mapSecret') + '</em></span><strong>' + I18N.t('mapSoon') + '</strong></div>';
+    }
+    var list = this.el('mapsList');
+    list.innerHTML = html;
+    var its = list.querySelectorAll('button.map-it');
+    for (i = 0; i < its.length; i++) {
+      its[i].onclick = function () {
+        var id = this.getAttribute('data-id');
+        if (!Maps.open(id)) { Snd.play('deny'); self.toast(I18N.t('mapNeed', { n: Maps.name(Maps.byId(id).need) })); return; }
+        Maps.pick(id);
+        Snd.play('pick');
+        self.show('scrMenu');
+        self.refreshMenu();
+      };
+    }
+  },
+
   escapeScreen: function () {
-    var ids = ['scrShop', 'scrBoard', 'scrSettings'];
+    var ids = ['scrShop', 'scrBoard', 'scrMaps', 'scrSettings'];
     for (var i = 0; i < ids.length; i++) {
       if (!this.el(ids[i]).classList.contains('hidden')) { this.show('scrMenu'); this.refreshMenu(); return true; }
     }
@@ -396,13 +463,13 @@ var UI = {
           if (!h) { html += '<div class="sl empty"></div>'; continue; }
           var ns = h[0].s, ics = '';
           for (j = 0; j < h.length; j++) ics += Glyph.html(h[j].s.ic, h[j].s.col || '#ffd27d', 'n' + h[j].c + (j ? ' alt' : ''));
-          html += '<div class="sl empty hl new' + hc + '" title="' + I18N.name(ns) + '">' + ics + '<b>+</b></div>';
+          html += '<div class="sl empty hl new' + hc + '" data-tip="s:' + ns.id + '">' + ics + '<b>+</b></div>';
           continue;
         }
         var lvl = p.skills[s.id], ev = p.evo[s.id] && Evo.of(s.id);
         var mark = h ? (h[0].evo ? '<b class="ev">★</b>' : '<b class="cur">' + lvl + '</b><b class="up">▲' + (lvl + 1) + '</b>') : '<b>' + lvl + '</b>';
         html += '<div class="sl' + (ev ? ' evo' : '') + (lvl >= s.max ? ' max' : '') + (h ? ' hl' + (h[0].evo ? ' hlev' : '') + hc : '') +
-          '"' + (cards ? ' title="' + (ev ? I18N.name(ev) : I18N.name(s)) + '"' : ' data-tip="s:' + s.id + '"') + '>' +
+          '" data-tip="s:' + s.id + '">' +
           (ev ? '<u class="ev-star">★</u>' : '') +
           Glyph.html(s.ic, s.col || '#ffd27d') + mark + '</div>';
       }
@@ -904,8 +971,9 @@ var UI = {
     title.setAttribute('data-i18n', win ? 'winTitle' : (Game.won ? 'overWon' : 'over'));
     title.textContent = I18N.t(title.getAttribute('data-i18n'));
     this.el('ovWinSub').classList.toggle('hidden', !win);
-    this.el('ovWinSub').innerHTML = I18N.t('winSub') + ' · ' + I18N.t('winsN', { n: Save.data.wins || 0 }) +
-      '<span class="nk-win">' + Nakal.winText() + '</span>';
+    this.el('ovWinSub').innerHTML = I18N.t('winSub') + ' · ' + I18N.t('winsN', { n: Maps.rec(res.map).wins || 0 }) +
+      '<span class="nk-win">' + Nakal.winText() + '</span>' +
+      (Game.mapUp ? '<span class="nk-win map-win">' + I18N.t('mapOpened', { m: Maps.name(Game.mapUp) }) + '</span>' : '');
     ['btnRevive', 'btnDouble', 'btnAgain', 'btnToMenu'].forEach(function (id) { this.el(id).classList.toggle('hidden', win); }, this);
     this.el('winGoWrap').classList.toggle('hidden', !win);
     this.el('btnWinTake').classList.toggle('hidden', !win);
@@ -922,7 +990,7 @@ var UI = {
       (sp.win ? '<div class="bw"><span>' + I18N.t('breakWin') + ' · ' + I18N.t('winLootX') + '</span><b>' + U.num(sp.win) + '</b></div>' : '') +
       '<div><span>' + I18N.t('breakTime') + '</span><b>' + U.num(sp.time) + '</b></div>' +
       (res.nakal > 0 ? '<div class="nk-x"><span>' + I18N.t('nakal') + ' ' + res.nakal + '</span><b>x' + Nakal.scoreK(res.nakal) + '</b></div>' : '');
-    this.el('ovNewBest').classList.toggle('hidden', res.score <= Save.data.best.score);
+    this.el('ovNewBest').classList.toggle('hidden', res.score <= Maps.rec(res.map).best.score);
     LB.over(res);
   },
 
@@ -994,6 +1062,8 @@ var UI = {
   },
 
   openShop: function (tab) {
+    this.hgPeek = null;
+    View3D.setTheme(Maps.theme());
     if (tab) {
       this.tab = tab;
       var tabs = document.querySelectorAll('.tab');
@@ -1003,6 +1073,35 @@ var UI = {
     }
     this.show('scrShop');
     this.renderShop();
+  },
+
+  renderShopMaps: function (list) {
+    var L = Maps.list(), self = this, i;
+    if (!View3D.on || L.length < 2) return;
+    var box = document.createElement('div');
+    box.className = 'shop-maps';
+    list.appendChild(box);
+    var sel = Maps.sel(), peek = this.hgPeek && !Maps.open(this.hgPeek) ? this.hgPeek : null, html = '';
+    for (i = 0; i < L.length; i++) {
+      var m = L[i];
+      html += '<button type="button" class="sm-chip th-' + m.theme + (m.id === sel ? ' on' : '') + (m.id === peek ? ' peek' : '') +
+        (Maps.open(m.id) ? '' : ' lock') + '" data-id="' + m.id + '"><i></i>' + Maps.name(m.id) + '</button>';
+    }
+    if (peek) html += '<s>' + I18N.t('mapNeed', { n: Maps.name(Maps.byId(peek).need) }) + '</s>';
+    box.innerHTML = html;
+    var bs = box.querySelectorAll('.sm-chip');
+    for (i = 0; i < bs.length; i++) {
+      bs[i].onclick = function () {
+        var id = this.getAttribute('data-id');
+        if (Maps.open(id)) {
+          self.hgPeek = null;
+          if (id !== Maps.sel()) Maps.pick(id);
+        } else self.hgPeek = self.hgPeek === id ? null : id;
+        Snd.play('pick');
+        View3D.setTheme(self.hgPeek ? Maps.byId(self.hgPeek).theme : Maps.theme());
+        self.renderShop();
+      };
+    }
   },
 
   renderShop: function () {
@@ -1020,6 +1119,7 @@ var UI = {
       return;
     }
 
+    this.renderShopMaps(list);
     var kind = this.tab === 'chars' ? 'chars' : (this.tab === 'weapons' ? 'guns' : 'skins');
     var items = this.tab === 'chars' ? Content.chars : (this.tab === 'weapons' ? Content.guns : Content.skins);
     var cur = kind === 'chars' ? d.char : (kind === 'guns' ? d.gun : d.skin);
@@ -1212,7 +1312,7 @@ var UI = {
 
     if (LB.on) { LB.board(list); return; }
     if (PF.kind !== 'yandex' || !PF.lb) {
-      var b = Save.data.best;
+      var b = Maps.rec().best;
       list.innerHTML = '<div class="board-row"><span class="nm">' +
         I18N.t('boardLocal', { n: U.num(b.score) }) + '</span></div>' +
         (b.score ? '<div class="board-row me"><span class="nm">' + I18N.t('survived') + '</span><span class="sc">' + U.time(b.time) + '</span></div>' +

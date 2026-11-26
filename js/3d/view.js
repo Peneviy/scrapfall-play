@@ -72,6 +72,8 @@ var View3D = {
     this.decoKey = '';
     this.decoCache = {};
     this.decoBatches = null;
+    this.theme = window.Maps ? Maps.theme() : 'scrap';
+    this.applyTheme();
 
     this._v = new THREE.Vector3();
     this._ndc = new THREE.Vector2();
@@ -236,8 +238,28 @@ var View3D = {
     this.rebuildHalos();
   },
 
+  setTheme: function (theme) {
+    theme = theme === 'sea' ? 'sea' : 'scrap';
+    if (this.theme === theme) return;
+    this.theme = theme;
+    if (this.on) this.applyTheme();
+  },
+
+  applyTheme: function () {
+    var th = this.theme === 'sea' ? 'sea' : 'scrap';
+    this.theme = th;
+    this.atmosKeys = this.atmosSets[th];
+    if (!this.gtex[th]) this.gtex[th] = this.groundTex(th);
+    this.ground.material.map = this.gtex[th];
+    this.ground.material.needsUpdate = true;
+    this.decoKey = '';
+    this.decoCache = {};
+  },
+
+  hull: function () { return this.theme === 'sea' ? 'boat' : ''; },
+
   buildAtmos: function () {
-    var keys = [
+    var sets = { scrap: [
       { t: 0.00, sky: '#d6e6f5', bounce: '#b08458', hemi: 1.45, sun: '#fff0d8', sunI: 2.5, fog: '#dcb98f', ground: '#ffffff', sunDir: [-0.6, 1.25, 0.45], dark: 0 },
       { t: 0.32, sky: '#d6e6f5', bounce: '#b08458', hemi: 1.45, sun: '#fff0d8', sunI: 2.5, fog: '#dcb98f', ground: '#ffffff', sunDir: [-0.6, 1.25, 0.45], dark: 0 },
       { t: 0.46, sky: '#9a7a8e', bounce: '#6e3a22', hemi: 1.15, sun: '#ffa868', sunI: 2.6, fog: '#7a4430', ground: '#cf9479', sunDir: [-1, 0.55, 0.25], dark: 0.3 },
@@ -245,14 +267,26 @@ var View3D = {
       { t: 0.80, sky: '#46598a', bounce: '#1c1622', hemi: 0.8, sun: '#86a2dc', sunI: 0.75, fog: '#141a2a', ground: '#7d88aa', sunDir: [0.5, 1, 0.6], dark: 1 },
       { t: 0.91, sky: '#e2b0a6', bounce: '#8a5a48', hemi: 1.2, sun: '#ffc2a2', sunI: 2.1, fog: '#c99c88', ground: '#f0d2c2', sunDir: [0.9, 0.6, 0.35], dark: 0.2 },
       { t: 1.00, sky: '#d6e6f5', bounce: '#b08458', hemi: 1.45, sun: '#fff0d8', sunI: 2.5, fog: '#dcb98f', ground: '#ffffff', sunDir: [-0.6, 1.25, 0.45], dark: 0 }
-    ];
+    ],
+    sea: [
+      { t: 0.00, sky: '#d4ecf7', bounce: '#5f97a8', hemi: 1.4, sun: '#fff6e4', sunI: 2.4, fog: '#a9d0d8', ground: '#ffffff', sunDir: [-0.6, 1.25, 0.45], dark: 0 },
+      { t: 0.32, sky: '#d4ecf7', bounce: '#5f97a8', hemi: 1.4, sun: '#fff6e4', sunI: 2.4, fog: '#a9d0d8', ground: '#ffffff', sunDir: [-0.6, 1.25, 0.45], dark: 0 },
+      { t: 0.46, sky: '#a07c94', bounce: '#3a4a66', hemi: 1.15, sun: '#ffa868', sunI: 2.5, fog: '#6a4a5e', ground: '#d69a8c', sunDir: [-1, 0.55, 0.25], dark: 0.3 },
+      { t: 0.60, sky: '#46598a', bounce: '#10182a', hemi: 0.8, sun: '#86a2dc', sunI: 0.75, fog: '#0c1626', ground: '#7088b4', sunDir: [0.5, 1, 0.6], dark: 1 },
+      { t: 0.80, sky: '#46598a', bounce: '#10182a', hemi: 0.8, sun: '#86a2dc', sunI: 0.75, fog: '#0c1626', ground: '#7088b4', sunDir: [0.5, 1, 0.6], dark: 1 },
+      { t: 0.91, sky: '#e2b0a6', bounce: '#5a7a8a', hemi: 1.2, sun: '#ffc2a2', sunI: 2.1, fog: '#b4a8b4', ground: '#ecd0c8', sunDir: [0.9, 0.6, 0.35], dark: 0.2 },
+      { t: 1.00, sky: '#d4ecf7', bounce: '#5f97a8', hemi: 1.4, sun: '#fff6e4', sunI: 2.4, fog: '#a9d0d8', ground: '#ffffff', sunDir: [-0.6, 1.25, 0.45], dark: 0 }
+    ] };
     var col = function (h) { return new THREE.Color(h); };
-    for (var i = 0; i < keys.length; i++) {
-      var k = keys[i];
-      k.sky = col(k.sky); k.bounce = col(k.bounce); k.sun = col(k.sun); k.fog = col(k.fog); k.ground = col(k.ground);
-      k.sunDir = new THREE.Vector3(k.sunDir[0], k.sunDir[1], k.sunDir[2]).normalize();
+    for (var id in sets) {
+      for (var i = 0; i < sets[id].length; i++) {
+        var k = sets[id][i];
+        k.sky = col(k.sky); k.bounce = col(k.bounce); k.sun = col(k.sun); k.fog = col(k.fog); k.ground = col(k.ground);
+        k.sunDir = new THREE.Vector3(k.sunDir[0], k.sunDir[1], k.sunDir[2]).normalize();
+      }
     }
-    this.atmosKeys = keys;
+    this.atmosSets = sets;
+    this.atmosKeys = sets[this.theme] || sets.scrap;
     this.dark = 0;
     this.vig = { k: 0.25, rgb: '60,35,15' };
     this._fog = new THREE.Color();
@@ -279,10 +313,15 @@ var View3D = {
     this.scene.fog.color.copy(this._fog);
     this.renderer.setClearColor(this._fog, 1);
     this.ground.material.color.copy(a.ground).lerp(b.ground, k);
+    var sea = this.theme === 'sea';
     var red = Game.running && window.Finale ? Finale.red : 0;
     if (red > 0.01) {
-      var R = this._red || (this._red = { sky: new THREE.Color('#d0583a'), sun: new THREE.Color('#ff6a3a'),
-        fog: new THREE.Color('#8a2a16'), ground: new THREE.Color('#e07858') });
+      var RS = this._red || (this._red = {
+        scrap: { sky: new THREE.Color('#d0583a'), sun: new THREE.Color('#ff6a3a'),
+          fog: new THREE.Color('#8a2a16'), ground: new THREE.Color('#e07858') },
+        sea: { sky: new THREE.Color('#4a5f8a'), sun: new THREE.Color('#9ab4e0'),
+          fog: new THREE.Color('#16263e'), ground: new THREE.Color('#5f7fae') } });
+      var R = sea ? RS.sea : RS.scrap;
       var rk = red * 0.75;
       this.hemi.color.lerp(R.sky, rk);
       this.sun.color.lerp(R.sun, rk);
@@ -297,21 +336,27 @@ var View3D = {
     this.lamp.intensity = dark * 300;
     this.head.intensity = dark * 1700;
     this.vig.k = 0.22 + dark * 0.4;
-    this.vig.rgb = dark > 0.5 ? '4,6,16' : '70,40,18';
+    this.vig.rgb = dark > 0.5 ? '4,6,16' : (sea ? '14,44,66' : '70,40,18');
+    if (sea && this.gtex.sea) {
+      var ft = performance.now() / 1000;
+      this.gtex.sea.offset.set((ft * 0.011) % 1, (ft * 0.006) % 1);
+    }
   },
 
-  buildGround: function () {
+  groundTex: function (theme) {
+    var sea = theme === 'sea';
     var c = document.createElement('canvas');
     c.width = c.height = 512;
     var g = c.getContext('2d');
     var r = World.rng(11, 7);
-    g.fillStyle = CFG.view3d.ground;
+    g.fillStyle = sea ? '#2a6f8c' : CFG.view3d.ground;
     g.fillRect(0, 0, 512, 512);
 
     var wrap = function (fn) {
       for (var ox = -512; ox <= 512; ox += 512) for (var oy = -512; oy <= 512; oy += 512) fn(ox, oy);
     };
-    var blobs = [['#ead0a0', 0.22], ['#9e7650', 0.16], ['#b9875a', 0.18], ['#f2dcb0', 0.16]];
+    var blobs = sea ? [['#4fa6bd', 0.2], ['#1b526d', 0.2], ['#39989c', 0.14], ['#174662', 0.18]]
+      : [['#ead0a0', 0.22], ['#9e7650', 0.16], ['#b9875a', 0.18], ['#f2dcb0', 0.16]];
     var i;
     for (i = 0; i < 70; i++) {
       var b = blobs[i % blobs.length];
@@ -326,8 +371,8 @@ var View3D = {
       });
     }
     g.globalAlpha = 1;
-    for (i = 0; i < 26; i++) {
-      var ry = r() * 512, rx = r() * 512, len = 120 + r() * 220, amp = 2 + r() * 4, ph = r() * 6;
+    for (i = 0; i < (sea ? 80 : 26); i++) {
+      var ry = r() * 512, rx = r() * 512, len = sea ? 36 + r() * 120 : 120 + r() * 220, amp = 2 + r() * 4, ph = r() * 6;
       var drawRipple = function (dy, col) {
         wrap(function (ox, oy) {
           g.beginPath();
@@ -340,11 +385,11 @@ var View3D = {
         });
       };
       g.lineWidth = 2;
-      drawRipple(0, 'rgba(255,240,210,.14)');
-      drawRipple(2.5, 'rgba(120,85,50,.1)');
+      drawRipple(0, sea ? 'rgba(226,246,255,.22)' : 'rgba(255,240,210,.14)');
+      drawRipple(2.5, sea ? 'rgba(8,44,72,.18)' : 'rgba(120,85,50,.1)');
     }
     g.strokeStyle = 'rgba(120,84,52,.4)';
-    for (i = 0; i < 16; i++) {
+    for (i = 0; i < (sea ? 0 : 16); i++) {
       var px = r() * 512, py = r() * 512, n = 3 + Math.floor(r() * 4);
       var pts = [[px, py]];
       for (var k = 0; k < n; k++) {
@@ -359,9 +404,10 @@ var View3D = {
         g.stroke();
       });
     }
-    for (i = 0; i < 700; i++) {
+    for (i = 0; i < (sea ? 380 : 700); i++) {
       var sx = r() * 512, sy = r() * 512, sz = 1 + r() * 2.5;
-      g.fillStyle = r() < 0.5 ? 'rgba(110,78,48,.45)' : 'rgba(255,238,205,.4)';
+      if (sea) g.fillStyle = r() < 0.6 ? 'rgba(232,250,255,.34)' : 'rgba(10,48,78,.28)';
+      else g.fillStyle = r() < 0.5 ? 'rgba(110,78,48,.45)' : 'rgba(255,238,205,.4)';
       g.fillRect(sx, sy, sz, sz * (0.6 + r() * 0.6));
     }
 
@@ -369,9 +415,15 @@ var View3D = {
     tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
     tex.colorSpace = THREE.SRGBColorSpace;
     tex.anisotropy = Math.min(8, this.renderer.capabilities.getMaxAnisotropy());
+    tex.repeat.set(7200 / 300, 7200 / 300);
+    return tex;
+  },
+
+  buildGround: function () {
     this.tile = 300;
     var size = 7200;
-    tex.repeat.set(size / this.tile, size / this.tile);
+    this.gtex = { scrap: this.groundTex('scrap') };
+    var tex = this.gtex.scrap;
     var geo = new THREE.PlaneGeometry(size, size);
     geo.rotateX(-Math.PI / 2);
     this.ground = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ map: tex }));
@@ -433,7 +485,7 @@ var View3D = {
     this._c = new THREE.Color();
 
     this.props = {};
-    var kinds = ['tire', 'barrel', 'barrelDown', 'plate', 'pipe', 'rock', 'bush', 'grass', 'yucca', 'deadtree', 'pole', 'sign'];
+    var kinds = ['tire', 'barrel', 'barrelDown', 'plate', 'pipe', 'rock', 'bush', 'grass', 'yucca', 'deadtree', 'pole', 'sign', 'buoy'];
     this.wireCol = M.color('#2a2420');
     for (var i = 0; i < kinds.length; i++) {
       this.props[kinds[i]] = add(new View3D.Batch(M.prop(kinds[i]).geo, this.matTint, 260, true));
@@ -574,14 +626,14 @@ var View3D = {
 
   thumbModel: function (kind, id, skin, dark, gun) {
     var th = this.thumbInit();
-    var key = kind + ':' + id + ':' + skin + ':' + (dark ? 1 : 0) + ':' + gun;
+    var key = kind + ':' + id + ':' + skin + ':' + (dark ? 1 : 0) + ':' + gun + ':' + this.hull();
     if (th.cache[key]) return th.cache[key];
     var g = new THREE.Group();
     var mat = dark ? new THREE.MeshBasicMaterial({ color: '#241b14' }) : this.matLit;
     var glow = dark ? mat : this.matGlow;
     var add = function (parent, geo, m) { if (geo) parent.add(new THREE.Mesh(geo, m)); };
     if (kind === 'car') {
-      var m = Models.player(id, Content.skin(skin), gun || 'pistol');
+      var m = Models.player(id, Content.skin(skin), gun || 'pistol', this.hull());
       add(g, m.chassis.geo, mat); add(g, m.chassis.glow, glow);
       var tur = new THREE.Group();
       add(tur, m.turret.geo, mat); add(tur, m.turret.glow, glow); add(tur, m.barrel.geo, mat);
@@ -687,7 +739,7 @@ var View3D = {
       for (j = 0; j < c.props.length; j++) {
         d = c.props[j];
         var pb = this.props[d.k];
-        var pi = pb.put(d.x, d.up ? d.s * 0.62 : 0, d.y, d.a, d.s, d.s, d.s);
+        var pi = pb.put(d.x, d.up ? d.s * 0.62 : (d.dy || 0), d.y, d.a, d.s, d.s, d.s);
         if (pi >= 0) pb.tint(pi, d.c, 1);
       }
       for (j = 0; j < c.wires.length; j++) {
@@ -716,7 +768,8 @@ var View3D = {
       return !(cx === 0 && cy === 0 && x * x + y * y < 140 * 140);
     };
     var res = { stains: [], props: [] };
-    var stainCols = ['#3a2a1c', '#4a3422', '#fff1d6', '#5a3c26'];
+    var sea = this.theme === 'sea';
+    var stainCols = sea ? ['#0f3550', '#134460', '#eafaff', '#0c2c46'] : ['#3a2a1c', '#4a3422', '#fff1d6', '#5a3c26'];
     var n = 3 + Math.floor(r() * 4), i;
     for (i = 0; i < n; i++) {
       var dark = r() < 0.7;
@@ -743,22 +796,32 @@ var View3D = {
       bush: 13, grass: 10, yucca: 17, deadtree: 21, sign: 13 };
     var kinds = ['tire', 'tire', 'barrel', 'barrelDown', 'plate', 'plate', 'pipe', 'rock', 'rock',
       'bush', 'bush', 'bush', 'grass', 'grass', 'grass', 'yucca', 'deadtree', 'sign'];
-    var m = 8 + Math.floor(r() * 9);
+    var sink = {};
+    if (sea) {
+      palettes.rock = ['#6f7c84', '#58656e', '#8a969c'];
+      palettes.plate = ['#8a6a45', '#6b4a2a', '#5d5752'];
+      palettes.buoy = ['#d8452e', '#e8a82e', '#e6ded0'];
+      sizes.rock = 22; sizes.buoy = 12;
+      kinds = ['barrel', 'barrelDown', 'barrelDown', 'plate', 'plate', 'pipe', 'rock', 'rock', 'rock', 'tire', 'buoy', 'buoy'];
+      sink = { barrel: 0.45, barrelDown: 0.25, tire: 0.2, pipe: 0.15, rock: 0.08 };
+    }
+    var m = sea ? 5 + Math.floor(r() * 6) : 8 + Math.floor(r() * 9);
     for (i = 0; i < m; i++) {
       var x = ox + r() * b, y = oy + r() * b;
       var k = kinds[Math.floor(r() * kinds.length)];
       if (!free(x, y, 24)) continue;
       var pal = palettes[k];
+      var ps = sizes[k] * (0.8 + r() * 0.5);
       res.props.push({
-        k: k, x: x, y: y, a: r() * 6.28, s: sizes[k] * (0.8 + r() * 0.5),
+        k: k, x: x, y: y, a: r() * 6.28, s: ps, dy: sink[k] ? -sink[k] * ps : 0,
         c: Models.color(pal[Math.floor(r() * pal.length)])
       });
-      if (k === 'tire' && r() < 0.4) {
+      if (!sea && k === 'tire' && r() < 0.4) {
         res.props.push({ k: 'tire', x: x + 2, y: y - 1, a: r() * 6.28, s: sizes.tire, c: Models.color('#ffffff'), up: 1 });
       }
     }
     res.wires = [];
-    if (r() < 0.35) {
+    if (!sea && r() < 0.35) {
       var la = r() * Math.PI, lx = ox + b * 0.2 + r() * b * 0.6, ly = oy + b * 0.2 + r() * b * 0.6;
       var prev = null;
       for (var pl = -2; pl <= 2; pl++) {
@@ -1482,14 +1545,14 @@ var View3D = {
   },
 
   playerMesh: function (p) {
-    var key = p.char.id + ':' + p.skin + ':' + p.gun.id;
+    var key = p.char.id + ':' + p.skin + ':' + p.gun.id + ':' + this.hull();
     if (this.pl && this.pl.key === key) return this.pl;
     if (this.pl) {
       this.scene.remove(this.pl.group);
       this.pl.group.traverse(function (m) { if (m.geometry) m.geometry.dispose(); });
     }
     var sk = Content.skin(p.skin);
-    var mdl = Models.player(p.char.id, sk, p.gun.id);
+    var mdl = Models.player(p.char.id, sk, p.gun.id, this.hull());
     var g = new THREE.Group();
     var mat = this.matLit.clone();
     mat.emissive = new THREE.Color(0x000000);
@@ -1516,13 +1579,51 @@ var View3D = {
     this.scene.add(g);
     this.pl = {
       key: key, group: g, chassis: chassis, turret: turret, barrel: barrel, mat: mat,
-      heading: p.ang, px: p.x, py: p.y, fire: p.fireCd, recoil: 0
+      heading: p.ang, px: p.x, py: p.y, fire: p.fireCd, recoil: 0, kit: [], kitSig: null
     };
     return this.pl;
   },
 
+  syncKit: function (v, p) {
+    var h = 7, id, i, m;
+    for (id in p.skills) h = (h * 31 + id.charCodeAt(0) * 131 + id.charCodeAt(id.length - 1) * 17 + id.length * 7 + p.skills[id] * 1009) | 0;
+    for (id in p.evo) h = (h * 31 + id.charCodeAt(0) * 53 + id.length) | 0;
+    if (v.kitSig === h) return;
+    v.kitSig = h;
+    for (i = 0; i < v.kit.length; i++) { m = v.kit[i]; m.parent.remove(m); m.geometry.dispose(); }
+    v.kit.length = 0;
+    var k = Models.kit(p.char.id, Content.skin(p.skin), p.gun.id, this.hull(), p.skills, p.evo);
+    var glow = this.matGlow;
+    var put = function (parent, part) {
+      if (part.geo) { m = new THREE.Mesh(part.geo, v.mat); m.renderOrder = 2; m.castShadow = true; parent.add(m); v.kit.push(m); }
+      if (part.glow) { m = new THREE.Mesh(part.glow, glow); m.renderOrder = 2; parent.add(m); v.kit.push(m); }
+    };
+    put(v.chassis, k.chassis); put(v.turret, k.turret); put(v.barrel, k.barrel);
+  },
+
+  wake: function (v, p, moving, dt) {
+    var w = v.wake || (v.wake = { pts: [], t: 0 }), i;
+    w.t -= dt;
+    if (moving && p.alive && w.t <= 0) {
+      w.t = 0.07;
+      var back = p.r * 0.95;
+      w.pts.push({ x: p.x - Math.cos(v.heading) * back, y: p.y - Math.sin(v.heading) * back, t: 0 });
+      if (w.pts.length > 16) w.pts.shift();
+    }
+    var foam = Models.color('#eafaff');
+    for (i = w.pts.length - 1; i >= 0; i--) {
+      var q = w.pts[i];
+      q.t += dt;
+      if (q.t > 1.1) { w.pts.splice(i, 1); continue; }
+      var k = q.t / 1.1, rad = p.r * (0.5 + k * 1.3);
+      var di = this.decals.put(q.x, 0.5, q.y, 0, rad, 1, rad);
+      this.decals.disc(di, foam, 0, 1.2, 1, 0.3 * (1 - k));
+    }
+  },
+
   syncPlayer: function (p, dt) {
     var v = this.playerMesh(p);
+    this.syncKit(v, p);
     var sk = Content.skin(p.skin);
     var g = v.group, r = p.r;
     g.visible = p.alive || !Game.over;
@@ -1542,9 +1643,13 @@ var View3D = {
       this.head.target.position.set(p.x + ca * 320, 0, p.y + sa * 320);
       this.head.target.updateMatrixWorld();
     }
-    var bob = (mx || my) ? Math.sin(Game.time * 26) * 0.35 : 0;
+    var boat = this.theme === 'sea';
+    var bob = boat ? Math.sin(Game.time * 2.4) * 0.6 - 0.3 : ((mx || my) ? Math.sin(Game.time * 26) * 0.35 : 0);
     g.position.set(p.x, bob, p.y);
+    g.rotation.x = boat ? Math.sin(Game.time * 1.9) * 0.045 : 0;
+    g.rotation.z = boat ? Math.cos(Game.time * 1.5) * 0.03 : 0;
     g.scale.set(r, r, r);
+    if (boat) this.wake(v, p, mx * mx + my * my > 0.04, dt);
     v.chassis.rotation.y = -v.heading;
     v.turret.rotation.y = -p.ang;
     v.barrel.position.x = -v.recoil * 0.22;

@@ -3,11 +3,11 @@ var Nakal = {
 
   max: function () { return CFG.nakal.max; },
   rank: function () {
-    var d = Save.data;
+    var d = Save.data && Maps.rec();
     return d ? Math.max(0, Math.min(this.max(), d.prestige | 0)) : 0;
   },
   sel: function () {
-    var d = Save.data, r = this.rank();
+    var d = Save.data && Maps.rec(), r = this.rank();
     if (!d) return 0;
     var s = d.nakal;
     return (typeof s === 'number' && s >= 0 && s < r) ? s : r;
@@ -15,7 +15,7 @@ var Nakal = {
   pick: function (n) {
     var r = this.rank();
     n = Math.max(0, Math.min(r, n | 0));
-    Save.data.nakal = n === r ? -1 : n;
+    Maps.rec().nakal = n === r ? -1 : n;
     Save.flush(true);
   },
   begin: function () { this.run = this.sel(); },
@@ -29,7 +29,7 @@ var Nakal = {
   healK: function () { return this.has(5) ? CFG.nakal.heal : 1; },
 
   win: function () {
-    var d = Save.data, r = this.rank(), t = this.run >= 0 ? this.run : this.sel();
+    var d = Maps.rec(), r = this.rank(), t = this.run >= 0 ? this.run : this.sel();
     if (t !== r || r >= this.max()) return 0;
     var keep = d.nakal;
     d.prestige = r + 1;

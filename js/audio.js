@@ -61,43 +61,90 @@ var Snd = {
   },
 
   unlock: function () {
-    this.init();
+    var self = this;
+    if (!this.ctx) {
+      try { this.init(); } catch (e) { this.initErr = String((e && e.message) || e).slice(0, 80); }
+    }
     this.iosSession();
-    if (this.ctx && this.ctx.state !== 'running') { try { this.ctx.resume(); } catch (e) {} }
+    if (this.ctx && this.ctx.state !== 'running') {
+      try {
+        var pr = this.ctx.resume();
+        if (pr && pr.then) pr.then(function () { self.resErr = ''; }, function (e) { self.resErr = String((e && e.name) || e).slice(0, 40); });
+      } catch (e) { this.resErr = String((e && e.name) || e).slice(0, 40); }
+    }
+  },
+
+  isIos: function () {
+    var ua = navigator.userAgent || '';
+    return /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   },
 
   iosSession: function () {
-    if (this._ios) return;
-    this._ios = true;
-    try {
-      if (navigator.audioSession) { navigator.audioSession.type = 'playback'; return; }
-    } catch (e) {}
-    var ua = navigator.userAgent || '';
-    if (!(/iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1))) return;
     var self = this;
     try {
-      var a = this._iosEl || document.createElement('audio');
-      if (!this._iosEl) {
+      if (navigator.audioSession && navigator.audioSession.type !== 'playback') navigator.audioSession.type = 'playback';
+    } catch (e) { this.sesErr = String((e && e.name) || e).slice(0, 40); }
+    if (!this.isIos() || !this.ctx || this._iosOk || this._iosBusy) return;
+    try {
+      var a = this._iosEl;
+      if (!a) {
+        a = document.createElement('audio');
         a.setAttribute('playsinline', '');
         a.setAttribute('x-webkit-airplay', 'deny');
+        a.preload = 'auto';
         a.loop = true;
-        a.src = this.silentWav();
+        a.src = this.silentWav(this.ctx.sampleRate);
         this._iosEl = a;
+        try { a.load(); } catch (e) {}
       }
+      this._iosBusy = true;
       var pr = a.play();
-      if (pr && pr.catch) pr.catch(function () { self._ios = false; });
-    } catch (e) { this._ios = false; }
+      if (pr && pr.then) {
+        pr.then(function () { self._iosBusy = false; self._iosOk = true; self.elErr = ''; },
+          function (e) { self._iosBusy = false; self.elErr = String((e && e.name) || e).slice(0, 40); });
+      } else { this._iosBusy = false; this._iosOk = true; }
+    } catch (e) { this._iosBusy = false; this.elErr = String((e && e.name) || e).slice(0, 40); }
   },
 
-  silentWav: function () {
-    var n = 2000, b = new Uint8Array(44 + n), v = new DataView(b.buffer), i, bin = '';
+  silentWav: function (rate) {
+    rate = Math.max(8000, Math.min(96000, Math.round(rate) || 44100));
+    var n = Math.round(rate / 2), b = new Uint8Array(44 + n), v = new DataView(b.buffer), i, bin = '';
     var str = function (o, t) { for (var k = 0; k < t.length; k++) b[o + k] = t.charCodeAt(k); };
     str(0, 'RIFF'); v.setUint32(4, 36 + n, true); str(8, 'WAVEfmt '); v.setUint32(16, 16, true);
-    v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, 8000, true); v.setUint32(28, 8000, true);
+    v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, rate, true); v.setUint32(28, rate, true);
     v.setUint16(32, 1, true); v.setUint16(34, 8, true); str(36, 'data'); v.setUint32(40, n, true);
     for (i = 0; i < n; i++) b[44 + i] = 128;
-    for (i = 0; i < b.length; i++) bin += String.fromCharCode(b[i]);
+    for (i = 0; i < b.length; i += 4096) bin += String.fromCharCode.apply(null, b.subarray(i, i + 4096));
     return 'data:audio/wav;base64,' + btoa(bin);
+  },
+
+  beep: function () {
+    this.unlock();
+    var c = this.ctx;
+    if (!c) return;
+    try {
+      var o = c.createOscillator(), g = c.createGain();
+      o.frequency.value = 660;
+      g.gain.value = 0.25;
+      o.connect(g); g.connect(c.destination);
+      o.start(); o.stop(c.currentTime + 0.35);
+    } catch (e) { this.initErr = 'beep ' + String((e && e.message) || e).slice(0, 60); }
+  },
+
+  diag: function () {
+    var c = this.ctx, ses = 'нет API', framed = 0;
+    try { if (navigator.audioSession) ses = String(navigator.audioSession.type) + (navigator.audioSession.state ? ' / ' + navigator.audioSession.state : ''); } catch (e) { ses = 'ошибка'; }
+    try { framed = window.top !== window ? 1 : 0; } catch (e) { framed = 1; }
+    var el = this._iosEl;
+    return [
+      'v' + CFG.version + ' · ' + CFG.platform + ' · iOS ' + (this.isIos() ? 1 : 0) + ' · во встройке ' + framed,
+      'контекст: ' + (c ? c.state + ' · ' + c.sampleRate + ' Гц · t ' + c.currentTime.toFixed(1) : 'нет'),
+      'сессия: ' + ses + (this.sesErr ? ' · ' + this.sesErr : ''),
+      'дорожка: ' + (el ? (this._iosOk ? 'играет' : (this._iosBusy ? 'ждет' : 'нет')) + (el.paused ? ' · на паузе' : '') + (this.elErr ? ' · ' + this.elErr : '') : 'не нужна или не создана'),
+      'глушилки: реклама ' + (this.adMuted ? 1 : 0) + ' · площадка ' + (this.pfMuted ? 1 : 0) + ' · фон ' + (this.bgMuted ? 1 : 0),
+      'громкость ' + (+this.vol).toFixed(2) + ' · звуки ' + (this.on ? 1 : 0) + ' · музыка ' + (this.musicOn ? 1 : 0) + ' · выход ' + (this.master ? this.master.gain.value.toFixed(2) : '-'),
+      'ошибки: запуск ' + (this.initErr || '-') + ' · resume ' + (this.resErr || '-')
+    ];
   },
 
   setSfx: function (v) { this.on = !!v; },
@@ -126,7 +173,8 @@ var Snd = {
     this.bgMuted = !!m;
     this.applyMute();
     if (this._iosEl) {
-      try { if (m) this._iosEl.pause(); else { var pr = this._iosEl.play(); if (pr && pr.catch) pr.catch(function () {}); } } catch (e) {}
+      if (m) { try { this._iosEl.pause(); } catch (e) {} this._iosOk = false; }
+      else this.iosSession();
     }
   },
 
@@ -1206,6 +1254,7 @@ var Snd = {
   pieceStart: function (T, first) {
     var p = this.pc, mb = this.mb, i;
     p.t0 = T;
+    if (this === Snd && typeof Tracks !== 'undefined') Tracks.onStart(p);
     p.idx = 0;
     p.k = 0;
     var s = p.plan[0];

@@ -21,6 +21,7 @@ var Save = {
       up10: 1,
       bosses: {},
       prestige: 0, prestigeOld: 0, nakal: -1,
+      map: 'scrap', m: {},
       wins: 0, winBest: 0,
       noAds: 0, paid: [],
       set: { sfx: 1, music: 1, shake: 1, low: 0, lang: null, aim: 'auto', zoom: 1, vol: 0.5 }
@@ -43,7 +44,7 @@ var Save = {
           if (raw[k] === undefined) continue;
           if (typeof d[k] === 'object' && d[k] !== null && !Array.isArray(d[k])) {
             for (var kk in d[k]) if (raw[k][kk] !== undefined) d[k][kk] = raw[k][kk];
-            if (k === 'chars' || k === 'guns' || k === 'skins' || k === 'bosses' || k === 'set') {
+            if (k === 'chars' || k === 'guns' || k === 'skins' || k === 'bosses' || k === 'set' || k === 'm') {
               for (var id in raw[k]) d[k][id] = raw[k][id];
             }
           } else {
@@ -60,6 +61,20 @@ var Save = {
       d.prestige = pr;
       d.nakal = Math.floor(Number(d.nakal));
       if (!(d.nakal >= 0 && d.nakal < pr)) d.nakal = -1;
+      var mm = {}, ML = CFG.maps.list;
+      for (var mi = 1; mi < ML.length; mi++) {
+        var mr = d.m && d.m[ML[mi].id];
+        if (!mr || typeof mr !== 'object') continue;
+        var mp = Math.max(0, Math.min(top, Math.floor(Number(mr.prestige) || 0))), mn = Math.floor(Number(mr.nakal));
+        var mb = mr.best && typeof mr.best === 'object' ? mr.best : {};
+        mm[ML[mi].id] = {
+          prestige: mp, nakal: (mn >= 0 && mn < mp) ? mn : -1,
+          wins: Math.max(0, Math.floor(Number(mr.wins) || 0)), winBest: Math.max(0, Math.floor(Number(mr.winBest) || 0)),
+          best: { score: Math.max(0, Number(mb.score) || 0), time: Math.max(0, Number(mb.time) || 0), level: Math.max(1, Math.floor(Number(mb.level) || 1)) }
+        };
+      }
+      d.m = mm;
+      if (typeof d.map !== 'string') d.map = ML[0].id;
       return d;
   },
 
@@ -126,16 +141,17 @@ var Save = {
 
   mult: function () {
     var u = this.data.up, p = Nakal.tier(), N = CFG.nakal;
+    var mc = Maps.k('coin'), mh = Maps.k('hp');
     return {
       dmg: 1 + 0.05 * u.dmg,
       hp: 1 + 0.06 * u.hp,
       spd: 1 + 0.018 * u.spd,
       xp: 1 + 0.05 * u.xp,
-      loot: (1 + 0.06 * u.loot) * (1 + p * N.coin),
+      loot: (1 + 0.06 * u.loot) * (1 + p * N.coin) * mc,
       cd: 1 - 0.03 * u.cd,
       radius: 1 + 0.04 * (u.radius || 0),
       tech: 1 + 0.05 * (u.tech || 0),
-      enemyHp: 1 + p * N.hp,
+      enemyHp: (1 + p * N.hp) * mh,
       startLevel: 1 + p * N.startLevel
     };
   },
@@ -144,10 +160,11 @@ var Save = {
     var d = this.data;
     d.runs++;
     d.kills += res.kills;
-    if (res.score > d.best.score) {
-      d.best.score = res.score;
-      d.best.time = res.time;
-      d.best.level = res.level;
+    var b = Maps.rec(res.map).best;
+    if (res.score > b.score) {
+      b.score = res.score;
+      b.time = res.time;
+      b.level = res.level;
       this.flush(true);
       return true;
     }

@@ -51,7 +51,7 @@
       if (PF.adsOff) PF.onAdsOff(PF.adsOff);
 
       var unlock = function () { Snd.unlock(); };
-      ['pointerdown', 'pointerup', 'touchend', 'keydown'].forEach(function (ev) {
+      ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown'].forEach(function (ev) {
         window.addEventListener(ev, unlock, { passive: true, capture: true });
       });
       window.addEventListener('focus', unlock);

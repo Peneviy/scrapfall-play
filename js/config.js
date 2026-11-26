@@ -1,5 +1,5 @@
 var CFG = {
-  version: '3.02',
+  version: '3.12',
   platform: 'pikabu',
   debug: false,
   metrics: { url: 'https://scrapfall-metrics.peneviy.workers.dev/e', dev: '' },
@@ -63,6 +63,14 @@ var CFG = {
     phase2: 0.66, lairK: 2, sleepMax: 1, heal: 0.5,
     eliteK: 2, frenzy: 210, repeats: 2, repAt: [30, 110], repGap: 15, repHp: 0.7, repCoin: 0.5,
     queen4: 0.2
+  },
+
+  maps: {
+    list: [
+      { id: 'scrap', theme: 'scrap', hp: 1, dmg: 1, coin: 1, score: 1 },
+      { id: 'sea', theme: 'sea', need: 'scrap', hp: 1.4, dmg: 1.2, coin: 1.5, score: 1.5 }
+    ],
+    soon: 5
   },
 
   shop: {

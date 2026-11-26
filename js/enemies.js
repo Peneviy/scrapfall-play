@@ -88,7 +88,7 @@ var Enemies = {
     var m = Finale.growT() / 60, s = CFG.scale;
     return (1 + s.hpPerMin * m + s.hpLate * Math.max(0, m - s.lateFrom)) * Save.mult().enemyHp * this.cycleMult();
   },
-  dmgMult: function () { return (1 + CFG.scale.dmgPerMin * (Finale.growT() / 60)) * this.cycleMult(); },
+  dmgMult: function () { return (1 + CFG.scale.dmgPerMin * (Finale.growT() / 60)) * this.cycleMult() * Maps.k('dmg'); },
   speedMult: function () { return Math.min(1.6, 1 + CFG.scale.speedPerMin * (Finale.growT() / 60)); },
 
   pickType: function (plain) {

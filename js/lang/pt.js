@@ -108,7 +108,7 @@ I18N.add('pt', {
     mapNeed: 'Abre depois de vencer a RAINHA em {n}',
     mapSoon: 'Em breve', mapSecret: 'Ultrassecreto. Sinal não decifrado',
     mapOn: 'Escolhido', mapGo: 'Escolher', mapLock: 'Fechado',
-    mapRec: 'Recorde {s} · CALOR {n}', mapOpened: 'Novo mapa aberto: {m}',
+    mapOpened: 'Novo mapa aberto: {m}',
     mpDiscs: 'Discos', mpFavs: 'Favoritos', mpRecent: 'Recentes', mpCopied: 'Código da faixa copiado',
     mpWait: 'A música ainda não está tocando', mpFavOn: 'Adicionado aos favoritos', mpFavOff: 'Removido dos favoritos',
     holdPc: 'Clique para começar',
@@ -127,7 +127,7 @@ I18N.add('pt', {
     winLeave: 'Pegar o saque e ir ao hangar', winDouble: 'Dobrar o saque e ir ao hangar',
     nkInfo1: 'CALOR é a dificuldade das incursões depois de vencer a RAINHA',
     nkInfo2: 'Cada nível soma uma condição nova às anteriores e dá mais pontos, sucata e níveis iniciais',
-    nkInfo3: 'Vencer a RAINHA no seu nível mais alto abre o próximo, o nível se escolhe no hangar'
+    nkInfo3: 'Vencer a RAINHA no seu nível mais alto abre o próximo. Cada mapa tem o seu CALOR, o nível se escolhe na tela de mapas'
   },
   items: {
     scav: ['CATADOR', 'Um catador comum. Nada de especial, mas acha 15% mais sucata.'],

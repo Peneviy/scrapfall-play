@@ -2,20 +2,20 @@ var Nakal = {
   run: -1,
 
   max: function () { return CFG.nakal.max; },
-  rank: function () {
-    var d = Save.data && Maps.rec();
+  rank: function (id) {
+    var d = Save.data && Maps.rec(id);
     return d ? Math.max(0, Math.min(this.max(), d.prestige | 0)) : 0;
   },
-  sel: function () {
-    var d = Save.data && Maps.rec(), r = this.rank();
+  sel: function (id) {
+    var d = Save.data && Maps.rec(id), r = this.rank(id);
     if (!d) return 0;
     var s = d.nakal;
     return (typeof s === 'number' && s >= 0 && s < r) ? s : r;
   },
-  pick: function (n) {
-    var r = this.rank();
+  pick: function (n, id) {
+    var r = this.rank(id);
     n = Math.max(0, Math.min(r, n | 0));
-    Maps.rec().nakal = n === r ? -1 : n;
+    Maps.rec(id).nakal = n === r ? -1 : n;
     Save.flush(true);
   },
   begin: function () { this.run = this.sel(); },
@@ -51,28 +51,20 @@ var Nakal = {
     return (this.rank() > 0 || t > 0) ? I18N.t('nkPause', { n: t, s: this.scoreK(t) }) : '';
   },
 
-  renderBox: function () {
-    var box = document.getElementById('nakalBox'), shop = document.getElementById('scrShop');
-    if (!box) return;
-    var r = this.rank(), s = this.sel(), self = this;
-    box.classList.toggle('hidden', r <= 0);
-    if (shop) shop.classList.toggle('nk-on', r > 0);
-    if (r <= 0) { var sl = document.getElementById('shopList'); if (sl) sl.style.bottom = ''; return; }
-    var steps = box.querySelector('.nk-steps');
-    steps.innerHTML = '';
-    for (var i = 0; i <= r; i++) {
-      var b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'nk-st' + (i === s ? ' on' : '');
-      b.textContent = i;
-      b.setAttribute('data-n', i);
-      b.onclick = function () { self.pick(+this.getAttribute('data-n')); Snd.play('pick'); self.renderBox(); if (window.UI) UI.refreshMenu(); };
-      steps.appendChild(b);
+  cardHtml: function (id, on) {
+    var r = this.rank(id), s = this.sel(id), html, i;
+    if (r <= 0) return '';
+    html = '<span class="map-nk"><span class="nk-head"><b>' + I18N.t('nakal') + '</b>' +
+      '<button type="button" class="nk-q" data-tip="nk">?</button><span class="nk-steps">';
+    for (i = 0; i <= r; i++) {
+      html += '<button type="button" class="nk-st' + (i === s ? ' on' : '') + '" data-n="' + i + '">' + i + '</button>';
     }
-    box.querySelector('.nk-add').textContent = (s > 0 ? '+ ' : '') + this.add(s) +
-      (s === r && r < this.max() ? ' · ' + I18N.t('nkNext', { m: r + 1 }) : '');
-    box.querySelector('.nk-bon').textContent = this.bonus(s);
-    var list = document.getElementById('shopList');
-    if (list && box.offsetHeight) list.style.bottom = (box.offsetHeight + 6) + 'px';
+    html += '</span></span>';
+    if (on) {
+      html += '<span class="nk-add">' + (s > 0 ? '+ ' : '') + this.add(s) +
+        (s === r && r < this.max() ? ' · ' + I18N.t('nkNext', { m: r + 1 }) : '') + '</span>' +
+        '<span class="nk-bon">' + this.bonus(s) + '</span>';
+    }
+    return html + '</span>';
   }
 };

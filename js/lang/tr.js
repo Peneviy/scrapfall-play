@@ -108,7 +108,7 @@ I18N.add('tr', {
     mapNeed: '{n} haritasında KRALİÇEYİ yenince açılır',
     mapSoon: 'Yakında', mapSecret: 'Çok gizli. Sinyal çözülemedi',
     mapOn: 'Seçili', mapGo: 'Seç', mapLock: 'Kilitli',
-    mapRec: 'Rekor {s} · KIZIŞMA {n}', mapOpened: 'Yeni harita açıldı: {m}',
+    mapOpened: 'Yeni harita açıldı: {m}',
     mpDiscs: 'Plaklar', mpFavs: 'Favoriler', mpRecent: 'Son çalınanlar', mpCopied: 'Parça kodu kopyalandı',
     mpWait: 'Müzik henüz çalmıyor', mpFavOn: 'Favorilere eklendi', mpFavOff: 'Favorilerden çıkarıldı',
     holdPc: 'Başlamak için tıkla',
@@ -127,7 +127,7 @@ I18N.add('tr', {
     winLeave: 'Ganimeti al ve hangara dön', winDouble: 'Ganimeti ikiye katla ve hangara dön',
     nkInfo1: 'KIZIŞMA, KRALİÇE yenildikten sonraki baskın zorluğudur',
     nkInfo2: 'Her kademe öncekilere yeni bir koşul ekler, daha çok puan, hurda ve başlangıç seviyesi verir',
-    nkInfo3: 'En yüksek kademende KRALİÇE yenilirse sıradaki açılır, kademe hangarda seçilir'
+    nkInfo3: 'En yüksek kademende KRALİÇE yenilirse sıradaki açılır. Her haritanın KIZIŞMA kademesi ayrıdır, kademe harita ekranında seçilir'
   },
   items: {
     scav: ['ÇÖPÇÜ', 'Sıradan bir toplayıcı. Özel bir şeyi yok ama %15 daha fazla hurda bulur.'],

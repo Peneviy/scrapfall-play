@@ -112,7 +112,7 @@ var I18N = {
     mapNeed: 'Откроется после победы над КОРОЛЕВОЙ на карте {n}',
     mapSoon: 'Скоро', mapSecret: 'Совершенно секретно. Сигнал не расшифрован',
     mapOn: 'Выбрана', mapGo: 'Выбрать', mapLock: 'Закрыта',
-    mapRec: 'Рекорд {s} · НАКАЛ {n}', mapOpened: 'Открыта карта {m}',
+    mapOpened: 'Открыта карта {m}',
     mpDiscs: 'Пластинки', mpFavs: 'Избранное', mpRecent: 'Недавние', mpCopied: 'Код трека скопирован',
     mpWait: 'Музыка еще не играет', mpFavOn: 'В избранном', mpFavOff: 'Убрано из избранного',
     holdPc: 'Кликни, чтобы начать',
@@ -132,7 +132,7 @@ var I18N = {
     winLeave: 'Забрать добычу и уйти в ангар', winDouble: 'Удвоить добычу и уйти в ангар',
     nkInfo1: 'НАКАЛ - сложность рейдов после победы над КОРОЛЕВОЙ',
     nkInfo2: 'Каждая ступень добавляет новое условие к прошлым и дает больше очков, лома и стартовых уровней',
-    nkInfo3: 'Победа над КОРОЛЕВОЙ на самой высокой ступени открывает следующую, ступень выбирают в ангаре'
+    nkInfo3: 'Победа над КОРОЛЕВОЙ на самой высокой ступени открывает следующую. НАКАЛ у каждой карты свой, ступень выбирают на экране карт'
   },
 
   en: {
@@ -244,7 +244,7 @@ var I18N = {
     mapNeed: 'Opens after you beat the QUEEN on {n}',
     mapSoon: 'Soon', mapSecret: 'Top secret. Signal not decoded',
     mapOn: 'Selected', mapGo: 'Select', mapLock: 'Locked',
-    mapRec: 'Best {s} · HEAT {n}', mapOpened: 'New map unlocked: {m}',
+    mapOpened: 'New map unlocked: {m}',
     mpDiscs: 'Discs', mpFavs: 'Favourites', mpRecent: 'Recent', mpCopied: 'Track code copied',
     mpWait: 'Music is not playing yet', mpFavOn: 'Added to favourites', mpFavOff: 'Removed from favourites',
     holdPc: 'Click to start',
@@ -264,7 +264,7 @@ var I18N = {
     winLeave: 'Take the loot and go to the hangar', winDouble: 'Double the loot and go to the hangar',
     nkInfo1: 'HEAT is the raid difficulty after you beat the QUEEN',
     nkInfo2: 'Each step adds a new condition on top of the previous ones and gives more score, scrap and starting levels',
-    nkInfo3: 'Beating the QUEEN on your highest step unlocks the next one, pick the step in the hangar'
+    nkInfo3: 'Beating the QUEEN on your highest step unlocks the next one. Each map has its own HEAT, pick the step on the maps screen'
   },
 
   add: function (lang, pack) {

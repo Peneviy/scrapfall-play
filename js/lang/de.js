@@ -108,7 +108,7 @@ I18N.add('de', {
     mapNeed: 'Öffnet sich nach dem Sieg über die KÖNIGIN auf {n}',
     mapSoon: 'Bald', mapSecret: 'Streng geheim. Signal nicht entschlüsselt',
     mapOn: 'Gewählt', mapGo: 'Wählen', mapLock: 'Gesperrt',
-    mapRec: 'Rekord {s} · HITZE {n}', mapOpened: 'Neue Karte geöffnet: {m}',
+    mapOpened: 'Neue Karte geöffnet: {m}',
     mpDiscs: 'Platten', mpFavs: 'Favoriten', mpRecent: 'Zuletzt', mpCopied: 'Track-Code kopiert',
     mpWait: 'Die Musik läuft noch nicht', mpFavOn: 'Zu den Favoriten hinzugefügt', mpFavOff: 'Aus den Favoriten entfernt',
     holdPc: 'Klicken zum Starten',
@@ -127,7 +127,7 @@ I18N.add('de', {
     winLeave: 'Beute nehmen und in den Hangar', winDouble: 'Beute verdoppeln und in den Hangar',
     nkInfo1: 'HITZE ist die Raid-Schwierigkeit nach dem Sieg über die KÖNIGIN',
     nkInfo2: 'Jede Stufe fügt eine neue Bedingung zu den vorigen hinzu und gibt mehr Punkte, Schrott und Startstufen',
-    nkInfo3: 'Ein Sieg über die KÖNIGIN auf deiner höchsten Stufe öffnet die nächste, die Stufe wählst du im Hangar'
+    nkInfo3: 'Ein Sieg über die KÖNIGIN auf deiner höchsten Stufe öffnet die nächste. Jede Karte hat ihre eigene HITZE, die Stufe wählst du bei den Karten'
   },
   items: {
     scav: ['SCHROTTER', 'Gewöhnlicher Sammler. Nichts Besonderes, findet aber 15% mehr Schrott.'],

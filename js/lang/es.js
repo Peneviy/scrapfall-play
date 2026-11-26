@@ -108,7 +108,7 @@ I18N.add('es', {
     mapNeed: 'Se abre al vencer a la REINA en {n}',
     mapSoon: 'Pronto', mapSecret: 'Alto secreto. Señal sin descifrar',
     mapOn: 'Elegido', mapGo: 'Elegir', mapLock: 'Cerrado',
-    mapRec: 'Récord {s} · CALOR {n}', mapOpened: 'Nuevo mapa abierto: {m}',
+    mapOpened: 'Nuevo mapa abierto: {m}',
     mpDiscs: 'Discos', mpFavs: 'Favoritos', mpRecent: 'Recientes', mpCopied: 'Código de la pista copiado',
     mpWait: 'La música aún no suena', mpFavOn: 'Añadido a favoritos', mpFavOff: 'Quitado de favoritos',
     holdPc: 'Haz clic para empezar',
@@ -127,7 +127,7 @@ I18N.add('es', {
     winLeave: 'Llevar el botín e ir al hangar', winDouble: 'Duplicar el botín e ir al hangar',
     nkInfo1: 'CALOR es la dificultad de las incursiones tras vencer a la REINA',
     nkInfo2: 'Cada nivel añade una condición nueva a las anteriores y da más puntos, chatarra y niveles iniciales',
-    nkInfo3: 'Vencer a la REINA en tu nivel más alto abre el siguiente, el nivel se elige en el hangar'
+    nkInfo3: 'Vencer a la REINA en tu nivel más alto abre el siguiente. Cada mapa tiene su propio CALOR, el nivel se elige en la pantalla de mapas'
   },
   items: {
     scav: ['CHATARRERO', 'Un recolector corriente. Nada especial, pero encuentra 15% más de chatarra.'],

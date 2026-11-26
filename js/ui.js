@@ -60,10 +60,6 @@ var UI = {
     this.el('btnWinNext').onclick = function () { self.winNext(); };
     this.el('btnWinTake').onclick = function () { self.finishToMenu('upgrades'); };
     this.el('btnWinDouble').onclick = function () { self.winDouble(); };
-    this.el('nkQ').onclick = function () {
-      self.el('nkInfo').classList.toggle('hidden');
-      Nakal.renderBox();
-    };
     this.tipInit();
     this.el('btnAuth').onclick = function () {
       PF.auth(function (ok) { if (ok) self.openBoard(); });
@@ -388,15 +384,16 @@ var UI = {
 
   openMaps: function () { this.show('scrMaps'); this.renderMaps(); },
   renderMaps: function () {
-    var L = Maps.list(), sel = Maps.sel(), html = '', self = this, i;
+    var L = Maps.list(), sel = Maps.sel(), html = '', i;
     for (i = 0; i < L.length; i++) {
       var m = L[i], open = Maps.open(m.id), r = Maps.rec(m.id), on = m.id === sel;
-      html += '<button type="button" class="map-it th-' + m.theme + (on ? ' on' : '') + (open ? '' : ' lock') + '" data-id="' + m.id + '">' +
+      html += '<div role="button" tabindex="0" class="map-it go th-' + m.theme + (on ? ' on' : '') + (open ? '' : ' lock') + '" data-id="' + m.id + '">' +
         '<i class="map-sw"></i><span class="map-tx"><b>' + I18N.t('map_' + m.id) + '</b>' +
         '<em>' + I18N.t('mapD_' + m.id) + '</em>' +
-        (open ? '<s>' + I18N.t('mapRec', { s: U.num(r.best.score), n: Math.min(CFG.nakal.max, r.prestige | 0) }) + '</s>'
+        (open ? '<s>' + I18N.t('best') + ' ' + U.num(r.best.score) + '</s>'
           : '<s class="need">' + I18N.t('mapNeed', { n: I18N.t('map_' + m.need) }) + '</s>') +
-        '</span><strong>' + I18N.t(on ? 'mapOn' : (open ? 'mapGo' : 'mapLock')) + '</strong></button>';
+        '</span>' + (open ? Nakal.cardHtml(m.id, on) : '') +
+        '<strong>' + I18N.t(on ? 'mapOn' : (open ? 'mapGo' : 'mapLock')) + '</strong></div>';
     }
     for (i = 0; i < CFG.maps.soon; i++) {
       html += '<div class="map-it soon"><i class="map-sw"></i><span class="map-tx"><b>? ? ?</b><em>' +
@@ -404,15 +401,32 @@ var UI = {
     }
     var list = this.el('mapsList');
     list.innerHTML = html;
-    var its = list.querySelectorAll('button.map-it');
-    for (i = 0; i < its.length; i++) {
-      its[i].onclick = function () {
-        var id = this.getAttribute('data-id');
-        if (!Maps.open(id)) { Snd.play('deny'); self.toast(I18N.t('mapNeed', { n: Maps.name(Maps.byId(id).need) })); return; }
-        Maps.pick(id);
+    var its = list.querySelectorAll('.map-it.go');
+    for (i = 0; i < its.length; i++) this.mapBind(its[i]);
+  },
+  mapBind: function (el) {
+    var self = this, id = el.getAttribute('data-id'), nk = el.querySelector('.map-nk'), j;
+    el.onclick = function () {
+      if (!Maps.open(id)) { Snd.play('deny'); self.toast(I18N.t('mapNeed', { n: Maps.name(Maps.byId(id).need) })); return; }
+      Maps.pick(id);
+      Snd.play('pick');
+      self.show('scrMenu');
+      self.refreshMenu();
+    };
+    el.onkeydown = function (e) {
+      if (e.target === el && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); el.onclick(); }
+    };
+    if (!nk) return;
+    nk.onclick = function (e) { e.stopPropagation(); };
+    var sts = nk.querySelectorAll('.nk-st');
+    for (j = 0; j < sts.length; j++) {
+      sts[j].onclick = function () {
+        if (id !== Maps.sel()) Maps.pick(id);
+        Nakal.pick(+this.getAttribute('data-n'), id);
         Snd.play('pick');
-        self.show('scrMenu');
-        self.refreshMenu();
+        if (View3D.setTheme) View3D.setTheme(Maps.theme());
+        self.tipHide();
+        self.renderMaps();
       };
     }
   },
@@ -1108,7 +1122,6 @@ var UI = {
     var list = this.el('shopList'), d = Save.data, self = this;
     this.el('shopCoins').textContent = U.num(d.coins);
     list.innerHTML = '';
-    Nakal.renderBox();
 
     if (this.tab === 'upgrades') {
       this.renderUpgrades(list);
@@ -1266,6 +1279,48 @@ var UI = {
     }
   },
 
+  spinBind: function (c, kind, id, dark, ang) {
+    var K = 0.022, pid = -1, x0 = 0, tMove = 0, tPrev = 0, v = 0, raf = 0;
+    function frame(ts) {
+      raf = 0;
+      if (!document.body.contains(c)) return;
+      if (pid < 0) {
+        var dt = Math.max(0, Math.min(0.05, (ts - tPrev) / 1000));
+        ang += v * dt;
+        v *= Math.pow(0.05, dt);
+        if (Math.abs(v) < 0.08) v = 0;
+      }
+      tPrev = ts;
+      View3D.thumb(c, kind, id, null, ang, dark);
+      if (pid < 0 && v) raf = requestAnimationFrame(frame);
+    }
+    function kick() { if (!raf) raf = requestAnimationFrame(frame); }
+    function end(e) {
+      if (e.pointerId !== pid) return;
+      pid = -1;
+      if (performance.now() - tMove > 90) v = 0;
+      tPrev = performance.now();
+      kick();
+    }
+    c.className = 'spin3d';
+    c.onpointerdown = function (e) {
+      if (pid >= 0) return;
+      pid = e.pointerId; x0 = e.clientX; tMove = performance.now(); v = 0;
+      try { c.setPointerCapture(pid); } catch (err) {}
+      if (e.pointerType === 'mouse') e.preventDefault();
+    };
+    c.onpointermove = function (e) {
+      if (e.pointerId !== pid) return;
+      var now = performance.now(), d = (e.clientX - x0) * K, dt = Math.max(0.008, (now - tMove) / 1000);
+      x0 = e.clientX; tMove = now;
+      ang += d;
+      v = Math.max(-14, Math.min(14, v * 0.4 + d / dt * 0.6));
+      kick();
+    };
+    c.onpointerup = end;
+    c.onpointercancel = end;
+  },
+
   renderTrophies: function (list) {
     for (var i = 0; i < Bosses.list.length; i++) {
       var b = Bosses.list[i];
@@ -1279,6 +1334,7 @@ var UI = {
         c.width = c.height = 192;
         c.style.width = c.style.height = '112px';
         View3D.thumb(c, 'boss', b.id, null, -0.7, !wins);
+        this.spinBind(c, 'boss', b.id, !wins, -0.7);
         div.innerHTML = '<h4>' + (wins ? I18N.name(b) : '???') + '</h4>' +
           '<p>' + (wins ? I18N.desc(b) : I18N.t('trophyNone')) + '</p>' +
           '<div class="cnt">' + (wins ? I18N.t('trophyWins', { n: wins }) : '') + '</div>';

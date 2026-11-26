@@ -73,6 +73,9 @@ var UI = {
     this.el('pauseVol').oninput = function () { self.setVol(this.value / 100, false); };
     this.el('setVol').onchange = function () { self.setVol(this.value / 100, true); };
     this.el('pauseVol').onchange = function () { self.setVol(this.value / 100, true); };
+    var zin = function () { Game.setZoomPct(+this.value); self.syncZoom(); };
+    this.el('setZoom').oninput = zin; this.el('pauseZoom').oninput = zin;
+    this.syncZoom();
     this.el('setShake').onchange = function () { set.shake = this.checked ? 1 : 0; Save.flush(true); };
     Quality.start(View3D.weak);
     var qb = document.querySelectorAll('#setQ .btn');
@@ -185,6 +188,8 @@ var UI = {
   toast: function (text) {
     var t = this.el('toast');
     t.textContent = text;
+    var over = document.querySelector('.screen:not(.hidden)');
+    t.classList.toggle('ingame', !!(Game.running && !over));
     t.classList.remove('hidden');
     clearTimeout(this.toastT);
     this.toastT = setTimeout(function () { t.classList.add('hidden'); }, 1900);
@@ -231,6 +236,7 @@ var UI = {
     this.el('hud').classList.remove('hidden');
     Game.start();
     this.updateHud();
+    Game.mmBox(true);
     if (hold) this.holdStart();
     if (hold || !Save.data.hintSeen) this.showCtrlHint();
     else if (Save.data.set.aim === 'mouse' && !Input.isTouch()) this.toast(I18N.t('aimMouse') + ' (TAB)');
@@ -324,6 +330,12 @@ var UI = {
     Save.flush(true);
   },
 
+  syncZoom: function () {
+    var pct = Game.zoomPct();
+    this.el('setZoom').value = pct; this.el('pauseZoom').value = pct;
+    this.el('setZoomText').textContent = pct + '%'; this.el('pauseZoomText').textContent = pct + '%';
+  },
+
   setVol: function (v, done) {
     var set = Save.data.set;
     set.vol = Math.round(U.clamp(v, 0, 1) * 100) / 100;
@@ -358,6 +370,7 @@ var UI = {
       Game.pause(false);
     } else {
       Game.pause(true);
+      this.syncZoom();
       this.renderPauseSkills();
       this.el('pauseSlots').innerHTML = this.slotsHtml();
       this.el('pauseLvl').textContent = I18N.t('lvlUp') + ' ' + Game.player.level;
@@ -382,7 +395,7 @@ var UI = {
         if (!s) {
           if (!h) { html += '<div class="sl empty"></div>'; continue; }
           var ns = h[0].s, ics = '';
-          for (j = 0; j < h.length; j++) ics += '<i class="n' + h[j].c + (j ? ' alt' : '') + '" style="color:' + (h[j].s.col || '#ffd27d') + '">' + h[j].s.ic + '</i>';
+          for (j = 0; j < h.length; j++) ics += Glyph.html(h[j].s.ic, h[j].s.col || '#ffd27d', 'n' + h[j].c + (j ? ' alt' : ''));
           html += '<div class="sl empty hl new' + hc + '" title="' + I18N.name(ns) + '">' + ics + '<b>+</b></div>';
           continue;
         }
@@ -391,7 +404,7 @@ var UI = {
         html += '<div class="sl' + (ev ? ' evo' : '') + (lvl >= s.max ? ' max' : '') + (h ? ' hl' + (h[0].evo ? ' hlev' : '') + hc : '') +
           '"' + (cards ? ' title="' + (ev ? I18N.name(ev) : I18N.name(s)) + '"' : ' data-tip="s:' + s.id + '"') + '>' +
           (ev ? '<u class="ev-star">★</u>' : '') +
-          '<i style="color:' + (s.col || '#ffd27d') + '">' + s.ic + '</i>' + mark + '</div>';
+          Glyph.html(s.ic, s.col || '#ffd27d') + mark + '</div>';
       }
       html += '</div>';
     }
@@ -435,17 +448,17 @@ var UI = {
       var now = s.at ? s.at(lvl - 1) : I18N.desc(s);
       var ev = p.evo[id] && Evo.of(id);
       html += '<div class="ps' + (ev ? ' evo' : '') + '" data-tip="s:' + id + '">' +
-        '<i style="color:' + (s.col || '#ffd27d') + '">' + s.ic + '</i>' +
+        Glyph.html(s.ic, s.col || '#ffd27d') +
         '<b>' + (ev ? '★ ' + I18N.name(ev) : I18N.name(s)) + '</b><span>' + lvl + '/' + s.max + '</span>' +
         '<em>' + now + '</em></div>';
     }
     var gev = p.evo[p.gun.id] && Evo.of(p.gun.id);
-    if (gev) html += '<div class="ps evo" data-tip="g:"><i>' + gev.ic + '</i><b>★ ' + I18N.name(gev) + '</b><span></span>' +
+    if (gev) html += '<div class="ps evo" data-tip="g:">' + Glyph.html(gev.ic) + '<b>★ ' + I18N.name(gev) + '</b><span></span>' +
       '<em>' + I18N.name(p.gun) + '</em></div>';
     for (var ti = 0; ti < Trophy.list.length; ti++) {
       var tr = Trophy.list[ti];
       if (!p.tr[tr.boss]) continue;
-      html += '<div class="ps troph" data-tip="t:' + tr.boss + '"><i style="color:' + Bosses.byId(tr.boss).trim + '">' + tr.ic + '</i>' +
+      html += '<div class="ps troph" data-tip="t:' + tr.boss + '">' + Glyph.html(tr.ic, Bosses.byId(tr.boss).trim) +
         '<b>' + I18N.name(tr) + '</b><span>' + Trophy.bossName(tr) + '</span><em>' + I18N.desc(tr) + '</em></div>';
     }
     this.el('pauseSkills').innerHTML = html;
@@ -486,7 +499,7 @@ var UI = {
       var s = Skills.byId(k[1]);
       if (!s) return '';
       var lvl = p.skills[s.id] || 0, ev = p.evo[s.id] && Evo.of(s.id);
-      html = '<h3><i style="color:' + (s.col || '#ffd27d') + '">' + s.ic + '</i> ' + I18N.name(s) + '</h3>' +
+      html = '<h3>' + Glyph.html(s.ic, s.col || '#ffd27d') + ' ' + I18N.name(s) + '</h3>' +
         '<p' + (ev && ev.swap ? ' class="was"' : '') + '>' + I18N.desc(s) + '</p>' +
         '<div class="stack">' + I18N.t('stack', { n: lvl, m: s.max }) + ' · ' + I18N.t(Skills.kindOf(s) === 'spell' ? 'kindSpell' : 'kindPart') + '</div>' +
         (s.at && lvl ? '<div class="next">' + s.at(lvl - 1) + '</div>' : '');
@@ -632,15 +645,15 @@ var UI = {
     if (sig !== this.skillSig) {
       this.skillSig = sig;
       var html = '', gev = p.evo[p.gun.id] && Evo.of(p.gun.id);
-      if (gev) html += '<div class="evo" title="' + I18N.name(gev) + '"><i>' + gev.ic + '</i></div>';
+      if (gev) html += '<div class="evo" title="' + I18N.name(gev) + '">' + Glyph.html(gev.ic) + '</div>';
       for (var id in p.skills) {
         var s = Skills.byId(id), ev = p.evo[id] && Evo.of(id);
         if (!s) continue;
-        html += '<div' + (ev ? ' class="evo"' : '') + ' title="' + (ev ? I18N.name(ev) : I18N.name(s)) + '"><i style="color:' + (s.col || '#ffd27d') + '">' + s.ic + '</i> <b>' + (ev ? '★' : '') + p.skills[id] + '</b></div>';
+        html += '<div' + (ev ? ' class="evo"' : '') + ' title="' + (ev ? I18N.name(ev) : I18N.name(s)) + '">' + Glyph.html(s.ic, s.col || '#ffd27d') + ' <b>' + (ev ? '★' : '') + p.skills[id] + '</b></div>';
       }
       for (var ti = 0; ti < Trophy.list.length; ti++) {
         var tr = Trophy.list[ti];
-        if (p.tr[tr.boss]) html += '<div class="troph" title="' + I18N.name(tr) + '"><i style="color:' + Bosses.byId(tr.boss).trim + '">' + tr.ic + '</i></div>';
+        if (p.tr[tr.boss]) html += '<div class="troph" title="' + I18N.name(tr) + '">' + Glyph.html(tr.ic, Bosses.byId(tr.boss).trim) + '</div>';
       }
       this.el('skillStrip').innerHTML = html;
     }
@@ -709,7 +722,7 @@ var UI = {
         if (self.mode === 'evo' && s.boss) {
           div.className = 'card troph';
           div.innerHTML = '<div class="key">' + (n + 1) + '</div>' +
-            '<div class="ic" style="color:' + Bosses.byId(s.boss).trim + '">' + s.ic + '</div>' +
+            '<div class="ic" style="color:' + Bosses.byId(s.boss).trim + '">' + Glyph.html(s.ic) + '</div>' +
             '<h3>' + I18N.name(s) + '</h3>' +
             '<p>' + I18N.desc(s) + '</p>' +
             '<div class="stack">' + I18N.t('trophyOf', { n: Trophy.bossName(s) }) + '</div>';
@@ -721,7 +734,7 @@ var UI = {
           var base = s.skill ? Skills.byId(s.skill) : null;
           div.className = 'card evo';
           div.innerHTML = '<div class="key">' + (n + 1) + '</div>' +
-            '<div class="ic" style="color:' + (base ? base.col : '#f2c46a') + '">' + s.ic + '</div>' +
+            '<div class="ic" style="color:' + (base ? base.col : '#f2c46a') + '">' + Glyph.html(s.ic) + '</div>' +
             '<h3>' + I18N.name(s) + '</h3>' +
             '<p>' + I18N.desc(s) + '</p>' +
             '<div class="stack">' + Evo.base(p, s) + '</div>';
@@ -732,7 +745,7 @@ var UI = {
         var lvl = p.skills[s.id] || 0, ev = p.evo[s.id] && Evo.of(s.id);
         div.className = 'card ' + (s.rar === 'leg' ? 'leg' : (s.rar === 'epic' ? 'epic' : (s.rar === 'rare' ? 'rare' : ''))) + (ev ? ' evolved' : '');
         div.innerHTML = '<div class="key">' + (n + 1) + '</div>' +
-          '<div class="ic" style="color:' + (s.col || '#ffd27d') + '">' + s.ic + '</div>' +
+          '<div class="ic" style="color:' + (s.col || '#ffd27d') + '">' + Glyph.html(s.ic) + '</div>' +
           '<h3>' + I18N.name(s) + (ev ? ' <s>' + I18N.name(ev) + '</s>' : '') + '</h3>' +
           '<p>' + (ev ? (ev.swap ? '<s class="was">' + I18N.desc(s) + '</s>' : I18N.desc(s)) + '<em>' + I18N.desc(ev) + '</em>' : I18N.desc(s)) + '</p>' +
           '<div class="stack">' + (lvl ? I18N.t('stackUp', { a: lvl, n: lvl + 1, m: s.max }) : I18N.t('newSkill') + ' · ' + I18N.t(Skills.kindOf(s) === 'spell' ? 'kindSpell' : 'kindPart')) + '</div>' +

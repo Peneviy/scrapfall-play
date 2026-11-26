@@ -103,22 +103,33 @@ var Input = {
   },
 
   dashSide: function () {
-    var b = document.getElementById('dashBtn');
-    if (b) b.classList.toggle('left', !!(Save.data && Save.data.set.dashL));
+    var b = document.getElementById('dashBtn'), on = !!(Save.data && Save.data.set.dashL);
+    if (b) b.classList.toggle('left', on);
+    document.documentElement.classList.toggle('dash-left', on);
   },
+
+  pinch: { id: -1, d0: 1, z0: 1 },
 
   tap: { end: 0, x: 0, y: 0, t0: 0 },
 
   onTouchStart: function (e) {
+    var first = !this.touch;
     this.touch = true;
     this.markTouch();
     document.getElementById('dashBtn').classList.remove('hidden');
+    if (first) Game.resize();
     if (!Game.running || Game.paused) return;
     e.preventDefault();
     var now = performance.now();
     for (var i = 0; i < e.changedTouches.length; i++) {
       var t = e.changedTouches[i];
-      if (this.stick.active) continue;
+      if (this.stick.active) {
+        if (this.pinch.id < 0 && t.identifier !== this.stick.id) {
+          var pd = Math.sqrt(Math.pow(t.clientX - this.stick.x, 2) + Math.pow(t.clientY - this.stick.y, 2));
+          if (pd > 24) { this.pinch.id = t.identifier; this.pinch.d0 = pd; this.pinch.z0 = (Save.data.set.zoom) || 1; }
+        }
+        continue;
+      }
       var tp = this.tap;
       if (tp.end && now - tp.end < 280 && Math.abs(t.clientX - tp.x) < 70 && Math.abs(t.clientY - tp.y) < 70) {
         this.dashWanted = true;
@@ -139,6 +150,11 @@ var Input = {
     e.preventDefault();
     for (var i = 0; i < e.changedTouches.length; i++) {
       var t = e.changedTouches[i];
+      if (t.identifier === this.pinch.id) {
+        var pd = Math.sqrt(Math.pow(t.clientX - this.stick.x, 2) + Math.pow(t.clientY - this.stick.y, 2));
+        Game.setZoom(this.pinch.z0 * pd / this.pinch.d0, false);
+        continue;
+      }
       if (t.identifier !== this.stick.id) continue;
       this.stick.x = t.clientX;
       this.stick.y = t.clientY;
@@ -147,7 +163,9 @@ var Input = {
 
   onTouchEnd: function (e) {
     for (var i = 0; i < e.changedTouches.length; i++) {
+      if (e.changedTouches[i].identifier === this.pinch.id) { this.pinch.id = -1; Save.flush(false); continue; }
       if (e.changedTouches[i].identifier === this.stick.id) {
+        if (this.pinch.id >= 0) { this.pinch.id = -1; Save.flush(false); }
         var s = this.stick, now = performance.now();
         var moved = Math.abs(s.x - s.ox) + Math.abs(s.y - s.oy);
         if (now - this.tap.t0 < 220 && moved < 16) { this.tap.end = now; this.tap.x = s.ox; this.tap.y = s.oy; }

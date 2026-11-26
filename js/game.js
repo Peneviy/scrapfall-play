@@ -40,19 +40,51 @@ var Game = {
     this.canvas.height = Math.floor(h * this.dpr);
     this.canvas.style.width = w + 'px';
     this.canvas.style.height = h + 'px';
-    var zoom = (Save.data && Save.data.set.zoom) || 1;
-    this.scale = U.clamp(Math.min(h / CFG.view.targetH, w / CFG.view.targetW) * zoom,
-      CFG.view.minScale, CFG.view.maxScale);
+    this.rescale();
     View3D.resize(w, h, this.dpr);
     this.redraw = true;
+    this.mmBox(true);
     if (window.PF && document.body) document.body.classList.toggle('pf-fsbtn', PF.kind === 'pikabu' && PF.isFull(w, h));
   },
 
+  rescale: function () {
+    var V = CFG.view, zoom = (Save.data && Save.data.set.zoom) || 1;
+    var touch = window.Input && Input.isTouch && Input.isTouch();
+    var base = Math.min(this.h / V.targetH, this.w / V.targetW) * (touch ? V.touchK : 1);
+    this.scale = U.clamp(base, V.minScale, V.maxScale) * zoom;
+  },
+
   zoomBy: function (dir) {
-    var s = Save.data.set;
-    s.zoom = U.clamp((s.zoom || 1) * (dir > 0 ? 0.94 : 1.06), CFG.view.zoomMin, CFG.view.zoomMax);
-    Save.flush(false);
-    this.resize();
+    this.setZoom(((Save.data.set.zoom) || 1) * (dir > 0 ? 0.94 : 1.06), true);
+  },
+
+  setZoom: function (z, keep) {
+    var s = Save.data.set, was = s.zoom || 1;
+    s.zoom = U.clamp(z, CFG.view.zoomMin, CFG.view.zoomMax);
+    if (keep) Save.flush(false);
+    if (s.zoom === was) return;
+    this.rescale();
+    View3D.resize(this.w, this.h, this.dpr);
+    this.redraw = true;
+  },
+
+  zoomPct: function () {
+    var V = CFG.view, z = (Save.data && Save.data.set.zoom) || 1;
+    return Math.round(U.clamp((V.zoomMax - z) / (V.zoomMax - V.zoomMin), 0, 1) * 20) * 5;
+  },
+  setZoomPct: function (pct) {
+    var V = CFG.view;
+    this.setZoom(V.zoomMax - (V.zoomMax - V.zoomMin) * U.clamp(pct / 100, 0, 1), true);
+  },
+
+  mmBox: function (now) {
+    if (now || !this._mm || (this._mmN = (this._mmN || 0) + 1) > 30) {
+      this._mmN = 0;
+      var el = this._mmEl || (this._mmEl = document.getElementById('mmBox'));
+      var r = el ? el.getBoundingClientRect() : null;
+      if (r && r.width > 8) this._mm = { x: Math.round(r.left), y: Math.round(r.top), s: Math.round(r.width) };
+    }
+    return this._mm || { x: this.w - 102, y: 46, s: 92 };
   },
 
   viewRadius: function () {
@@ -584,10 +616,8 @@ var Game = {
 
   mapRange: 2400,
   drawMinimap: function (ctx) {
-    var size = Math.min(132, Math.max(92, this.w * 0.16));
-    var pad = 10;
-    var x0 = this.w - size - pad;
-    var y0 = pad + 58;
+    var box = this.mmBox();
+    var size = box.s, x0 = box.x, y0 = box.y;
     var k = size / (this.mapRange * 2);
     var p = this.player;
 

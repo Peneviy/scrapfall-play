@@ -1,5 +1,5 @@
 
-.lb-plate{position:absolute;right:9px;top:calc(74px + clamp(92px,16vw,132px));width:calc(clamp(92px,16vw,132px) + 2px);box-sizing:border-box;
+.lb-plate{position:relative;margin-right:-1px;width:calc(var(--mm) + 2px);box-sizing:border-box;flex:none;
   pointer-events:auto;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;
   filter:drop-shadow(0 2px 3px rgba(0,0,0,.45))}
 .lb-plate .lbp-body{display:flex;flex-direction:column;background:var(--plate);padding:3px 7px 4px 9px;
@@ -24,11 +24,12 @@
 .lb-plate.flash .lbp-body{animation:lbFlash 1.2s ease-out}
 @keyframes lbFlash{0%{filter:brightness(1.9);transform:translateX(-6px)}100%{filter:none;transform:none}}
 
-@media (orientation:landscape) and (max-height:520px){
-  .lb-plate{top:max(144px,calc(28px + clamp(92px,16vw,132px)));right:calc(clamp(92px,16vw,132px) + 18px);width:auto}
-  .lb-plate .lbp-body{min-width:74px;max-width:128px}
-  .lb-plate .lbp-next{order:2}
-  .lb-plate .lbp-prev{order:3;display:none}
+@media (max-width:479px),(orientation:landscape) and (max-height:480px){
+  .lb-plate .lbp-body{padding:2px 5px 3px 8px}
+  .lbp-rank b{font-size:15px}
+  .lbp-rank i{font-size:9px;letter-spacing:.1em}
+  .lbp-next,.lbp-prev{font-size:10px;line-height:1.25}
+  .lb-plate .lbp-prev{display:none}
   .lb-plate.flashing .lbp-next{display:none}
   .lb-plate.flashing .lbp-prev{display:flex}
 }
@@ -42,7 +43,10 @@
 .lb-on .board-list > div{max-width:640px;margin-left:auto;margin-right:auto}
 .lb-head{text-align:center;color:var(--bone2);font-size:15px;letter-spacing:.04em;padding:2px 0 10px}
 .lb-gap{text-align:center;color:var(--bone3);line-height:1;padding:0 0 6px}
-.board-row.pin{position:sticky;top:-6px;z-index:2;margin-bottom:12px;box-shadow:inset 4px 0 0 var(--paint),0 6px 10px rgba(0,0,0,.55)}
+.board-row.pin{position:sticky;bottom:-12px;z-index:2;margin:10px auto 0;color:var(--gold);
+  background:linear-gradient(180deg,#4a3814,#2a1f0c);
+  box-shadow:inset 0 0 0 2px var(--paint),inset 6px 0 0 var(--paint)}
+.board-row.pin .rank,.board-row.pin .nm{color:var(--gold)}
 .board-row .rank{min-width:34px;width:auto}
 .board-row .lb-meta{color:var(--bone3);font-size:12px;white-space:nowrap}
 #lbNickBtn{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);white-space:nowrap}

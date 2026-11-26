@@ -275,8 +275,8 @@ var LB = {
       if (view === 0 && self.seasons) list.appendChild(self._line(I18N.t('lbArchiveHint'), 'lb-head lb-arch'));
       list.appendChild(self._line(d.me ? I18N.t('lbYour', { r: d.me.r, t: d.total }) : I18N.t(view === 0 && self.seasons ? 'lbArchNo' : 'lbNoRec'), 'lb-head'));
       if (!d.top.length) { list.appendChild(self._line(I18N.t('boardEmpty'), 'board-row')); return; }
-      if (d.me) { var pin = self._row(d.me); pin.className += ' pin'; list.appendChild(pin); }
       for (var i = 0; i < d.top.length; i++) list.appendChild(self._row(d.top[i]));
+      if (d.me) { var pin = self._row(d.me); pin.className += ' pin'; list.appendChild(pin); }
     });
   },
 
@@ -339,7 +339,7 @@ var LB = {
     p.innerHTML = '<div class="lbp-body"><div class="lbp-next"><span></span><s></s></div>' +
       '<div class="lbp-rank"><i data-i18n="lbWorld"></i><b></b></div>' +
       '<div class="lbp-prev hidden"><span></span><s></s></div></div>';
-    $('hud').appendChild(p);
+    ($('hudRight') || $('hud')).appendChild(p);
     this.plate = p;
     this._r = p.querySelector('.lbp-rank b');
     this._nx = p.querySelector('.lbp-next');

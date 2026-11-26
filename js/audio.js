@@ -62,7 +62,42 @@ var Snd = {
 
   unlock: function () {
     this.init();
+    this.iosSession();
     if (this.ctx && this.ctx.state !== 'running') { try { this.ctx.resume(); } catch (e) {} }
+  },
+
+  iosSession: function () {
+    if (this._ios) return;
+    this._ios = true;
+    try {
+      if (navigator.audioSession) { navigator.audioSession.type = 'playback'; return; }
+    } catch (e) {}
+    var ua = navigator.userAgent || '';
+    if (!(/iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1))) return;
+    var self = this;
+    try {
+      var a = this._iosEl || document.createElement('audio');
+      if (!this._iosEl) {
+        a.setAttribute('playsinline', '');
+        a.setAttribute('x-webkit-airplay', 'deny');
+        a.loop = true;
+        a.src = this.silentWav();
+        this._iosEl = a;
+      }
+      var pr = a.play();
+      if (pr && pr.catch) pr.catch(function () { self._ios = false; });
+    } catch (e) { this._ios = false; }
+  },
+
+  silentWav: function () {
+    var n = 2000, b = new Uint8Array(44 + n), v = new DataView(b.buffer), i, bin = '';
+    var str = function (o, t) { for (var k = 0; k < t.length; k++) b[o + k] = t.charCodeAt(k); };
+    str(0, 'RIFF'); v.setUint32(4, 36 + n, true); str(8, 'WAVEfmt '); v.setUint32(16, 16, true);
+    v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, 8000, true); v.setUint32(28, 8000, true);
+    v.setUint16(32, 1, true); v.setUint16(34, 8, true); str(36, 'data'); v.setUint32(40, n, true);
+    for (i = 0; i < n; i++) b[44 + i] = 128;
+    for (i = 0; i < b.length; i++) bin += String.fromCharCode(b[i]);
+    return 'data:audio/wav;base64,' + btoa(bin);
   },
 
   setSfx: function (v) { this.on = !!v; },
@@ -90,6 +125,9 @@ var Snd = {
   bgMute: function (m) {
     this.bgMuted = !!m;
     this.applyMute();
+    if (this._iosEl) {
+      try { if (m) this._iosEl.pause(); else { var pr = this._iosEl.play(); if (pr && pr.catch) pr.catch(function () {}); } } catch (e) {}
+    }
   },
 
   applyMute: function () {

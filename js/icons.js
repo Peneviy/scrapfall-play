@@ -36,3 +36,45 @@ var Icons = {
     }
   }
 };
+
+var Glyph = {
+  S: 64,
+  B: 84,
+  font: '"Segoe UI Symbol","Apple Symbols","Noto Sans Symbols 2","DejaVu Sans",sans-serif',
+  cache: {},
+
+  url: function (ch) {
+    if (this.cache[ch] !== undefined) return this.cache[ch];
+    var out = '';
+    try {
+      var B = this.B, S = this.S, c = this._c || (this._c = document.createElement('canvas'));
+      c.width = c.height = B;
+      var g = c.getContext('2d'), txt = '', i;
+      for (i = 0; i < ch.length; i++) {
+        var cc = ch.charCodeAt(i);
+        txt += ch.charAt(i);
+        if (cc >= 0xD800 && cc <= 0xDBFF && i + 1 < ch.length) txt += ch.charAt(++i);
+        txt += '\uFE0E';
+      }
+      g.font = S + 'px ' + this.font;
+      g.textBaseline = 'alphabetic';
+      var m = g.measureText(txt);
+      var l = m.actualBoundingBoxLeft, r = m.actualBoundingBoxRight, a = m.actualBoundingBoxAscent, d = m.actualBoundingBoxDescent;
+      if (!(l + r > 0 && a + d > 0)) { l = 0; r = m.width || S; a = S * 0.76; d = S * 0.14; }
+      var w = l + r, h = a + d, k = Math.min(1, (B - 6) / w, (B - 6) / h);
+      g.clearRect(0, 0, B, B);
+      g.fillStyle = '#fff';
+      g.setTransform(k, 0, 0, k, B / 2, B / 2);
+      g.fillText(txt, l - w / 2, a - h / 2);
+      g.setTransform(1, 0, 0, 1, 0, 0);
+      out = c.toDataURL('image/png');
+    } catch (e) { out = ''; }
+    return (this.cache[ch] = out);
+  },
+
+  html: function (ch, col, cls) {
+    var u = this.url(ch), st = col ? 'color:' + col + ';' : '';
+    if (!u) return '<i' + (cls ? ' class="' + cls + '"' : '') + (st ? ' style="' + st + '"' : '') + '>' + ch + '</i>';
+    return '<i class="gl' + (cls ? ' ' + cls : '') + '" style="' + st + '-webkit-mask-image:url(' + u + ');mask-image:url(' + u + ')"></i>';
+  }
+};

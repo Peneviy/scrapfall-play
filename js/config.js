@@ -1,10 +1,10 @@
 var CFG = {
-  version: '3.01',
+  version: '3.02',
   platform: 'pikabu',
   debug: false,
   metrics: { url: 'https://scrapfall-metrics.peneviy.workers.dev/e', dev: '' },
 
-  view: { targetH: 760, targetW: 560, minScale: 0.5, maxScale: 1.35, camLerp: 6, zoomMin: 0.85, zoomMax: 1.18 },
+  view: { targetH: 760, targetW: 560, minScale: 0.42, maxScale: 1.35, camLerp: 6, zoomMin: 0.7, zoomMax: 1.2, touchK: 0.86 },
   view3d: { fov: 34, pitch: 56, zoom: 0.92, fog: '#dcb98f', ground: '#c9a06c', day: 420 },
   grid: 96,
 
@@ -42,6 +42,7 @@ var CFG = {
            lvlPace: 16, adaptUntil: 210, adaptPerLvl: 0.15, adaptMax: 0.6 },
   walls: { patience: 1.2, slide: 0.45 },
   boss: { first: 150, every: 130, grace: 60, graceMax: 90, leash: 1500, engage: 900, regen: 0.05, hint: 340,
+    auto: { tiers: [0.15, 0.15, 0.10, 0.10, 0.05], queen: 0.05, full: 40 },
     lair: { dMin: 650, dMax: 900, r: 320, rise: 1.5, sleepMax: 2,
             hpPerMin: 0.12, hpMax: 0.6, dmgPerMin: 0.06, dmgMax: 0.3,
             far: 1500, farT: 5, move: 700, moveMax: 900, hunt: 1.25 } },

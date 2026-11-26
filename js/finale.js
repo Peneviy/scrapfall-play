@@ -151,8 +151,9 @@ var Finale = {
     e.bd = bd; e.rep = true;
     e.r = bd.r * 1.2;
     e.speed = bd.speed;
-    e.dmg *= bd.dmgMul;
-    e.hp = e.maxHp = e.maxHp * bd.hpMul * N.repHp;
+    var auto = Bosses.auto(bd);
+    e.dmg *= bd.dmgMul * auto;
+    e.hp = e.maxHp = e.maxHp * bd.hpMul * N.repHp * auto;
     e.coins = Math.floor(e.coins * N.repCoin);
     e.anchorX = pos.x; e.anchorY = pos.y;
     e.state = 'sleep'; e.zz = true; e.hunt = false;
@@ -180,8 +181,9 @@ var Finale = {
     e.bd = bd;
     e.r = bd.r * 1.2;
     e.speed = bd.speed;
-    e.dmg *= Q.dmgMul;
-    e.hp = e.maxHp = e.maxHp * Q.hpMul;
+    var qa = Bosses.auto(Bosses.queen);
+    e.dmg *= Q.dmgMul * qa;
+    e.hp = e.maxHp = e.maxHp * Q.hpMul * qa;
     e.coins = Math.floor(e.coins * 3);
     e.anchorX = pos.x; e.anchorY = pos.y;
     e.zz = false; e.state = 'rise'; e.riseT = 2.2; e.hunt = true;

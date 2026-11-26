@@ -1428,8 +1428,9 @@ var Enemies = {
     e.bd = bd;
     e.r = bd.r * 1.2;
     e.speed = bd.speed * (1 + cycle * 0.12);
-    e.dmg *= bd.dmgMul;
-    e.hp = e.maxHp = e.maxHp * bd.hpMul * (1 + cycle * 0.8);
+    var auto = Bosses.auto(bd);
+    e.dmg *= bd.dmgMul * auto;
+    e.hp = e.maxHp = e.maxHp * bd.hpMul * (1 + cycle * 0.8) * auto;
     e.coins = Math.floor(e.coins * (1 + cycle * 0.5));
     e.anchorX = pos.x; e.anchorY = pos.y;
     e.state = 'sleep'; e.zz = true; e.hunt = false;

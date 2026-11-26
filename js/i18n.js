@@ -98,14 +98,14 @@ var I18N = {
     aimAuto: 'Прицел: авто',
     aimMouse: 'Прицел: мышь',
     keyDash: 'Рывок',
-    hintMove: 'ехать', hintDrag: 'тяни по экрану, чтобы ехать', hintAuto: 'стреляет сама, целится в ближнего',
+    hintMove: 'ехать', hintDrag: 'тяни по экрану, чтобы ехать', hintAuto: 'по умолчанию включена автострельба',
     crashTitle: 'Что-то сломалось',
     crashText: 'Лом за рейд сохраним, игра начнется заново',
     crashBtn: 'Перезапустить',
     gfxLostTitle: 'Сбой графики',
     gfxLostText: '3D отключилось: похоже, сбой видеокарты или драйвера. Рейд на паузе, прогресс цел. Продолжить в 2D?',
     gfxLostGo: 'Продолжить в 2D', gfxLostToast: '3D отключилось, картинка теперь 2D',
-    hintTap2: 'двойной тап - рывок',
+    hintTap2: 'двойной тап - рывок', hintDashBtn: 'эта кнопка - рывок', camDist: 'Отдаление',
     holdPc: 'Кликни, чтобы начать',
     holdTouch: 'Тапни, чтобы начать',
     dashLeft: 'Кнопка рывка слева',
@@ -220,14 +220,14 @@ var I18N = {
     aimAuto: 'Aim: auto',
     aimMouse: 'Aim: mouse',
     keyDash: 'Dash',
-    hintMove: 'drive', hintDrag: 'drag anywhere to drive', hintAuto: 'fires by itself at the nearest enemy',
+    hintMove: 'drive', hintDrag: 'drag anywhere to drive', hintAuto: 'auto-fire is on by default',
     crashTitle: 'Something broke',
     crashText: 'Your scrap from this raid is kept, the game will start over',
     crashBtn: 'Restart',
     gfxLostTitle: 'Graphics failure',
     gfxLostText: '3D switched off: it looks like a graphics card or driver failure. The raid is paused, your progress is safe. Continue in 2D?',
     gfxLostGo: 'Continue in 2D', gfxLostToast: '3D switched off, graphics are 2D now',
-    hintTap2: 'double tap - dash',
+    hintTap2: 'double tap - dash', hintDashBtn: 'this button is dash', camDist: 'Zoom out',
     holdPc: 'Click to start',
     holdTouch: 'Tap to start',
     dashLeft: 'Dash button on the left',
@@ -297,5 +297,7 @@ var I18N = {
     for (var i = 0; i < nodes.length; i++) {
       nodes[i].textContent = this.t(nodes[i].getAttribute('data-i18n'));
     }
+    var dw = document.getElementById('dashWord');
+    if (dw && dw.parentNode) dw.parentNode.classList.toggle('long', dw.textContent.length > 5);
   }
 };

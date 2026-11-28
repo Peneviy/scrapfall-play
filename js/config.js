@@ -1,5 +1,5 @@
 var CFG = {
-  version: '3.14a',
+  version: '3.15',
   platform: 'pikabu',
   debug: false,
   metrics: { url: 'https://scrapfall-metrics.peneviy.workers.dev/e', dev: '' },
@@ -82,7 +82,12 @@ var CFG = {
       { id: 'scrap_4', name: 'pack4', coins: 100000, bonus: 30 },
       { id: 'scrap_5', name: 'pack5', coins: 500000, bonus: 50 }
     ],
-    noAds: 'no_ads'
+    noAds: 'no_ads',
+    cos: ['cos_aura_sun', 'cos_tail_stars', 'cos_shape_tear', 'cos_tint_rainbow', 'cos_bang_choir']
+  },
+
+  cos: {
+    rar: ['#9aa3ad', '#6fd36a', '#5aa9ff', '#b06bff', '#ff5a4d', '#ffc83a']
   },
 
   ads: {

@@ -19,6 +19,7 @@ var Enemies = {
     comb: { hp: 100, speed: 0, dmg: 0, r: 24, coins: 0.3, xp: 3, body: '#4a3a5c', trim: '#d9c26a', from: 1e9, w: 0, pylon: true, comb: true, heavy: true },
     larva: { hp: 12, speed: 150, dmg: 0, r: 12, coins: 0, xp: 1, body: '#6e4a3a', trim: '#ff9a4a', from: 1e9, w: 0, larva: true },
     decoy: { hp: 100, speed: 0, dmg: 0, r: 38, coins: 0, xp: 0, body: '#0d2a2c', trim: '#8ff0e0', from: 1e9, w: 0, pylon: true, decoy: true, heavy: true },
+    dummy: { hp: 1000, speed: 0, dmg: 0, r: 22, coins: 0, xp: 0, body: '#e9e5dc', trim: '#e2503a', from: 1e9, w: 0, dummy: true, heavy: true },
     boss: { hp: 1400, speed: 38, dmg: 26, r: 46, coins: 70, xp: 60, body: '#2f3f4a', trim: '#f0a24a', w: 0 }
   },
 
@@ -1262,6 +1263,7 @@ var Enemies = {
 
       if (e.flash > 0) e.flash -= dt;
       if (e.camp && e.zz) { e.vx = e.vy = 0; continue; }
+      if (e.def.dummy) { e.vx = e.vy = 0; continue; }
       if (e.ward > 0 && ((e.ward -= dt) <= 0 || e.wardBy.dead)) { e.ward = 0; e.wardBy = null; }
       var sp = e.speed;
       if (e.slowT > 0) { e.slowT -= dt; sp *= 0.6; }
@@ -1501,11 +1503,13 @@ var Enemies = {
     if (crit || e.boss || e.elite || e.def.heavy) {
       FX.text(e.x + U.rand(-6, 6), e.y - e.r - 4, Math.round(amount), crit || open ? '#ffd27d' : '#ffffff', crit || open ? 17 : 13);
     }
+    if (e.def.dummy) e.hp = e.maxHp;
     if (e.hp <= 0) this.kill(e);
     else Snd.play('hit');
   },
 
   kill: function (e) {
+    if (e.def.dummy) { e.hp = e.maxHp; return; }
     e.dead = true;
     var mult = Save.mult().loot * Game.player.char.loot;
     var coins = e.coins * mult * (e.boss ? CFG.coins.boss : CFG.coins.mob);
@@ -1562,6 +1566,27 @@ var Enemies = {
     }
   },
 
+  drawDummy: function (ctx, e) {
+    var cols = [e.def.body, e.def.trim, e.def.body, e.def.trim], i;
+    ctx.globalAlpha = 0.22;
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.ellipse(e.x, e.y + e.r * 0.3, e.r * 1.05, e.r * 0.6, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    for (i = 0; i < 4; i++) {
+      ctx.fillStyle = e.flash > 0 ? '#ffffff' : cols[i];
+      ctx.beginPath();
+      ctx.arc(e.x, e.y, e.r * (1 - i * 0.24), 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.strokeStyle = '#2b3138';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(e.x, e.y, e.r, 0, Math.PI * 2);
+    ctx.stroke();
+  },
+
   draw: function (ctx) {
     var list = Game.enemies;
     for (var ci = 0; ci < this.chains.length; ci++) {
@@ -1589,6 +1614,7 @@ var Enemies = {
       var d = e.def;
       if (e.boss && e.bd) { Bosses.draw(ctx, e); this.drawHpBar(ctx, e); continue; }
       if (d.decoy && e.owner) { Bosses.body(ctx, e, e.owner.bd, e.x, e.y, e.ang, 0.72, true); continue; }
+      if (d.dummy) { this.drawDummy(ctx, e); continue; }
 
       if (e.elite) GlowCache.draw(ctx, e.esp === 1 ? 'rgba(255,224,102,.4)' : (e.esp === 3 ? 'rgba(255,59,59,.45)' : 'rgba(162,75,214,.35)'), e.x, e.y, e.r * 2.1, 1);
       if (e.esp === 1 && (e.vx || e.vy)) {

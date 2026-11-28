@@ -207,7 +207,8 @@ var LB = {
     var body = {
       v: 1, id: Metrics.uid, pf: CFG.platform, ver: CFG.version, name: this.rawName(),
       s: Math.floor(res.score), t: Math.floor(res.time), l: res.level | 0, b: Game.bossKills | 0, k: res.kills | 0,
-      se: CFG.lb.season | 0, tr: Maps.lbTier(res.nakal, res.map), w: res.won ? 1 : 0
+      se: CFG.lb.season | 0, tr: Maps.lbTier(res.nakal, res.map), w: res.won ? 1 : 0,
+      a: this.aura()
     };
     this.live = null;
     this.verdict = null;
@@ -252,7 +253,7 @@ var LB = {
         var key = this._pkey(mi * 8);
         var b = JSON.parse(localStorage.getItem(key) || 'null');
         if (b && b.q && Date.now() - b.q > 14 * 864e5) { localStorage.removeItem(key); continue; }
-        if (b && b.id === Metrics.uid) { b.name = this.rawName(); this.send(b); }
+        if (b && b.id === Metrics.uid) { b.name = this.rawName(); b.a = this.aura(); this.send(b); }
       } catch (e) {}
     }
   },
@@ -337,12 +338,28 @@ var LB = {
     return el;
   },
 
+  aura: function () {
+    var id = window.Cos && Save.data ? Save.data.aura : '';
+    return id && id !== 'none' && Cos.owned('auras', id) ? id : undefined;
+  },
+  auraMark: function (el, id) {
+    var it = id && window.Cos ? Cos.item('auras', id) : null;
+    if (!it || !it.col) return;
+    var ic = document.createElement('i');
+    ic.className = 'lb-au' + (it.rar >= 4 ? ' hi' : '');
+    ic.style.setProperty('--au', it.col);
+    ic.title = I18N.name(it);
+    el.insertBefore(ic, el.firstChild);
+    el.style.color = it.col;
+  },
+
   _row: function (e) {
     var row = document.createElement('div');
     row.className = 'board-row' + (e.me ? ' me' : '');
     var a = document.createElement('span'); a.className = 'rank'; a.textContent = e.r;
     var b = document.createElement('span'); b.className = 'nm';
     b.textContent = e.me ? this.myName() : this.nm(e.n, e.g);
+    this.auraMark(b, e.me ? this.aura() : e.a);
     var c = document.createElement('span'); c.className = 'lb-meta'; c.textContent = U.time(e.t) + ' · ' + I18N.t('lbLvl', { n: e.l });
     var d = document.createElement('span'); d.className = 'sc'; d.textContent = U.num(e.s);
     row.appendChild(a); row.appendChild(b); row.appendChild(c); row.appendChild(d);

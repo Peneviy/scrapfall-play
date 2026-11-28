@@ -176,6 +176,8 @@ var UI = {
   },
 
   show: function (id) {
+    if (Game.fit) Fit.end();
+    this.bossViewClose();
     for (var i = 0; i < this.screens.length; i++) {
       this.el(this.screens[i]).classList.toggle('hidden', this.screens[i] !== id);
     }
@@ -196,7 +198,8 @@ var UI = {
     var t = this.el('toast');
     t.textContent = text;
     var over = document.querySelector('.screen:not(.hidden)');
-    t.classList.toggle('ingame', !!(Game.running && !over));
+    t.classList.toggle('ingame', !!(Game.running && !over && !Game.fit));
+    t.classList.toggle('fit', !!Game.fit);
     t.classList.remove('hidden');
     clearTimeout(this.toastT);
     this.toastT = setTimeout(function () { t.classList.add('hidden'); }, 1900);
@@ -313,7 +316,11 @@ var UI = {
 
   gfxLost: function () {
     this.markView();
-    if (!Game.running || Game.over) { this.toast(I18N.t('gfxLostToast')); return; }
+    if (!Game.running || Game.over || Game.fit) {
+      this.toast(I18N.t('gfxLostToast'));
+      if (Game.fit) Fit.render();
+      return;
+    }
     if (!Game.paused) this.togglePause();
     this.el('gfxLost').classList.remove('hidden');
   },
@@ -432,6 +439,8 @@ var UI = {
   },
 
   escapeScreen: function () {
+    if (this.bossViewClose()) return true;
+    if (Game.fit) { Fit.close(); return true; }
     var ids = ['scrShop', 'scrBoard', 'scrMaps', 'scrSettings'];
     for (var i = 0; i < ids.length; i++) {
       if (!this.el(ids[i]).classList.contains('hidden')) { this.show('scrMenu'); this.refreshMenu(); return true; }
@@ -440,7 +449,7 @@ var UI = {
   },
 
   togglePause: function () {
-    if (!Game.running || Game.over) return;
+    if (!Game.running || Game.over || Game.fit) return;
     if (!this.el('scrLevel').classList.contains('hidden')) return;
     if (!this.el('scrOver').classList.contains('hidden')) return;
     Input.reset();
@@ -1122,6 +1131,7 @@ var UI = {
     var list = this.el('shopList'), d = Save.data, self = this;
     this.el('shopCoins').textContent = U.num(d.coins);
     list.innerHTML = '';
+    list.classList.toggle('cos-list', this.tab === 'skins');
 
     if (this.tab === 'upgrades') {
       this.renderUpgrades(list);
@@ -1133,9 +1143,13 @@ var UI = {
     }
 
     this.renderShopMaps(list);
-    var kind = this.tab === 'chars' ? 'chars' : (this.tab === 'weapons' ? 'guns' : 'skins');
-    var items = this.tab === 'chars' ? Content.chars : (this.tab === 'weapons' ? Content.guns : Content.skins);
-    var cur = kind === 'chars' ? d.char : (kind === 'guns' ? d.gun : d.skin);
+    if (this.tab === 'skins') {
+      this.renderCos(list);
+      return;
+    }
+    var kind = this.tab === 'chars' ? 'chars' : 'guns';
+    var items = kind === 'chars' ? Content.chars : Content.guns;
+    var cur = kind === 'chars' ? d.char : d.gun;
 
     for (var i = 0; i < items.length; i++) {
       (function (it) {
@@ -1165,13 +1179,6 @@ var UI = {
           else Content.drawChar(c.getContext('2d'), 48, 48, 26, it.id, d.skin, -Math.PI / 2, false);
           div.insertBefore(c, div.firstChild);
         }
-        if (kind === 'skins') {
-          var c2 = document.createElement('canvas');
-          c2.width = c2.height = 96;
-          if (View3D.on) self.bigThumb(c2, d.char, it.id, d.gun);
-          else Content.drawChar(c2.getContext('2d'), 48, 48, 26, d.char, it.id, -Math.PI / 2, false);
-          div.insertBefore(c2, div.firstChild);
-        }
         if (kind === 'guns' && View3D.on) {
           var c3 = document.createElement('canvas');
           self.bigThumb(c3, d.char, d.skin, it.id);
@@ -1196,6 +1203,128 @@ var UI = {
         list.appendChild(div);
       })(items[i]);
     }
+  },
+
+  cosKind: 'skins',
+
+  renderCosKinds: function (list) {
+    var self = this, K = Cos.kinds, html = '', i;
+    var box = document.createElement('div');
+    box.className = 'shop-maps cos-kinds';
+    for (i = 0; i < K.length; i++) {
+      html += '<button type="button" class="sm-chip' + (K[i] === this.cosKind ? ' on' : '') + '" data-k="' + K[i] + '">' +
+        I18N.t('cosK_' + K[i]) + '</button>';
+    }
+    html += '<button type="button" class="buy-btn fit-open">' + I18N.t('fitTry') + '</button>';
+    box.innerHTML = html;
+    list.appendChild(box);
+    var bs = box.querySelectorAll('.sm-chip');
+    for (i = 0; i < bs.length; i++) {
+      bs[i].onclick = function () {
+        self.cosKind = this.getAttribute('data-k');
+        Snd.play('pick');
+        self.renderShop();
+      };
+    }
+    box.querySelector('.fit-open').onclick = function () {
+      Snd.play('pick');
+      Fit.open(self.cosKind, self.hgPeek || Maps.sel());
+    };
+  },
+
+  renderCos: function (list) {
+    var self = this, d = Save.data, kind = this.cosKind, L = Cos.list(kind), cur = Cos.cur(kind), jobs = [];
+    this.renderCosKinds(list);
+    for (var i = 0; i < L.length; i++) {
+      (function (it) {
+        var owned = Cos.owned(kind, it.id), active = cur === it, way = Cos.way(it), foot, pr, done;
+        var div = document.createElement('div');
+        div.className = 'item cos' + (owned ? ' owned' : ' locked') + (active ? ' active' : '');
+        div.style.setProperty('--rar', Cos.rarCol(it.rar));
+
+        if (owned) {
+          foot = '<div class="price">' + (active ? '' : I18N.t('equip')) + '</div>';
+        } else if (way === 'ach') {
+          pr = Cos.achProg(it.src.ach);
+          done = pr.n >= pr.of;
+          foot = '<div class="cos-ach' + (done ? ' done' : '') + '"><em>' + Cos.achText(it.src.ach) + '</em>' +
+            (done ? '' : '<b>' + pr.n + ' / ' + pr.of + '</b><span class="cos-bar"><span style="width:' +
+              Math.round(pr.n / pr.of * 100) + '%"></span></span>') + '</div>' +
+            (done ? '<div class="buy"><span class="buy-btn">' + I18N.t('cosClaim') + '</span></div>' : '');
+        } else if (way === 'rub') {
+          foot = '<div class="buy"><span class="buy-btn">' + I18N.t('buy') + ' <b class="cos-rub"></b></span></div>';
+        } else {
+          foot = self.buyHtml(Cos.cost(it));
+        }
+        div.innerHTML =
+          (active ? '<div class="tag">' + I18N.t('equipped') + '</div>' : '') +
+          '<u class="cos-rar">' + Cos.rarName(it.rar) + '</u>' +
+          '<h4>' + I18N.name(it) + '</h4>' +
+          '<p>' + I18N.desc(it) + '</p>' +
+          (kind === 'auras' && it.col ? '<p class="cos-nick" style="color:' + it.col + '"><i class="lb-au' + (it.rar >= 4 ? ' hi' : '') +
+            '" style="--au:' + it.col + '"></i>' + I18N.t('cosNick') + '</p>' : '') +
+          (kind === 'bangs' ? '<button type="button" class="cos-hear">' + I18N.t('cosHear') + '</button>' : '') + foot;
+        var rub = div.querySelector('.cos-rub');
+        if (rub) rub.textContent = Shop.price[it.src.sku];
+
+        var c = document.createElement('canvas');
+        c.width = c.height = 192;
+        if (kind === 'skins') {
+          if (View3D.on) self.bigThumb(c, d.char, it.id, d.gun);
+          else Content.drawChar(c.getContext('2d'), 96, 96, 52, d.char, it.id, -Math.PI / 2, false);
+        } else {
+          jobs.push({ c: c, g: c.getContext('2d'), it: it });
+        }
+        div.insertBefore(c, div.firstChild);
+
+        var hb = div.querySelector('.cos-hear');
+        if (hb) {
+          hb.onclick = function (e) {
+            e.stopPropagation();
+            Cos.fit.bangs = it.id;
+            Snd.play('shot', true);
+            delete Cos.fit.bangs;
+          };
+        }
+
+        div.onclick = function () {
+          var r = Cos.get(kind, it.id), p;
+          if (r === 'poor') {
+            Snd.play('deny');
+            self.toast(I18N.t('noCoins'));
+            return;
+          }
+          if (r === 'lock') {
+            p = Cos.achProg(it.src.ach);
+            Snd.play('deny');
+            self.toast(Cos.achText(it.src.ach) + ': ' + p.n + ' / ' + p.of);
+            return;
+          }
+          if (r !== 'ok') return;
+          Snd.play('buy');
+          if (!owned) self.toast(Cos.gotText(it));
+          self.renderShop();
+        };
+        list.appendChild(div);
+      })(L[i]);
+    }
+    this.cosAnim(kind, jobs);
+  },
+
+  cosAnim: function (kind, jobs) {
+    var self = this, id = (this.cosAnimId = (this.cosAnimId || 0) + 1), t0 = 0, last = 0;
+    function draw(t) {
+      for (var i = 0; i < jobs.length; i++) Cos.sample(jobs[i].g, jobs[i].c.width, jobs[i].c.height, kind, jobs[i].it, t);
+    }
+    draw(0);
+    if (!jobs.length || Save.data.set.low) return;
+    function frame(ts) {
+      if (id !== self.cosAnimId || !document.body.contains(jobs[0].c) || self.el('scrShop').classList.contains('hidden')) return;
+      if (!t0) t0 = ts;
+      if (ts - last >= 33) { last = ts; draw((ts - t0) / 1000); }
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
   },
 
   buyHtml: function (cost) {
@@ -1279,8 +1408,9 @@ var UI = {
     }
   },
 
-  spinBind: function (c, kind, id, dark, ang) {
-    var K = 0.022, pid = -1, x0 = 0, tMove = 0, tPrev = 0, v = 0, raf = 0;
+  spinBind: function (c, kind, id, dark, ang, size) {
+    var K = 0.022, pid = -1, x0 = 0, tMove = 0, tPrev = 0, v = 0, raf = 0, far = 0;
+    c.spinAng = ang;
     function frame(ts) {
       raf = 0;
       if (!document.body.contains(c)) return;
@@ -1291,7 +1421,8 @@ var UI = {
         if (Math.abs(v) < 0.08) v = 0;
       }
       tPrev = ts;
-      View3D.thumb(c, kind, id, null, ang, dark);
+      c.spinAng = ang;
+      View3D.thumb(c, kind, id, null, ang, dark, undefined, size);
       if (pid < 0 && v) raf = requestAnimationFrame(frame);
     }
     function kick() { if (!raf) raf = requestAnimationFrame(frame); }
@@ -1300,18 +1431,21 @@ var UI = {
       pid = -1;
       if (performance.now() - tMove > 90) v = 0;
       tPrev = performance.now();
+      if (far > 6) c.spunAt = tPrev;
       kick();
     }
     c.className = 'spin3d';
     c.onpointerdown = function (e) {
       if (pid >= 0) return;
       pid = e.pointerId; x0 = e.clientX; tMove = performance.now(); v = 0;
+      far = 0;
       try { c.setPointerCapture(pid); } catch (err) {}
       if (e.pointerType === 'mouse') e.preventDefault();
     };
     c.onpointermove = function (e) {
       if (e.pointerId !== pid) return;
       var now = performance.now(), d = (e.clientX - x0) * K, dt = Math.max(0.008, (now - tMove) / 1000);
+      far += Math.abs(e.clientX - x0);
       x0 = e.clientX; tMove = now;
       ang += d;
       v = Math.max(-14, Math.min(14, v * 0.4 + d / dt * 0.6));
@@ -1321,46 +1455,102 @@ var UI = {
     c.onpointercancel = end;
   },
 
-  renderTrophies: function (list) {
-    for (var i = 0; i < Bosses.list.length; i++) {
-      var b = Bosses.list[i];
-      var wins = Save.data.bosses[b.id] || 0;
-      var div = document.createElement('div');
-      div.className = 'item trophy' + (wins ? ' done' : '');
+  trophyFlat: function (c, b, wins) {
+    var g = c.getContext('2d'), s = c.width, R = s * 0.3125;
+    g.clearRect(0, 0, s, s);
+    g.fillStyle = wins ? b.body : '#1b2a31';
+    g.strokeStyle = wins ? b.trim : '#2c4750';
+    g.lineWidth = Math.max(3, s / 32);
+    g.beginPath();
+    for (var k = 0; k < b.shape; k++) {
+      var a = k / b.shape * Math.PI * 2 + Math.PI / b.shape;
+      var px = s / 2 + Math.cos(a) * R, py = s / 2 + Math.sin(a) * R;
+      if (k === 0) g.moveTo(px, py); else g.lineTo(px, py);
+    }
+    g.closePath();
+    g.fill();
+    g.stroke();
+  },
 
-      var c = document.createElement('canvas');
-      c.width = c.height = 96;
-      if (View3D.on) {
-        c.width = c.height = 192;
-        c.style.width = c.style.height = '112px';
-        View3D.thumb(c, 'boss', b.id, null, -0.7, !wins);
-        this.spinBind(c, 'boss', b.id, !wins, -0.7);
+  renderTrophies: function (list) {
+    var self = this;
+    for (var i = 0; i < Bosses.list.length; i++) {
+      (function (b) {
+        var wins = Save.data.bosses[b.id] || 0;
+        var div = document.createElement('div');
+        div.className = 'item trophy' + (wins ? ' done' : '');
+
+        var c = document.createElement('canvas');
+        c.width = c.height = 96;
+        if (View3D.on) {
+          c.width = c.height = 192;
+          c.style.width = c.style.height = '112px';
+          View3D.thumb(c, 'boss', b.id, null, -0.7, !wins);
+          self.spinBind(c, 'boss', b.id, !wins, -0.7);
+        } else self.trophyFlat(c, b, wins);
         div.innerHTML = '<h4>' + (wins ? I18N.name(b) : '???') + '</h4>' +
           '<p>' + (wins ? I18N.desc(b) : I18N.t('trophyNone')) + '</p>' +
           '<div class="cnt">' + (wins ? I18N.t('trophyWins', { n: wins }) : '') + '</div>';
         div.insertBefore(c, div.firstChild);
+        div.onclick = function () {
+          if (performance.now() - (c.spunAt || -1e9) < 400) return;
+          Snd.play('pick');
+          self.bossView(b.id, c.spinAng);
+        };
         list.appendChild(div);
-        continue;
-      }
-      var g = c.getContext('2d');
-      g.fillStyle = wins ? b.body : '#1b2a31';
-      g.strokeStyle = wins ? b.trim : '#2c4750';
-      g.lineWidth = 3;
-      g.beginPath();
-      for (var k = 0; k < b.shape; k++) {
-        var a = k / b.shape * Math.PI * 2 + Math.PI / b.shape;
-        var px = 48 + Math.cos(a) * 30, py = 48 + Math.sin(a) * 30;
-        if (k === 0) g.moveTo(px, py); else g.lineTo(px, py);
-      }
-      g.closePath();
-      g.fill();
-      g.stroke();
-      div.innerHTML = '<h4>' + (wins ? I18N.name(b) : '???') + '</h4>' +
-        '<p>' + (wins ? I18N.desc(b) : I18N.t('trophyNone')) + '</p>' +
-        '<div class="cnt">' + (wins ? I18N.t('trophyWins', { n: wins }) : '') + '</div>';
-      div.insertBefore(c, div.firstChild);
-      list.appendChild(div);
+      })(Bosses.list[i]);
     }
+  },
+
+  bossView: function (id, ang) {
+    var b = Bosses.byId(id), box = this.el('bossView'), self = this;
+    if (!b) return;
+    var wins = Save.data.bosses[b.id] || 0;
+    var W = window.innerWidth, H = window.innerHeight;
+    var side = W > H * 1.2 && H < 560;
+    var s = Math.floor(side ? Math.min(H - 60, W * 0.52) : Math.min(W - 44, H - 210, 620));
+    s = Math.max(160, s);
+    var old = this.el('bvCanvas'), c = document.createElement('canvas');
+    c.id = 'bvCanvas';
+    old.parentNode.replaceChild(c, old);
+    c.style.width = c.style.height = s + 'px';
+    box.classList.toggle('side', side);
+    this.el('bvName').textContent = wins ? I18N.name(b) : '???';
+    this.el('bvDesc').textContent = wins ? I18N.desc(b) : I18N.t('trophyNone');
+    this.el('bvWins').textContent = wins ? I18N.t('trophyWins', { n: wins }) : '';
+    box.classList.toggle('done', !!wins);
+    box.classList.remove('hidden');
+    if (View3D.on) {
+      var px = Math.max(256, Math.min(768, Math.round(s * Math.min(2, window.devicePixelRatio || 1))));
+      ang = typeof ang === 'number' ? ang : -0.7;
+      c.width = c.height = px;
+      View3D.thumb(c, 'boss', b.id, null, ang, !wins, undefined, px);
+      this.spinBind(c, 'boss', b.id, !wins, ang, px);
+    } else {
+      c.width = c.height = Math.min(512, s * 2);
+      this.trophyFlat(c, b, wins);
+    }
+    this.bvId = id;
+    if (!this.bvBound) {
+      this.bvBound = true;
+      this.el('bvClose').onclick = function () { self.bossViewClose(); };
+      box.onclick = function (e) { if (e.target === box) self.bossViewClose(); };
+      window.addEventListener('resize', function () {
+        if (!self.bvId) return;
+        var cv = self.el('bvCanvas');
+        self.bossView(self.bvId, cv ? cv.spinAng : undefined);
+      });
+    }
+  },
+
+  bossViewClose: function () {
+    if (!this.bvId) return false;
+    this.bvId = null;
+    this.el('bossView').classList.add('hidden');
+    var old = this.el('bvCanvas'), c = document.createElement('canvas');
+    c.id = 'bvCanvas';
+    old.parentNode.replaceChild(c, old);
+    return true;
   },
 
   openBoard: function () {

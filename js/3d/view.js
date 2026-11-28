@@ -301,6 +301,7 @@ var View3D = {
     var keys = this.atmosKeys;
     var day = CFG.view3d.day || 420;
     var t = Game.running ? (Game.time / day) % 1 : 0;
+    if (Game.fit) t = Game.fit.t;
     if (this.forceT !== undefined) t = this.forceT;
     var a = keys[0], b = keys[1];
     for (var i = 0; i < keys.length - 1; i++) {
@@ -539,6 +540,14 @@ var View3D = {
     this.glows = add(View3D.makeDiscs(500, THREE.AdditiveBlending, 4));
     this.strips = add(View3D.makeStrips(240, THREE.AdditiveBlending, 5));
     this.lines = add(View3D.makeStrips(240, THREE.NormalBlending, 5));
+
+    this.cosB = {};
+    this.shotSets = {};
+    this.look = null;
+    this.matShot = new THREE.MeshBasicMaterial({ vertexColors: true });
+    this.matCore = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    this.matHot = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.BackSide });
+    this.matRim = rimAlly;
   },
 
   foeSet: function (hull) {
@@ -549,7 +558,7 @@ var View3D = {
       if (k === 'boss' || Enemies.defs[k].decoy) continue;
       if (hull && (k === 'swarm' || k === 'roller' || k === 'larva' || k === 'link')) { set[k] = land[k]; continue; }
       var mdl = Models.enemy(k, Enemies.defs[k], hull);
-      var max = CFG.scale.capHard + 20;
+      var max = Enemies.defs[k].dummy ? 4 : CFG.scale.capHard + 20;
       var b = add(new View3D.Batch(mdl.geo, this.matLit, max, true));
       b.mesh.castShadow = true;
       b.mesh.renderOrder = 2;
@@ -572,6 +581,13 @@ var View3D = {
     this.halos = View3D.makeDiscs(1600, THREE.AdditiveBlending, 6, this.billboardTilt);
     this.batches.push(this.halos);
     this.scene.add(this.halos.mesh);
+    var pf = this.cosB && this.cosB.puffs;
+    if (pf) {
+      this.scene.remove(pf.mesh);
+      this.batches.splice(this.batches.indexOf(pf), 1);
+      pf.mesh.geometry.dispose();
+      this.cosB.puffs = null;
+    }
   },
 
   toScreen: function (x, y, h, out) {
@@ -651,7 +667,7 @@ var View3D = {
     });
     var plate = new THREE.Mesh(base.geo, this.matLit);
     s.add(plate);
-    this.th = { r: r, s: s, plate: plate, cam: new THREE.PerspectiveCamera(30, 1, 0.1, 100), cache: {} };
+    this.th = { r: r, s: s, plate: plate, cam: new THREE.PerspectiveCamera(30, 1, 0.1, 100), cache: {}, size: 256 };
     return this.th;
   },
 
@@ -685,9 +701,11 @@ var View3D = {
     return g;
   },
 
-  thumb: function (canvas, kind, id, skin, ang, dark, gun) {
+  thumb: function (canvas, kind, id, skin, ang, dark, gun, size) {
     if (!this.on) return false;
     var th = this.thumbInit();
+    size = size || 256;
+    if (th.size !== size) { th.size = size; th.r.setSize(size, size, false); }
     var obj = this.thumbModel(kind, id, skin, dark, gun);
     th.s.add(obj);
     obj.rotation.y = ang === undefined ? -0.7 : ang;
@@ -1247,7 +1265,7 @@ var View3D = {
       var r = e.boss ? e.r * 0.8 : e.r;
       var ph = t * (e.def.heavy ? 7 : 11) + e.phase;
       var hover = e.type === 'swarm' ? r * 0.5 + Math.sin(ph * 0.7) * r * 0.15 : 0;
-      var nest = e.type === 'nest' || e.type === 'pylon' || e.type === 'comb';
+      var nest = e.type === 'nest' || e.type === 'pylon' || e.type === 'comb' || e.type === 'dummy';
       var hop = afloat ? Math.sin(t * 2.3 + e.phase) * r * 0.05 : (nest ? 0 : Math.abs(Math.sin(ph)) * r * 0.1);
       var swell = nest && e.shootCd < 0.7 ? 1 - e.shootCd / 0.7 : 0;
       if (e.def.larva && e.aim > 0) swell = 1 - e.aim / Bosses.K.hive.fuse;
@@ -1888,6 +1906,7 @@ var View3D = {
     this.rings.disc(rg, white, 2.2 / (r + 11), 0, 0, 0.5);
     var pk = this.rings.put(p.x, 1.2, p.y, 0, p.st.pickup, 1, p.st.pickup);
     this.rings.disc(pk, trail, 1.5 / p.st.pickup, 0, 0, 0.12);
+    if (p.alive) this.syncAura(p, r);
 
     if (p.st.frost > 0) {
       var fr = (140 + p.st.frost * 60) * p.st.radius;
@@ -2053,18 +2072,47 @@ var View3D = {
     var i, b, k;
     var list = Game.bullets;
     var glow = list.length < 140;
-    var core = this.colAlly, hot = this.colCrit, red = this.colFoe;
+    var hot = this.colCrit, red = this.colFoe;
+    var L = this.shotLook(), t = Game.time, c = this._c;
+    var tint = L.col, halo = L.halo || tint, tk = L.k, ha = L.halo ? 0.8 : 0.6;
+    var set = L.shape === 'bolt' ? null : this.shotSet(L.shape, !!L.halo), spin = set ? set.spin : 0;
+    var shell = !set && L.halo ? (this.cosB.hot || this.cosMake('hot')) : null;
+    var tail = L.tail, streak = null, P = Game.player;
+    var bits = tail !== 'none' && tail !== 'comet' && glow && !Save.data.set.low;
+    if (tail === 'comet') {
+      streak = this.cosB.tails || this.cosMake('tails');
+      var sm = this.dark > 0.45 ? THREE.AdditiveBlending : THREE.NormalBlending;
+      if (streak.mesh.material.blending !== sm) streak.mesh.material.blending = sm;
+    }
     for (i = 0; i < list.length; i++) {
       b = list[i];
       var a = Math.atan2(b.vy, b.vx);
       var r = U.clamp(b.r, 3, 6) * (b.crit ? 1.3 : 1);
-      k = this.shots.put(b.x, 13, b.y, a, r * 2.8, r * 0.85, r * 0.85);
-      if (k < 0) break;
-      this.shots.tint(k, b.crit ? hot : core, 1.8);
-      this.shotRims.put(b.x, 13, b.y, a, r * 2.8 + 2.2, r * 0.85 + 1.6, r * 0.85 + 1.6);
-      if (glow) this.halo(b.x, 13, b.y, r * 3, core, 0.6);
+      if (L.hue) tint = halo = c.setHSL(Cos.shotHue(t, b.x, b.y) / 360, 1, 0.66, THREE.SRGBColorSpace);
+      if (set) {
+        k = set.body.put(b.x, 13, b.y, spin ? a + t * spin : a, r, r, r);
+        if (k < 0) break;
+        set.body.tint(k, b.crit ? hot : tint, tk);
+      } else if (shell) {
+        k = this.shots.put(b.x, 13, b.y, a, r * 2.2, r * 0.5, r * 0.5);
+        if (k < 0) break;
+        this.shots.tint(k, b.crit ? hot : tint, 1.8);
+        shell.put(b.x, 13, b.y, a, r * 2.8, r * 0.85, r * 0.85);
+        this.shotRims.put(b.x, 13, b.y, a, r * 2.8 + 2.2, r * 0.85 + 1.6, r * 0.85 + 1.6);
+      } else {
+        k = this.shots.put(b.x, 13, b.y, a, r * 2.8, r * 0.85, r * 0.85);
+        if (k < 0) break;
+        this.shots.tint(k, b.crit ? hot : tint, tk);
+        this.shotRims.put(b.x, 13, b.y, a, r * 2.8 + 2.2, r * 0.85 + 1.6, r * 0.85 + 1.6);
+      }
+      if (glow) this.halo(b.x, 13, b.y, r * 3, halo, ha);
       var bs = this.shadows.put(b.x + 6, 0.7, b.y + 4, 0, r * 1.3, 1, r * 1.3);
       this.shadows.disc(bs, null, 0, 1.2, 1, 0.5);
+      if (streak) {
+        var cl = r * 11;
+        k = streak.line(b.x, b.y, b.x - Math.cos(a) * cl, b.y - Math.sin(a) * cl, r * 2.8, 12.4);
+        streak.strip(k, halo, cl, -cl, 1, 0.95);
+      } else if (bits) this.shotTail(tail, b, a, r, t, P);
     }
     list = Game.ebullets;
     var pulse = 1 + Math.sin(Game.time * 14) * 0.08, tt = Game.time, hotW = this.colCrit;
@@ -2101,6 +2149,188 @@ var View3D = {
       this.shadows.disc(es, null, 0, 1.2, 1, 0.5);
       var gk = this.rings.put(b.x, 1.2, b.y, 0, gr, 1, gr);
       this.rings.disc(gk, ec, 0.22, 1.2, 0.35, 0.75);
+    }
+  },
+
+  shotLook: function () {
+    var L = this.look || (this.look = { tint: null, col: null, halo: null, hue: false, k: 1.8, shape: 'bolt', tail: 'none' });
+    var ti = Cos.cur('tints');
+    if (L.tint !== ti) {
+      L.tint = ti;
+      L.hue = !!ti.hue;
+      var stock = ti.id === Cos.base.tints || !ti.col;
+      L.col = stock ? this.colAlly : Models.color(ti.col);
+      L.halo = ti.halo ? Models.color(ti.halo) : null;
+      L.k = stock || ti.halo ? 1.8 : (ti.hue ? 1.15 : 1.3);
+      if (L.halo) this.matHot.color.copy(L.halo);
+    }
+    L.shape = Cos.cur('shapes').id;
+    L.tail = Cos.cur('tails').id;
+    return L;
+  },
+
+  shotSet: function (id, hot) {
+    var S = this.shotSets[id] || (this.shotSets[id] = { cold: null, hot: null });
+    var set = hot ? S.hot : S.cold;
+    if (set) return set;
+    var d = View3D.shotShapes[id], self = this;
+    if (!d) return null;
+    var add = function (b) { self.batches.push(b); self.scene.add(b.mesh); return b; };
+    var body = add(new View3D.Batch(View3D.shotGeo(d.p, d.h, 0, hot ? 0.62 : 1, d.gleam), this.matShot, 700, true));
+    if (hot) add(new View3D.Batch(View3D.shotGeo(d.p, d.h, 0, 1), this.matHot, 700, false, body));
+    else if (d.core) {
+      var cg = View3D.shotGeo(d.core.p, 0.18, 0, 1);
+      cg.translate(d.core.x, d.h + 0.06, 0);
+      add(new View3D.Batch(cg, this.matCore, 700, false, body));
+    }
+    add(new View3D.Batch(View3D.shotGeo(d.p, d.h, 0.5, 1), this.matRim, 700, false, body));
+    set = { body: body, spin: d.spin || 0 };
+    if (hot) S.hot = set; else S.cold = set;
+    return set;
+  },
+
+  cosMake: function (key) {
+    var b;
+    if (key === 'tails') b = View3D.makeStrips(700, THREE.AdditiveBlending, 5);
+    else if (key === 'puffs') b = View3D.makeDiscs(560, THREE.NormalBlending, 6, this.billboardTilt);
+    else if (key === 'bits') b = new View3D.Batch(new THREE.BoxGeometry(1, 1, 1), this.matFlat, 560, true);
+    else if (key === 'glints') b = new View3D.Batch(View3D.shotGeo(View3D.shotShapes.glint.p, 0.3, 0, 1), this.matShot, 560, true);
+    else if (key === 'hot') b = new View3D.Batch(this.shots.mesh.geometry, this.matHot, 700, false);
+    else b = View3D.makeDiscs(48, THREE.NormalBlending, 2.5);
+    this.cosB[key] = b;
+    this.batches.push(b);
+    this.scene.add(b.mesh);
+    return b;
+  },
+
+  shotTail: function (id, b, ang, r, t, P) {
+    var C = this.tailCol || (this.tailCol = {
+      smoke: Models.color('#57514b'), smokeLt: Models.color('#d6d0c6'), puff: new THREE.Color(), sparkA: Models.color('#fff3c4'), sparkB: Models.color('#ffb347'),
+      ashA: Models.color('#ffd27a'), ashB: Models.color('#ff7a2e'), ashC: Models.color('#9a3118'),
+      starA: Models.color('#ffffff'), starB: Models.color('#bcd4ff') });
+    var smoke = id === 'smoke', sparks = id === 'sparks', ash = id === 'ash';
+    var key = smoke ? 'puffs' : (sparks || ash ? 'bits' : 'glints');
+    var B = this.cosB[key] || this.cosMake(key);
+    var sp = Math.sqrt(b.vx * b.vx + b.vy * b.vy) || 1, ux = b.vx / sp, uy = b.vy / sp;
+    var seed = b.vx * 0.0137 + b.vy * 0.0091;
+    var n = smoke || sparks || ash ? 3 : 4, life = smoke ? 0.17 : (sparks ? 0.14 : 0.3);
+    var len = Math.min(sp * life, 75);
+    var px = P ? P.x : 0, py = P ? P.y : 0, pr = P ? (P.r + 5) * (P.r + 5) : 0;
+    var j, k, s;
+    if (smoke) C.puff.copy(C.smoke).lerp(C.smokeLt, this.theme === 'sea' ? 1 : this.dark);
+    for (j = 0; j < n; j++) {
+      var ph = t / life + j / n + seed, cyc = Math.floor(ph), age = ph - cyc;
+      var h = Math.sin((cyc + j * 7.31) * 12.9898 + seed * 78.233) * 43758.5453;
+      h -= Math.floor(h);
+      var side = h * 2 - 1, d = r * 1.4 + age * len;
+      var x = b.x - ux * d, y = b.y - uy * d;
+      if (smoke) {
+        s = side * r * 1.6 * age;
+        x -= uy * s; y += ux * s;
+        if ((x - px) * (x - px) + (y - py) * (y - py) < pr) continue;
+        s = r * (1 + 1.8 * age);
+        k = B.put(x, 13 + age * 6, y, 0, s, s, s);
+        B.disc(k, C.puff, 0, 0.6, 1, 0.7 * (1 - age));
+      } else if (sparks) {
+        s = side * r * 4.2 * age;
+        x -= uy * s; y += ux * s;
+        if ((x - px) * (x - px) + (y - py) * (y - py) < pr) continue;
+        s = r * 0.6 * (1 - age * 0.7);
+        k = B.put(x, 13 - age * 7, y, ang + (side > 0 ? 1.2 : -1.2), s * 3, s, s);
+        B.tint(k, age < 0.4 ? C.sparkA : C.sparkB, 1.6);
+      } else if (ash) {
+        s = side * r * 1.1;
+        x -= uy * s; y += ux * s;
+        if ((x - px) * (x - px) + (y - py) * (y - py) < pr) continue;
+        s = r * (0.75 - age * 0.4);
+        k = B.put(x, 13 + age * age * 24, y, cyc + t * 3, s, s, s);
+        B.tint(k, age < 0.35 ? C.ashA : (age < 0.7 ? C.ashB : C.ashC), 1.5);
+      } else {
+        s = side * r * 1.7;
+        x -= uy * s; y += ux * s;
+        if ((x - px) * (x - px) + (y - py) * (y - py) < pr) continue;
+        s = r * (0.45 + 0.8 * (0.5 + 0.5 * Math.sin(t * 16 + j * 2.4 + seed * 31))) * (1 - age * 0.6);
+        k = B.put(x, 11 + h * 5, y, t * 1.5 + j, s, s, s);
+        B.tint(k, j % 3 ? C.starA : C.starB, 1.6);
+      }
+    }
+  },
+
+  syncAura: function (p, r) {
+    var it = Cos.cur('auras'), id = it.id;
+    if (!it.col) return;
+    var D = this.cosB.aura || this.cosMake('aura'), M = this.motes;
+    var col = Models.color(it.col), t = Game.time, x = p.x, y = p.y;
+    var R = Math.min(p.st.pickup, r * 2.6), fx = !Save.data.set.low;
+    var i, k, a, q, s, ca, sa, lite;
+    if (id === 'dust') {
+      lite = Models.color('#f6e6c8');
+      for (i = 0; i < 3; i++) {
+        q = R * (0.15 - i * 0.05);
+        k = D.put(x, 1, y, 0, R * 0.85 + q, 1, R * 0.85 + q);
+        D.disc(k, i < 2 ? col : lite, 2 * q / (R * 0.85 + q), 0, 0, 0.13 + i * 0.07);
+      }
+      if (fx) for (i = 0; i < 7; i++) {
+        a = i * 0.9 + t * (0.25 + Cos.rnd(i) * 0.2);
+        q = R * (0.7 + Cos.rnd(i + 9) * 0.28);
+        k = M.put(x + Math.cos(a) * q, 3 + 1.5 * Math.sin(t * 1.3 + i), y + Math.sin(a) * q, a, 1.5, 1.5, 1.5);
+        M.tint(k, lite, 1.1);
+      }
+    } else if (id === 'deep') {
+      lite = Models.color('#c4ecff');
+      k = D.put(x, 1, y, 0, R, 1, R);
+      D.disc(k, Models.color('#1f66b8'), 0, 0.5, 1, 0.24);
+      for (i = 0; i < 2; i++) {
+        a = (t * 0.45 + i * 0.5) % 1;
+        q = R * (0.4 + a * 0.6);
+        k = D.put(x, 1.1, y, 0, q, 1, q);
+        D.disc(k, a < 0.5 ? lite : col, (2.8 - a * 1.4) / q, 0, 0, 0.4 * (1 - a * 0.85));
+      }
+    } else if (id === 'void') {
+      lite = Models.color('#e6ccff');
+      k = D.put(x, 1, y, 0, R * 0.97, 1, R * 0.97);
+      D.disc(k, col, 2.2 / (R * 0.97), 0, 0.42, 0.36);
+      if (fx) for (i = 0; i < 9; i++) {
+        q = 1 - (t * 0.6 + Cos.rnd(i + 3)) % 1;
+        a = i * 0.698 + Cos.rnd(i) + (1 - q) * 0.7;
+        s = 1.7 * Math.min(1, q * 1.6);
+        k = M.put(x + Math.cos(a) * R * (0.36 + q * 0.58), 2.4, y + Math.sin(a) * R * (0.36 + q * 0.58), a, s * 2, s, s);
+        M.tint(k, lite, 1.3);
+      }
+    } else if (id === 'wrath') {
+      var rin = R * 0.78, red = Models.color('#ff3d2e'), gold = Models.color('#ffd24a');
+      k = D.put(x, 1.2, y, 0, rin, 1, rin);
+      D.disc(k, col, 2.2 / rin, 0, 0, 0.4);
+      for (i = 0; i < 12; i++) {
+        a = i / 12 * Math.PI * 2 + t * 0.3;
+        ca = Math.cos(a); sa = Math.sin(a);
+        q = R * (0.19 + 0.07 * Math.sin(t * 5 + i * 1.7) + 0.04 * Math.sin(t * 8.3 + i * 0.9));
+        k = D.put(x + ca * (rin + q * 0.5), 1.05, y + sa * (rin + q * 0.5), a, q * 0.62, 1, R * 0.1);
+        D.disc(k, red, 0, 0.45, 1, 0.42);
+        k = D.put(x + ca * (rin + q * 0.3), 1.1, y + sa * (rin + q * 0.3), a, q * 0.38, 1, R * 0.055);
+        D.disc(k, gold, 0, 0.45, 1, 0.45);
+      }
+    } else if (id === 'sun') {
+      var r0 = R * 0.62, amber = Models.color('#f08a00');
+      lite = Models.color('#fff2b8');
+      k = D.put(x, 1.2, y, 0, r0, 1, r0);
+      D.disc(k, lite, 2 / r0, 0, 0, 0.4);
+      for (i = 0; i < 12; i++) {
+        a = i / 12 * Math.PI * 2 + t * 0.5;
+        ca = Math.cos(a); sa = Math.sin(a);
+        q = R * (i % 2 ? 0.2 : 0.4);
+        k = D.put(x + ca * (r0 + q * 0.5), 1.05, y + sa * (r0 + q * 0.5), a, q * 0.56, 1, R * 0.1);
+        D.disc(k, amber, 0, 0.45, 1, i % 2 ? 0.26 : 0.36);
+        k = D.put(x + ca * (r0 + q * 0.5), 1.1, y + sa * (r0 + q * 0.5), a, q * 0.5, 1, R * 0.05);
+        D.disc(k, col, 0, 0.45, 1, i % 2 ? 0.34 : 0.45);
+      }
+      if (fx) for (i = 0; i < 8; i++) {
+        a = (t * 0.5 + Cos.rnd(i)) % 1;
+        q = Cos.rnd(i + 5) * 6.283;
+        s = 2.1 * (1 - a);
+        k = M.put(x + Math.cos(q) * R * (0.5 + 0.45 * Cos.rnd(i + 11)), 3 + a * 34, y + Math.sin(q) * R * (0.5 + 0.45 * Cos.rnd(i + 11)), a * 5, s, s * 1.4, s);
+        M.tint(k, lite, 1.4);
+      }
     }
   },
 
@@ -2503,7 +2733,7 @@ var View3D = {
       }
     }
     var p = Game.player;
-    if (p && p.alive) {
+    if (p && p.alive && !Game.fit) {
       this.toScreen(p.x, p.y, p.r * 2.4 + 10, s);
       var pw = 48, hk = U.clamp(p.hp / p.st.maxHp, 0, 1);
       ctx.fillStyle = 'rgba(20,14,9,.8)';
@@ -2854,4 +3084,50 @@ View3D.makeStrips = function (max, blending, order) {
     this.col[o] = color.r; this.col[o + 1] = color.g; this.col[o + 2] = color.b;
   };
   return b;
+};
+
+View3D.shotShapes = {
+  sting: { p: [3.8, 0, -1.5, 0.55, -2.5, 0, -1.5, -0.55], h: 0.5 },
+  shard: { p: [2.4, 0, 0, 1.15, -2.4, 0, 0, -1.15], h: 0.3, gleam: true },
+  fang: { p: [2.3, 0, -1.6, 1.5, -0.7, 0, -1.6, -1.5], h: 0.5 },
+  star: { p: [2.2, 0, 0.5, 0.5, 0, 2.2, -0.5, 0.5, -2.2, 0, -0.5, -0.5, 0, -2.2, 0.5, -0.5], h: 0.45, spin: 9 },
+  tear: { p: [1.75, 0, 1.6, 0.58, 1.18, 1, 0.6, 1.15, -2.8, 0, 0.6, -1.15, 1.18, -1, 1.6, -0.58], h: 0.7,
+    core: { x: 0.7, p: [0.55, 0, 0.39, 0.39, 0, 0.55, -0.39, 0.39, -0.55, 0, -0.39, -0.39, 0, -0.55, 0.39, -0.39] } },
+  glint: { p: [1, 0, 0.17, 0.17, 0, 1, -0.17, 0.17, -1, 0, -0.17, -0.17, 0, -1, 0.17, -0.17], h: 0.3 }
+};
+
+View3D.shotGeo = function (pts, h, grow, k, gleam) {
+  var n = pts.length / 2, q = new Float32Array(n * 2), i, j, v;
+  for (i = 0; i < n; i++) {
+    var x = pts[i * 2] * k, z = pts[i * 2 + 1] * k;
+    if (grow) {
+      var p0 = ((i + n - 1) % n) * 2, p1 = ((i + 1) % n) * 2;
+      var ax = pts[i * 2] - pts[p0], az = pts[i * 2 + 1] - pts[p0 + 1], al = Math.sqrt(ax * ax + az * az) || 1;
+      var bx = pts[p1] - pts[i * 2], bz = pts[p1 + 1] - pts[i * 2 + 1], bl = Math.sqrt(bx * bx + bz * bz) || 1;
+      var n1x = az / al, n1z = -ax / al, mx = n1x + bz / bl, mz = n1z - bx / bl;
+      var ml = Math.sqrt(mx * mx + mz * mz) || 1;
+      mx /= ml; mz /= ml;
+      var s = grow / Math.max(0.4, mx * n1x + mz * n1z);
+      x += mx * s; z += mz * s;
+    }
+    q[i * 2] = x; q[i * 2 + 1] = z;
+  }
+  var hy = h * k + (grow || 0), pos = new Float32Array(n * 18), col = new Float32Array(n * 18), o = 0;
+  for (i = 0; i < n; i++) {
+    j = (i + 1) % n;
+    var lit = gleam && i >= n / 2 ? 0.55 : 1;
+    for (v = 0; v < 2; v++) {
+      var a = v ? i : j, b = v ? j : i;
+      pos[o] = 0; pos[o + 1] = v ? -hy : hy; pos[o + 2] = 0;
+      pos[o + 3] = q[a * 2]; pos[o + 4] = 0; pos[o + 5] = q[a * 2 + 1];
+      pos[o + 6] = q[b * 2]; pos[o + 7] = 0; pos[o + 8] = q[b * 2 + 1];
+      col[o] = col[o + 1] = col[o + 2] = lit;
+      col[o + 3] = col[o + 4] = col[o + 5] = col[o + 6] = col[o + 7] = col[o + 8] = lit * 0.8;
+      o += 9;
+    }
+  }
+  var g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  return g;
 };

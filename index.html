@@ -7,8 +7,8 @@
 <script>window.onPkbLoad=function(ok){window.PKB_LOADED=ok!==false;if(window.PF&&PF.onPkbLoad)PF.onPkbLoad(window.PKB_LOADED);};</script><script async src="https://games.pikabu.ru/sdk/sdk.js" onload="onPkbLoad(true)" onerror="onPkbLoad(false)"></script>
 <title>SCRAPFALL</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230a1216'/%3E%3Ccircle cx='16' cy='16' r='9' fill='%23f0a24a'/%3E%3Ccircle cx='16' cy='16' r='4' fill='%230a1216'/%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=3.14a">
-<link rel="stylesheet" href="css/lb.css?v=3.14a">
+<link rel="stylesheet" href="css/style.css?v=3.15">
+<link rel="stylesheet" href="css/lb.css?v=3.15">
 </head>
 <body>
 
@@ -111,13 +111,44 @@
     <div class="tabs">
       <button class="tab active" data-tab="chars" data-icon="car"><span data-i18n="tabChars">Машины</span></button>
       <button class="tab" data-tab="weapons" data-icon="gun"><span data-i18n="tabWeapons">Оружие</span></button>
-      <button class="tab" data-tab="skins" data-icon="paint"><span data-i18n="tabSkins">Окрас</span></button>
+      <button class="tab" data-tab="skins" data-icon="paint"><span data-i18n="tabSkins">Стиль</span></button>
       <button class="tab" data-tab="upgrades" data-icon="module"><span data-i18n="tabUp">Модули</span></button>
       <button class="tab" data-tab="trophies" data-icon="skull"><span data-i18n="tabTrophies">Трофеи</span></button>
     </div>
     <div id="shopCoinsBox" class="coin-counter"><b id="shopCoins">0</b></div>
   </div>
   <div id="shopList" class="grid-list"></div>
+</div>
+
+<div id="bossView" class="boss-view hidden">
+  <div class="bv-card">
+    <button id="bvClose" class="bv-x" type="button">&#10005;</button>
+    <canvas id="bvCanvas"></canvas>
+    <div class="bv-text">
+      <h4 id="bvName"></h4>
+      <p id="bvDesc"></p>
+      <div id="bvWins" class="cnt"></div>
+    </div>
+  </div>
+</div>
+
+<div id="fitUi" class="fit-ui hidden">
+  <div id="fitTop" class="fit-top">
+    <button id="fitBack" class="back-btn" type="button"><span>&#8592;</span><span data-i18n="back">Вернуться</span></button>
+    <div id="fitMaps" class="fit-row"></div>
+    <div id="fitTime" class="fit-row fit-seg">
+      <button type="button" class="sm-chip" data-t="day" data-i18n="fitDay">День</button>
+      <button type="button" class="sm-chip" data-t="dusk" data-i18n="fitDusk">Закат</button>
+      <button type="button" class="sm-chip" data-t="night" data-i18n="fitNight">Ночь</button>
+    </div>
+    <button id="fitDrive" type="button" class="sm-chip fit-drive" data-i18n="fitDrive">Рулить самому</button>
+    <div class="coin-counter"><b id="fitCoins">0</b></div>
+  </div>
+  <div id="fitPanel" class="fit-panel">
+    <div id="fitKinds" class="fit-kinds"></div>
+    <div id="fitLine" class="fit-line"></div>
+    <div id="fitStrip" class="fit-strip"></div>
+  </div>
 </div>
 
 <div id="scrBuy" class="screen hidden">
@@ -241,40 +272,42 @@
 </div>
 <div id="focusGate" class="focus-gate hidden"><span data-i18n="focusGate">Кликни по игре, чтобы продолжить</span></div>
 
-<script src="js/lib/three.min.js?v=3.14a"></script>
-<script src="js/config.js?v=3.14a"></script>
-<script src="js/util.js?v=3.14a"></script>
-<script src="js/i18n.js?v=3.14a"></script>
-<script src="js/lang/tr.js?v=3.14a"></script>
-<script src="js/lang/de.js?v=3.14a"></script>
-<script src="js/lang/es.js?v=3.14a"></script>
-<script src="js/lang/pt.js?v=3.14a"></script>
-<script src="js/icons.js?v=3.14a"></script>
-<script src="js/platform.js?v=3.14a"></script>
-<script src="js/metrics.js?v=3.14a"></script>
-<script src="js/save.js?v=3.14a"></script>
-<script src="js/maps.js?v=3.14a"></script>
-<script src="js/nakal.js?v=3.14a"></script>
-<script src="js/audio.js?v=3.14a"></script>
-<script src="js/input.js?v=3.14a"></script>
-<script src="js/fx.js?v=3.14a"></script>
-<script src="js/world.js?v=3.14a"></script>
-<script src="js/content.js?v=3.14a"></script>
-<script src="js/bosses.js?v=3.14a"></script>
-<script src="js/skills.js?v=3.14a"></script>
-<script src="js/enemies.js?v=3.14a"></script>
-<script src="js/player.js?v=3.14a"></script>
-<script src="js/evo.js?v=3.14a"></script>
-<script src="js/trophy.js?v=3.14a"></script>
-<script src="js/spells.js?v=3.14a"></script>
-<script src="js/finale.js?v=3.14a"></script>
-<script src="js/3d/models.js?v=3.14a"></script>
-<script src="js/3d/view.js?v=3.14a"></script>
-<script src="js/game.js?v=3.14a"></script>
-<script src="js/ui.js?v=3.14a"></script>
-<script src="js/lb.js?v=3.14a"></script>
-<script src="js/shop.js?v=3.14a"></script>
-<script src="js/tracks.js?v=3.14a"></script>
-<script src="js/main.js?v=3.14a"></script>
+<script src="js/lib/three.min.js?v=3.15"></script>
+<script src="js/config.js?v=3.15"></script>
+<script src="js/util.js?v=3.15"></script>
+<script src="js/i18n.js?v=3.15"></script>
+<script src="js/lang/tr.js?v=3.15"></script>
+<script src="js/lang/de.js?v=3.15"></script>
+<script src="js/lang/es.js?v=3.15"></script>
+<script src="js/lang/pt.js?v=3.15"></script>
+<script src="js/icons.js?v=3.15"></script>
+<script src="js/platform.js?v=3.15"></script>
+<script src="js/metrics.js?v=3.15"></script>
+<script src="js/save.js?v=3.15"></script>
+<script src="js/maps.js?v=3.15"></script>
+<script src="js/nakal.js?v=3.15"></script>
+<script src="js/audio.js?v=3.15"></script>
+<script src="js/input.js?v=3.15"></script>
+<script src="js/fx.js?v=3.15"></script>
+<script src="js/world.js?v=3.15"></script>
+<script src="js/content.js?v=3.15"></script>
+<script src="js/cos.js?v=3.15"></script>
+<script src="js/bosses.js?v=3.15"></script>
+<script src="js/skills.js?v=3.15"></script>
+<script src="js/enemies.js?v=3.15"></script>
+<script src="js/player.js?v=3.15"></script>
+<script src="js/evo.js?v=3.15"></script>
+<script src="js/trophy.js?v=3.15"></script>
+<script src="js/spells.js?v=3.15"></script>
+<script src="js/finale.js?v=3.15"></script>
+<script src="js/3d/models.js?v=3.15"></script>
+<script src="js/3d/view.js?v=3.15"></script>
+<script src="js/game.js?v=3.15"></script>
+<script src="js/ui.js?v=3.15"></script>
+<script src="js/fit.js?v=3.15"></script>
+<script src="js/lb.js?v=3.15"></script>
+<script src="js/shop.js?v=3.15"></script>
+<script src="js/tracks.js?v=3.15"></script>
+<script src="js/main.js?v=3.15"></script>
 </body>
 </html>

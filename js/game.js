@@ -2,6 +2,7 @@ var Game = {
   canvas: null, ctx: null,
   w: 0, h: 0, dpr: 1, scale: 1,
   running: false, paused: false, over: false,
+  fit: null,
   time: 0, spawnT: 0, nextBoss: 0,
   kills: 0, score: 0, runCoins: 0, pendingLevels: 0, pendingEvo: 0, bossKills: 0,
   scoreParts: { kills: 0, levels: 0, bosses: 0, time: 0 },
@@ -93,6 +94,7 @@ var Game = {
 
   start: function () {
     var d = Save.data;
+    if (this.fit) Fit.end();
     Maps.begin();
     View3D.setTheme(Maps.theme());
     Nakal.begin();
@@ -140,12 +142,13 @@ var Game = {
   },
 
   pause: function (v) {
+    if (this.fit) return;
     this.paused = v;
     if (v) PF.gameplayStop(); else PF.gameplayStart();
   },
 
   onDeath: function () {
-    if (this.over) return;
+    if (this.over || this.fit) return;
     this.over = true;
     this.paused = true;
     PF.gameplayStop();
@@ -177,6 +180,7 @@ var Game = {
   },
 
   settle: function () {
+    if (this.fit) return null;
     if (this.settled) return this.res;
     this.settled = true;
     var bonus = Math.floor(this.time * CFG.coins.timeBonus + this.player.level * CFG.coins.lvlBonus);
@@ -196,7 +200,7 @@ var Game = {
   unsettle: function () { this.settled = false; },
 
   commit: function () {
-    if (this.committed || !this.settled) return;
+    if (this.fit || this.committed || !this.settled) return;
     this.committed = true;
     this.res.coins = this.payout;
     this.res.best = Save.finishRun({
@@ -303,13 +307,15 @@ var Game = {
   },
 
   update: function (dt) {
+    var fit = this.fit;
     this.time += dt;
     Input.update();
-    UI.tickCtrlHint(dt);
+    if (fit) Fit.step(dt);
+    else UI.tickCtrlHint(dt);
     World.refresh(this.player.x, this.player.y, this.viewRadius() + 400);
-    if (World.sea) World.campTick();
+    if (World.sea && !fit) World.campTick();
     Player.update(this.player, dt);
-    Enemies.director(dt);
+    if (!fit) Enemies.director(dt);
     Enemies.update(dt);
     Bosses.update(dt);
     if (World.sea) World.mineTick();
@@ -328,8 +334,10 @@ var Game = {
     Snd.duck();
     Save.tick();
 
-    this.cam.x = U.lerp(this.cam.x, this.player.x, U.clamp(CFG.view.camLerp * dt, 0, 1));
-    this.cam.y = U.lerp(this.cam.y, this.player.y, U.clamp(CFG.view.camLerp * dt, 0, 1));
+    var cx = fit ? fit.cx : this.player.x, cy = fit ? fit.cy : this.player.y;
+    this.cam.x = U.lerp(this.cam.x, cx, U.clamp(CFG.view.camLerp * dt, 0, 1));
+    this.cam.y = U.lerp(this.cam.y, cy, U.clamp(CFG.view.camLerp * dt, 0, 1));
+    if (fit) return;
 
     if (this.pendingWin && !this.over) {
       this.pendingWin = false;
@@ -556,8 +564,7 @@ var Game = {
       ctx.clearRect(0, 0, this.w, this.h);
       View3D.drawOverlay(ctx);
       this.drawVignette(ctx);
-      this.drawMinimap(ctx);
-      this.drawBossMarker(ctx);
+      if (!this.fit) { this.drawMinimap(ctx); this.drawBossMarker(ctx); }
       Input.draw(ctx);
       return;
     }
@@ -578,7 +585,7 @@ var Game = {
     Player.drawTurrets(ctx);
     Enemies.draw(ctx);
     Player.draw(ctx, this.player);
-    this.drawPlayerHp(ctx);
+    if (!this.fit) this.drawPlayerHp(ctx);
     Player.drawBullets(ctx);
     this.drawEnemyBullets(ctx);
     this.drawMines(ctx);
@@ -591,8 +598,7 @@ var Game = {
     ctx.restore();
 
     this.drawVignette(ctx);
-    this.drawMinimap(ctx);
-    this.drawBossMarker(ctx);
+    if (!this.fit) { this.drawMinimap(ctx); this.drawBossMarker(ctx); }
     Input.draw(ctx);
   },
 
@@ -1002,8 +1008,9 @@ var Game = {
 
     if (window.innerWidth !== this.w || window.innerHeight !== this.h) this.resize();
 
+    if (this.fit) this.paused = Fit.held();
     var live = this.running && !this.paused && !this.hold;
-    if (live && View3D.on) this.watchPerf(dt);
+    if (live && View3D.on && !this.fit) this.watchPerf(dt);
 
     var steps = 0;
     if (live) {
@@ -1014,7 +1021,7 @@ var Game = {
         steps++;
       }
       if (steps === 5) this.acc = 0;
-      UI.updateHud();
+      if (!this.fit) UI.updateHud();
     }
     if (this.running) {
       if (!live || steps > 0 || this.redraw) this.render();

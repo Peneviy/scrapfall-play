@@ -75,3 +75,7 @@
 #lbHead{position:absolute;top:62px;left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:6px;padding:6px 12px 0}
 #lbHead .lb-tabs,#lbHead .lb-tiers{position:static;padding:0}
 .lb-maps .lbt{min-width:0;padding:6px 14px;font-size:13px;letter-spacing:.06em}
+
+.lb-au{display:inline-block;width:12px;height:12px;margin-right:7px;border-radius:50%;box-sizing:border-box;
+  border:2px solid var(--au);box-shadow:0 0 6px var(--au),inset 0 0 3px var(--au);vertical-align:-1px}
+.lb-au.hi{background:radial-gradient(circle,var(--au) 0 28%,transparent 34%)}

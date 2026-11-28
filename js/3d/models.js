@@ -347,6 +347,21 @@ var Models = {
         }
         boatR(1.05);
         add(B(0.1, 0.12, 0.55), trim, 0.68, 0.7, 0, 0, 0, 0, 1, 1, 1, 'glow');
+      } else if (type === 'dummy') {
+        var tilt = 0.6, ny = Math.sin(tilt), nz = Math.cos(tilt), cy0 = 1.62;
+        var disc = function (r, col, k, lit) {
+          add(C(r, r, 0.05, 18), col, 0, cy0 + ny * k, nz * k, HALF - tilt, 0, 0, 1, 1, 1, lit);
+        };
+        leg(T(0.74, 0.27, 6, 14), dark, 0, 0.27, 0, HALF);
+        leg(C(0.5, 0.5, 0.34, 8), metal, 0, 0.22, 0);
+        boatR(1.0);
+        add(C(0.1, 0.13, 1.5, 6), metal, 0, 0.95, -0.12);
+        add(B(0.16, 0.9, 0.12), M.RUST, 0, 1.1, -0.42, 0.75);
+        disc(1.12, iron, -0.05);
+        disc(1.05, body, 0);
+        disc(0.8, trim, 0.03);
+        disc(0.55, body, 0.06);
+        disc(0.3, trim, 0.09, 'glow');
       } else {
         add(B(1.4, 1.2, 1.4), body, 0, 0.9, 0);
         add(B(0.12, 0.2, 0.7), trim, 0.72, 1.1, 0, 0, 0, 0, 1, 1, 1, 'glow');

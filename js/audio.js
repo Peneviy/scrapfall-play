@@ -395,7 +395,82 @@ var Snd = {
     this.sfxGain.gain.setTargetAtTime(v, this.ctx.currentTime, 0.12);
   },
 
-  play: function (name) {
+  bangSteps: [0, 2, 4, 7, 9, 12, 9, 7, 4, 2],
+  bangN: 0,
+  bangT: 0,
+  bang: function (id, big, r, now) {
+    switch (id) {
+      case 'rain':
+        if (big) {
+          this.osc({ type: 'triangle', f0: 340 * r, f1: 190, dur: 0.1, vol: 0.5, glide: 0.06, lp: 1500, lp1: 600, verb: 0.15 });
+          this.burst({ type: 'bandpass', f0: 820 * r, f1: 420, q: 1.3, dur: 0.055, vol: 0.4, shape: this.soft });
+          this.osc({ type: 'sine', f0: 150 * r, f1: 85, dur: 0.11, vol: 0.3 });
+        } else {
+          this.osc({ type: 'triangle', f0: 760 * r, f1: 520, dur: 0.045, vol: 0.27, glide: 0.03, lp: 2000, lp1: 900, verb: 0.08 });
+          this.burst({ type: 'bandpass', f0: 1250 * r, f1: 700, q: 1.6, dur: 0.025, vol: 0.14 });
+        }
+        break;
+      case 'latch':
+        if (big) {
+          this.burst({ type: 'bandpass', f0: 1100 * r, q: 3, dur: 0.03, vol: 1 });
+          this.burst({ t: now + 0.035, type: 'bandpass', f0: 620 * r, q: 3, dur: 0.05, vol: 0.8 });
+          this.burst({ brown: true, type: 'lowpass', f0: 700, f1: 200, dur: 0.12, vol: 0.5 });
+          this.osc({ type: 'sine', f0: 130 * r, f1: 70, dur: 0.12, vol: 0.35 });
+        } else {
+          this.burst({ type: 'bandpass', f0: 1500 * r, q: 3.5, dur: 0.022, vol: 0.8 });
+          this.burst({ t: now + 0.02, type: 'bandpass', f0: 880 * r, q: 3, dur: 0.03, vol: 0.55 });
+          this.osc({ type: 'triangle', f0: 250 * r, f1: 170, dur: 0.045, vol: 0.12 });
+        }
+        break;
+      case 'beam':
+        if (big) {
+          this.osc({ type: 'triangle', f0: 1000 * r, f1: 150, dur: 0.22, vol: 0.4, glide: 0.18, lp: 2200, lp1: 600, verb: 0.22 });
+          this.osc({ type: 'sine', f0: 500 * r, f1: 75, dur: 0.22, vol: 0.3, glide: 0.18 });
+          this.burst({ type: 'bandpass', f0: 900, f1: 300, q: 0.8, dur: 0.12, vol: 0.14 });
+        } else {
+          this.osc({ type: 'triangle', f0: 1500 * r, f1: 380, dur: 0.11, vol: 0.17, glide: 0.09, lp: 2600, lp1: 900, verb: 0.12 });
+          this.osc({ type: 'sine', f0: 750 * r, f1: 190, dur: 0.1, vol: 0.09, glide: 0.09 });
+        }
+        break;
+      case 'forge':
+        if (big) {
+          this.burst({ brown: true, type: 'lowpass', f0: 1200 * r, f1: 120, q: 0.6, dur: 0.32, vol: 0.5, shape: this.soft, verb: 0.3 });
+          this.osc({ type: 'sine', f0: 85 * r, f1: 30, dur: 0.3, vol: 0.38 });
+          this.osc({ type: 'triangle', f0: 311 * r, dur: 0.2, vol: 0.045, verb: 0.3 });
+          this.osc({ type: 'sine', f0: 466 * r, dur: 0.13, vol: 0.025, verb: 0.3 });
+        } else {
+          this.osc({ type: 'sine', f0: 150 * r, f1: 55, dur: 0.12, vol: 0.24, glide: 0.08 });
+          this.burst({ brown: true, type: 'lowpass', f0: 900, f1: 200, dur: 0.07, vol: 0.2, shape: this.soft });
+          this.osc({ type: 'triangle', f0: 420 * r, dur: 0.05, vol: 0.035 });
+        }
+        break;
+      case 'choir':
+        if (now - this.bangT > 1.2) this.bangN = 0;
+        this.bangT = now;
+        var f = 587.33 * Math.pow(2, this.bangSteps[this.bangN++ % this.bangSteps.length] / 12);
+        if (big) {
+          this.osc({ type: 'sine', f0: f * 0.5, dur: 0.42, vol: 0.26, verb: 0.45 });
+          this.osc({ t: now + 0.03, type: 'sine', f0: f * 0.75, dur: 0.3, vol: 0.12, verb: 0.45 });
+          this.osc({ type: 'sine', f0: f * 1.38, dur: 0.12, vol: 0.035 });
+          this.burst({ brown: true, type: 'lowpass', f0: 600, f1: 150, dur: 0.09, vol: 0.26 });
+        } else {
+          this.osc({ type: 'sine', f0: f, dur: 0.22, vol: 0.13, verb: 0.35 });
+          this.osc({ type: 'sine', f0: f * 2.76, dur: 0.08, vol: 0.028 });
+          this.osc({ type: 'triangle', f0: f * 2, dur: 0.05, vol: 0.02, lp: 3000 });
+        }
+        break;
+      default:
+        if (big) {
+          this.burst({ brown: true, type: 'lowpass', f0: 2400 * r, f1: 280, q: 0.6, dur: 0.24, vol: 0.6, shape: this.soft, verb: 0.25 });
+          this.osc({ type: 'sine', f0: 110 * r, f1: 38, dur: 0.22, vol: 0.4 });
+        } else {
+          this.osc({ type: 'triangle', f0: 380 * r, f1: 120, dur: 0.075, vol: 0.28, glide: 0.045, lp: 1400, lp1: 500, verb: 0.1 });
+          this.burst({ brown: true, type: 'lowpass', f0: 1800, f1: 400, dur: 0.04, vol: 0.12, shape: this.soft });
+        }
+    }
+  },
+
+  play: function (name, mine) {
     if (!this.on || !this.ctx || this.muted) return;
 
     var now = this.ctx.currentTime;
@@ -412,12 +487,8 @@ var Snd = {
     var k, self = this;
     switch (name) {
       case 'shot':
-        this.osc({ type: 'triangle', f0: 380 * r, f1: 120, dur: 0.075, vol: 0.28, glide: 0.045, lp: 1400, lp1: 500, verb: 0.1 });
-        this.burst({ brown: true, type: 'lowpass', f0: 1800, f1: 400, dur: 0.04, vol: 0.12, shape: this.soft });
-        break;
       case 'shotBig':
-        this.burst({ brown: true, type: 'lowpass', f0: 2400 * r, f1: 280, q: 0.6, dur: 0.24, vol: 0.6, shape: this.soft, verb: 0.25 });
-        this.osc({ type: 'sine', f0: 110 * r, f1: 38, dur: 0.22, vol: 0.4 });
+        this.bang(mine && window.Cos ? Cos.cur('bangs').id : 'stock', name === 'shotBig', r, now);
         break;
       case 'hit':
         this.osc({ type: 'sine', f0: 300 * r, f1: 110, dur: 0.055, vol: 0.085 });
@@ -979,14 +1050,14 @@ var Snd = {
   arpSea: [[0, 2, 3, 5, 3, 2], [0, -1, 2, 3, -1, 2], [0, 2, 3, 2, 5, 2], [0, -1, 3, 2, -1, 1]],
 
   wantLayer: function () {
-    if (!Game.running || Game.over) return 0;
+    if (!Game.running || Game.over || Game.fit) return 0;
     if (window.Finale && Finale.frenzy()) return 3;
     if (Game.activeBoss && Game.activeBoss()) return 3;
     if (Game.time > 75 || Game.enemies.length > 70) return 2;
     return 1;
   },
   wantMood: function () {
-    return (typeof View3D !== 'undefined' && View3D.on && Game.running) ? View3D.dark : 0;
+    return (typeof View3D !== 'undefined' && View3D.on && Game.running && !Game.fit) ? View3D.dark : 0;
   },
   wantHot: function () { return !!(window.Finale && Finale.frenzy() && Game.running); },
   wantSea: function () {

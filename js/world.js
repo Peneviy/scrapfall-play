@@ -516,6 +516,7 @@ var World = {
   },
 
   drop: function (x, y, t, crate) {
+    if (Game.fit) return;
     var roll = t || U.weighted([
       { w: 4, t: 'scrap' },
       { w: 3, t: 'heal' },

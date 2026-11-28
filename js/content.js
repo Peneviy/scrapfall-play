@@ -61,13 +61,14 @@ var Content = {
   ],
 
   skins: [
-    { id: 'rust', cost: 0, ru: { n: 'Ржавчина', d: 'Заводской окрас.' }, en: { n: 'Rust', d: 'Factory paint.' }, body: '#c9713a', trim: '#ffd27d', trail: '#f0a24a' },
-    { id: 'reef', cost: 800, ru: { n: 'Риф', d: 'Бирюза и соль.' }, en: { n: 'Reef', d: 'Teal and salt.' }, body: '#3fa38f', trim: '#a9f2dd', trail: '#6fe3c3' },
-    { id: 'void', cost: 2200, ru: { n: 'Пустота', d: 'Фиолетовый, как элитные машины.' }, en: { n: 'Void', d: 'Purple, like the elites.' }, body: '#8b4bd6', trim: '#e0b3ff', trail: '#a24bd6' },
-    { id: 'ash', cost: 4500, ru: { n: 'Пепел', d: 'Черный с золотой окантовкой.' }, en: { n: 'Ash', d: 'Black with gold trim.' }, body: '#2b3138', trim: '#ffd27d', trail: '#ffe6a8' },
-    { id: 'chalk', cost: 10000, ru: { n: 'Мел', d: 'Белый, как кость пустыни.' }, en: { n: 'Chalk', d: 'White as desert bone.' }, body: '#e9e5dc', trim: '#7fa6c8', trail: '#ffffff' },
-    { id: 'flamingo', cost: 25000, ru: { n: 'Фламинго', d: 'Розовый, чтобы видели издалека.' }, en: { n: 'Flamingo', d: 'Pink, so they see you from afar.' }, body: '#e2629f', trim: '#ffd3e8', trail: '#ff8ac4' },
-    { id: 'ingot', cost: 50000, ru: { n: 'Слиток', d: 'Чистое золото. Отдано полсвалки.' }, en: { n: 'Ingot', d: 'Pure gold. Paid with half the scrapyard.' }, body: '#dca22a', trim: '#fff2b8', trail: '#ffd65a' }
+    { id: 'rust', rar: 0, cost: 0, ru: { n: 'Ржавчина', d: 'Заводской окрас.' }, en: { n: 'Rust', d: 'Factory paint.' }, body: '#c9713a', trim: '#ffd27d', trail: '#f0a24a' },
+    { id: 'reef', rar: 1, cost: 800, ru: { n: 'Риф', d: 'Бирюза и соль.' }, en: { n: 'Reef', d: 'Teal and salt.' }, body: '#3fa38f', trim: '#a9f2dd', trail: '#6fe3c3' },
+    { id: 'void', rar: 1, cost: 2200, ru: { n: 'Пустота', d: 'Фиолетовый, как элитные машины.' }, en: { n: 'Void', d: 'Purple, like the elites.' }, body: '#8b4bd6', trim: '#e0b3ff', trail: '#a24bd6' },
+    { id: 'ash', rar: 2, cost: 4500, ru: { n: 'Пепел', d: 'Черный с золотой окантовкой.' }, en: { n: 'Ash', d: 'Black with gold trim.' }, body: '#2b3138', trim: '#ffd27d', trail: '#ffe6a8' },
+    { id: 'chalk', rar: 2, cost: 10000, ru: { n: 'Мел', d: 'Белый, как кость пустыни.' }, en: { n: 'Chalk', d: 'White as desert bone.' }, body: '#e9e5dc', trim: '#7fa6c8', trail: '#ffffff' },
+    { id: 'flamingo', rar: 3, cost: 25000, ru: { n: 'Фламинго', d: 'Розовый, чтобы видели издалека.' }, en: { n: 'Flamingo', d: 'Pink, so they see you from afar.' }, body: '#e2629f', trim: '#ffd3e8', trail: '#ff8ac4' },
+    { id: 'ingot', rar: 4, cost: 50000, ru: { n: 'Слиток', d: 'Чистое золото. Отдано полсвалки.' }, en: { n: 'Ingot', d: 'Pure gold. Paid with half the scrapyard.' }, body: '#dca22a', trim: '#fff2b8', trail: '#ffd65a' },
+    { id: 'eclipse', rar: 5, cost: 100000, ru: { n: 'Затмение', d: 'Черный корпус и розовая корона по краю.' }, en: { n: 'Eclipse', d: 'A black hull with a pink corona along the edge.' }, body: '#17141f', trim: '#ff5ad1', trail: '#ff8fe6' }
   ],
 
   upgrades: [

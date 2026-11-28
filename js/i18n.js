@@ -20,7 +20,7 @@ var I18N = {
     nkWinUp: 'НАКАЛ {n} пройден -> открыт НАКАЛ {m}',
     nkPause: 'НАКАЛ {n} · очки x{s}',
     freeCoins: 'Ящик с ломом',
-    tabChars: 'Машины', tabWeapons: 'Оружие', tabSkins: 'Окрас', tabUp: 'Модули',
+    tabChars: 'Машины', tabWeapons: 'Оружие', tabSkins: 'Стиль', tabUp: 'Модули',
     auth: 'Войти, чтобы попасть в рейтинг',
     sfx: 'Звук', music: 'Музыка', shake: 'Тряска камеры', lowfx: 'Меньше эффектов',
     quality: 'Качество', qAuto: 'Авто', qHigh: 'Высокое', qLow: 'Низкое',
@@ -132,7 +132,16 @@ var I18N = {
     winLeave: 'Забрать добычу и уйти в ангар', winDouble: 'Удвоить добычу и уйти в ангар',
     nkInfo1: 'НАКАЛ - сложность рейдов после победы над КОРОЛЕВОЙ',
     nkInfo2: 'Каждая ступень добавляет новое условие к прошлым и дает больше очков, лома и стартовых уровней',
-    nkInfo3: 'Победа над КОРОЛЕВОЙ на самой высокой ступени открывает следующую. НАКАЛ у каждой карты свой, ступень выбирают на экране карт'
+    nkInfo3: 'Победа над КОРОЛЕВОЙ на самой высокой ступени открывает следующую. НАКАЛ у каждой карты свой, ступень выбирают на экране карт',
+    cosK_skins: 'Окрас', cosK_auras: 'Аура', cosK_shapes: 'Форма', cosK_tints: 'Цвет', cosK_tails: 'След', cosK_bangs: 'Звук',
+    rar0: 'Обычный', rar1: 'Необычный', rar2: 'Редкий', rar3: 'Эпический', rar4: 'Мифический', rar5: 'Легендарный',
+    cosClaim: 'Забрать', cosHear: 'Послушать', cosGot: 'Открыто: {n}', cosNick: 'Значок и цвет ника в рейтинге', cosNickGot: 'Ник в рейтинге теперь этого цвета',
+    fitTry: 'Примерить', fitWear: 'Надеть', fitDay: 'День', fitDusk: 'Закат', fitNight: 'Ночь', fitDrive: 'Рулить самому',
+    ach_queen3: 'Победи КОРОЛЕВУ на НАКАЛЕ 3',
+    ach_bosses10: 'Победи всех боссов',
+    ach_sea: 'Пройди карту {m}',
+    ach_lvl30: 'Возьми 30 уровень в одном рейде',
+    ach_queen5: 'Победи КОРОЛЕВУ 5 раз'
   },
 
   en: {
@@ -152,7 +161,7 @@ var I18N = {
     nkWinUp: 'HEAT {n} cleared -> HEAT {m} unlocked',
     nkPause: 'HEAT {n} · score x{s}',
     freeCoins: 'Scrap crate',
-    tabChars: 'Machines', tabWeapons: 'Guns', tabSkins: 'Paint', tabUp: 'Modules',
+    tabChars: 'Machines', tabWeapons: 'Guns', tabSkins: 'Style', tabUp: 'Modules',
     auth: 'Log in to join the ranking',
     sfx: 'Sound', music: 'Music', shake: 'Screen shake', lowfx: 'Fewer effects',
     quality: 'Quality', qAuto: 'Auto', qHigh: 'High', qLow: 'Low',
@@ -264,7 +273,16 @@ var I18N = {
     winLeave: 'Take the loot and go to the hangar', winDouble: 'Double the loot and go to the hangar',
     nkInfo1: 'HEAT is the raid difficulty after you beat the QUEEN',
     nkInfo2: 'Each step adds a new condition on top of the previous ones and gives more score, scrap and starting levels',
-    nkInfo3: 'Beating the QUEEN on your highest step unlocks the next one. Each map has its own HEAT, pick the step on the maps screen'
+    nkInfo3: 'Beating the QUEEN on your highest step unlocks the next one. Each map has its own HEAT, pick the step on the maps screen',
+    cosK_skins: 'Paint', cosK_auras: 'Aura', cosK_shapes: 'Shape', cosK_tints: 'Color', cosK_tails: 'Trail', cosK_bangs: 'Sound',
+    rar0: 'Common', rar1: 'Uncommon', rar2: 'Rare', rar3: 'Epic', rar4: 'Mythic', rar5: 'Legendary',
+    cosClaim: 'Claim', cosHear: 'Listen', cosGot: 'Unlocked: {n}', cosNick: 'Badge and name colour on the leaderboard', cosNickGot: 'Your leaderboard name now has this colour',
+    fitTry: 'Try it on', fitWear: 'Put on', fitDay: 'Day', fitDusk: 'Sunset', fitNight: 'Night', fitDrive: 'Drive myself',
+    ach_queen3: 'Beat the QUEEN on HEAT 3',
+    ach_bosses10: 'Defeat every boss',
+    ach_sea: 'Clear the {m} map',
+    ach_lvl30: 'Reach level 30 in one raid',
+    ach_queen5: 'Beat the QUEEN 5 times'
   },
 
   add: function (lang, pack) {
@@ -296,8 +314,8 @@ var I18N = {
   },
 
   _item: function (obj) {
-    var p = this.packs[this.lang];
-    return p && p.items && obj.id ? p.items[obj.id] : null;
+    var p = this.packs[this.lang], key = obj.tid || obj.id;
+    return p && p.items && key ? p.items[key] : null;
   },
   name: function (obj) {
     var o = obj[this.lang], it = this._item(obj);

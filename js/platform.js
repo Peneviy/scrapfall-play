@@ -635,13 +635,14 @@ var PF = {
         catalog: function (cb) {
           var list = CFG.shop.packs.map(function (q, i) { return { id: q.id, price: [10, 25, 50, 100, 500][i] + ' \u20bd' }; });
           list.push({ id: CFG.shop.noAds, price: '30 \u20bd' });
+          CFG.shop.cos.forEach(function (id, i) { list.push({ id: id, price: [149, 99, 79, 59, 39][i] + ' \u20bd' }); });
           cb(list);
         },
         owned: function (cb) { cb(window.SHOP_TEST_OWNED || []); },
         buy: function (id, cb) {
           self._fakeAd(function () {
             if (fail) cb(null, 'UNKNOWN');
-            else cb({ id: id, token: 'test' + Date.now(), consumable: id !== CFG.shop.noAds });
+            else cb({ id: id, token: 'test' + Date.now(), consumable: id !== CFG.shop.noAds && CFG.shop.cos.indexOf(id) < 0 });
           }, 1);
         },
         consume: function (token) { (window.SHOP_TEST_USED = window.SHOP_TEST_USED || []).push(token); }

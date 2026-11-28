@@ -236,7 +236,7 @@ var Spells = {
         q.x = b.x; q.y = b.y; q.vx = Math.cos(a) * N.mirSp; q.vy = Math.sin(a) * N.mirSp;
         q.life = 1.4; q.c = '#e8f4ff';
         FX.spray(b.x, b.y, a, 2, '#e8f4ff', 160);
-        Snd.play('shot');
+        Snd.play('shot', true);
       } else FX.spray(b.x, b.y, Math.atan2(b.vy, b.vx) + Math.PI, 2, '#7ee0ff', 100);
     }
     var G = Bosses.globs;

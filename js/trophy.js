@@ -135,7 +135,7 @@ var Trophy = {
     var n = this.N.salvo.n, off = Math.random() * 6.28;
     for (var i = 0; i < n; i++) Player.bullet(p, off + i / n * Math.PI * 2, this.N.salvo.pow, 0, false);
     FX.ring(p.x, p.y, p.r, p.r + 70, Bosses.byId('crusher').trim, 0.35, 3);
-    Snd.play('shotBig');
+    Snd.play('shotBig', true);
   },
 
   drill: function (p, s, dt, k) {

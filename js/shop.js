@@ -24,6 +24,7 @@ var Shop = {
       for (var i = 0; i < list.length; i++) {
         var id = list[i].id;
         if (self.pack(id) || id === CFG.shop.noAds) { self.price[id] = list[i].price; self.on = true; }
+        else if (self.cos(id)) self.price[id] = list[i].price;
       }
       self.sync();
       st.owned(function (own) {
@@ -35,12 +36,22 @@ var Shop = {
     });
   },
 
-  grant: function (p, st) {
-    var d = Save.data, pack = this.pack(p.id);
+  cos: function (id) {
+    return CFG.shop.cos.indexOf(id) >= 0 && window.Cos ? Cos.bySku(id) : null;
+  },
+
+  grant: function (p, st, wear) {
+    var d = Save.data, pack = this.pack(p.id), c = this.cos(p.id);
     if (p.id === CFG.shop.noAds) {
       if (!d.noAds) { d.noAds = 1; Save.flush(true); }
       PF.noAds = true;
       PF.banner(false);
+      return 0;
+    }
+    if (c) {
+      if (!d[c.kind] || typeof d[c.kind] !== 'object') d[c.kind] = {};
+      if (!d[c.kind][c.it.id]) { d[c.kind][c.it.id] = 1; Save.flush(true); }
+      if (wear) Save.equip(c.kind, c.it.id);
       return 0;
     }
     if (!pack) return 0;
@@ -61,6 +72,8 @@ var Shop = {
     var self = this, st = PF.store();
     if (!st || this.busy || PF.adRunning) return;
     if (id === CFG.shop.noAds && Save.data.noAds) return;
+    var c = this.cos(id);
+    if (c && Cos.owned(c.kind, c.it.id)) return;
     this.busy = true;
     this.render();
     PF.payStart();
@@ -76,17 +89,22 @@ var Shop = {
     st.buy(id, function (p, why) {
       release();
       if (!p) {
-        if (why === 'NON_CONSUMABLE_ALREADY_OWNED') { self.grant({ id: id }, st); UI.toast(I18N.t('buyNoAdsDone')); }
+        if (why === 'NON_CONSUMABLE_ALREADY_OWNED') { self.grant({ id: id }, st, true); UI.toast(self.doneText(id)); }
         else if (why !== 'USER_CANCELLED') UI.toast(I18N.t('buyFail'));
         self.sync();
         return;
       }
-      var coins = self.grant(p, st);
+      var coins = self.grant(p, st, true);
       Snd.play('coin');
-      if (p.id === CFG.shop.noAds) UI.toast(I18N.t('buyNoAdsDone'));
+      if (p.id === CFG.shop.noAds || self.cos(p.id)) UI.toast(self.doneText(p.id));
       else if (coins) UI.toast(I18N.t('rewardCoins', { n: self.fmt(coins) }));
       self.sync();
     });
+  },
+
+  doneText: function (id) {
+    var c = this.cos(id);
+    return c ? Cos.gotText(c.it) : I18N.t('buyNoAdsDone');
   },
 
   open: function (from) {
@@ -152,5 +170,7 @@ var Shop = {
     UI.el('shopCoins').textContent = c;
     if (!UI.el('scrBuy').classList.contains('hidden')) this.render();
     if (!UI.el('scrMenu').classList.contains('hidden')) UI.renderQuickUp();
+    if (!UI.el('scrShop').classList.contains('hidden') && UI.tab === 'skins') UI.renderShop();
+    if (window.Fit && Fit.on()) Fit.render();
   }
 };

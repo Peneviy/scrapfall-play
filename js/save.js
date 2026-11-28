@@ -17,6 +17,11 @@ var Save = {
       gun: 'pistol',
       skins: { rust: 1 },
       skin: 'rust',
+      auras: { none: 1 }, aura: 'none',
+      shapes: { bolt: 1 }, shape: 'bolt',
+      tints: { stock: 1 }, tint: 'stock',
+      tails: { none: 1 }, tail: 'none',
+      bangs: { stock: 1 }, bang: 'stock',
       up: { dmg: 0, hp: 0, spd: 0, xp: 0, loot: 0, cd: 0, radius: 0, tech: 0, regen: 0 },
       up10: 1,
       bosses: {},
@@ -44,7 +49,8 @@ var Save = {
           if (raw[k] === undefined) continue;
           if (typeof d[k] === 'object' && d[k] !== null && !Array.isArray(d[k])) {
             for (var kk in d[k]) if (raw[k][kk] !== undefined) d[k][kk] = raw[k][kk];
-            if (k === 'chars' || k === 'guns' || k === 'skins' || k === 'bosses' || k === 'set' || k === 'm') {
+            if (k === 'chars' || k === 'guns' || k === 'skins' || k === 'bosses' || k === 'set' || k === 'm' ||
+                k === 'auras' || k === 'shapes' || k === 'tints' || k === 'tails' || k === 'bangs') {
               for (var id in raw[k]) d[k][id] = raw[k][id];
             }
           } else {
@@ -113,7 +119,7 @@ var Save = {
   },
 
   equip: function (kind, id) {
-    var field = kind === 'chars' ? 'char' : (kind === 'guns' ? 'gun' : 'skin');
+    var field = kind.slice(0, -1);
     this.data[field] = id;
     this.flush(true);
   },

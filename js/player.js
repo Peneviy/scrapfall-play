@@ -46,7 +46,7 @@ var Player = {
     p.xpNeed = Player.xpFor(1);
     if (ch.turret) p.st.turret = 1;
 
-    var boost = Nakal.tier() * CFG.nakal.startLevel;
+    var boost = Game.fit ? 0 : Nakal.tier() * CFG.nakal.startLevel;
     for (var i = 0; i < boost; i++) {
       var cards = Skills.roll(p, 1);
       if (cards.length) Player.take(p, cards[0]);
@@ -78,6 +78,7 @@ var Player = {
   },
 
   addXp: function (p, n) {
+    if (Game.fit) return;
     p.xp += n * p.st.xp;
     while (p.xp >= p.xpNeed) {
       p.xp -= p.xpNeed;
@@ -109,6 +110,7 @@ var Player = {
   },
 
   hurt: function (p, dmg, dot) {
+    if (Game.fit) return;
     if (dot) {
       if (!p.alive || p.dashT > 0) return;
       p.hp -= dmg * (1 - p.st.armor);
@@ -215,7 +217,7 @@ var Player = {
       }
     }
 
-    var manual = Save.data.set.aim === 'mouse' && !Input.touch;
+    var manual = Save.data.set.aim === 'mouse' && !Input.touch && !Game.fit;
     var target = Game.nearestEnemy(p.x, p.y, p.gun.range + 120);
     p.target = target;
     if (manual) {
@@ -373,8 +375,15 @@ var Player = {
     if (g === 'scatter' && p.evo.scatter && n % 3 === 0) {
       for (var q = 0; q < 16; q++) this.bullet(p, ang + q / 16 * Math.PI * 2 + 0.1, 1, 0, false);
     }
-    FX.spray(p.x + Math.cos(ang) * 18, p.y + Math.sin(ang) * 18, ang, 3, '#ffd27d', 160);
-    Snd.play(p.gun.sfx);
+    FX.spray(p.x + Math.cos(ang) * 18, p.y + Math.sin(ang) * 18, ang, 3, this.flashCol(p), 160);
+    Snd.play(p.gun.sfx, true);
+  },
+
+  flashCol: function (p) {
+    var ti = Cos.cur('tints');
+    if (ti.id === Cos.base.tints) return '#ffd27d';
+    if (ti.hue) return 'hsl(' + Math.round(Cos.shotHue(Game.time, p.x, p.y) / 30) * 30 + ',100%,66%)';
+    return ti.halo || ti.col;
   },
 
   bullet: function (p, ang, power, side, frag) {
@@ -739,7 +748,7 @@ var Player = {
           life: rk ? 1.05 : 0.8, hits: [],
           rail: null, cluster: false
         });
-        Snd.play('shot');
+        Snd.play('shot', true);
       }
     }
   },
@@ -784,6 +793,23 @@ var Player = {
     for (var tq = 0; tq < p.trail.length; tq++) {
       var tp = p.trail[tq], ta = U.clamp(1 - (Game.time - tp.t) / 3, 0, 1);
       GlowCache.draw(ctx, 'rgba(255,122,92,.35)', tp.x, tp.y, 30, ta);
+    }
+
+    var au = Cos.cur('auras');
+    if (au.col && p.alive) {
+      var aR = Math.min(p.st.pickup, p.r * 2.6), aw = (Game.time * 0.45) % 1;
+      ctx.strokeStyle = au.col;
+      ctx.globalAlpha = 0.34;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, aR, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.globalAlpha = 0.3 * (1 - aw);
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, aR * (0.55 + 0.45 * aw), 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
     }
 
     GlowCache.draw(ctx, 'rgba(255,210,125,.22)', p.x, p.y, p.r * 3.2, 1);
@@ -877,13 +903,111 @@ var Player = {
       ctx.fill();
     }
     var glow = list.length < 90 && !Save.data.set.low;
-    for (var i = 0; i < list.length; i++) {
+    var tint = Cos.cur('tints'), shape = Cos.cur('shapes').id, tail = Cos.cur('tails').id;
+    var own = tint.id === Cos.base.tints ? null : tint.col, t = Game.time;
+    var H = tint.hue ? this.hueCols() : null;
+    var bolt = shape === Cos.base.shapes, tailOn = tail !== Cos.base.tails && glow;
+    var j, ux = 1, uy = 0;
+    for (i = 0; i < list.length; i++) {
       var b = list[i];
       var isTech = b.c === CFG.col.tech;
-      if (glow) GlowCache.draw(ctx, isTech ? CFG.col.techGlow : CFG.col.allyGlow, b.x, b.y, b.r * 3, 1);
-      ctx.fillStyle = b.crit ? '#fff2cc' : (b.c || CFG.col.ally);
+      var col = isTech || !own ? (b.c || CFG.col.ally) : (H ? H[Math.round(Cos.shotHue(t, b.x, b.y) / 15)] : own);
+      if (glow) {
+        if (isTech || !own) GlowCache.draw(ctx, isTech ? CFG.col.techGlow : CFG.col.allyGlow, b.x, b.y, b.r * 3, 1);
+        else GlowCache.draw(ctx, tint.halo || col, b.x, b.y, b.r * 3, tint.halo ? 0.7 : 0.45);
+      }
+      if (!bolt || tailOn) {
+        var sp = Math.sqrt(b.vx * b.vx + b.vy * b.vy) || 1;
+        ux = b.vx / sp; uy = b.vy / sp;
+      }
+      if (tailOn) {
+        if (tail === 'comet') {
+          ctx.globalAlpha = 0.5;
+          ctx.fillStyle = col;
+          ctx.beginPath();
+          ctx.moveTo(b.x - uy * b.r * 0.8, b.y + ux * b.r * 0.8);
+          ctx.lineTo(b.x - ux * b.r * 8, b.y - uy * b.r * 8);
+          ctx.lineTo(b.x + uy * b.r * 0.8, b.y - ux * b.r * 0.8);
+          ctx.fill();
+        } else {
+          for (j = 0; j < 2; j++) {
+            var ph = t * 4 + j * 0.5 + b.vx * 0.0137 + b.vy * 0.0091, age = ph - Math.floor(ph);
+            var d = b.r * (1.5 + age * 7), side = j ? 1 : -1, qx = b.x - ux * d, qy = b.y - uy * d, qs;
+            ctx.globalAlpha = 1 - age;
+            if (tail === 'smoke') {
+              ctx.globalAlpha = 0.45 * (1 - age);
+              ctx.fillStyle = '#b9b3aa';
+              ctx.beginPath();
+              ctx.arc(qx, qy, b.r * (0.6 + age), 0, Math.PI * 2);
+              ctx.fill();
+            } else if (tail === 'sparks') {
+              ctx.fillStyle = age < 0.4 ? '#fff3c4' : '#ffb347';
+              ctx.fillRect(qx - uy * side * b.r * 3 * age - 1, qy + ux * side * b.r * 3 * age - 1, 2, 2);
+            } else if (tail === 'ash') {
+              ctx.fillStyle = age < 0.35 ? '#ffd27a' : (age < 0.7 ? '#ff7a2e' : '#9a3118');
+              ctx.fillRect(qx - 1.2, qy - age * age * b.r * 3 - 1.2, 2.4, 2.4);
+            } else {
+              qs = 1 + 1.6 * Math.abs(Math.sin(t * 9 + j * 2.4 + b.vx));
+              ctx.fillStyle = j ? '#ffffff' : '#bcd4ff';
+              ctx.fillRect(qx - uy * side * b.r - qs / 2, qy + ux * side * b.r - qs / 2, qs, qs);
+            }
+          }
+        }
+        ctx.globalAlpha = 1;
+      }
+      ctx.fillStyle = b.crit ? '#fff2cc' : col;
+      if (bolt) {
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+        ctx.fill();
+      } else this.shotPath(ctx, shape, b.x, b.y, ux, uy, b.r, t);
+    }
+  },
+
+  hueCols: function () {
+    if (!this._hues) {
+      this._hues = [];
+      for (var i = 0; i <= 24; i++) this._hues.push('hsl(' + i * 15 + ',100%,66%)');
+    }
+    return this._hues;
+  },
+
+  shotPath: function (ctx, id, x, y, ux, uy, r, t) {
+    var nx = -uy * r, ny = ux * r, fx = ux * r, fy = uy * r, i, a, k;
+    ctx.beginPath();
+    if (id === 'sting') {
+      ctx.moveTo(x + fx * 2.8, y + fy * 2.8);
+      ctx.lineTo(x - fx * 1.6 + nx * 0.45, y - fy * 1.6 + ny * 0.45);
+      ctx.lineTo(x - fx * 2.3, y - fy * 2.3);
+      ctx.lineTo(x - fx * 1.6 - nx * 0.45, y - fy * 1.6 - ny * 0.45);
+    } else if (id === 'shard') {
+      ctx.moveTo(x + fx * 2, y + fy * 2);
+      ctx.lineTo(x + nx, y + ny);
+      ctx.lineTo(x - fx * 2, y - fy * 2);
+      ctx.lineTo(x - nx, y - ny);
+    } else if (id === 'fang') {
+      ctx.moveTo(x + fx * 1.9, y + fy * 1.9);
+      ctx.lineTo(x - fx * 1.4 + nx * 1.3, y - fy * 1.4 + ny * 1.3);
+      ctx.lineTo(x - fx * 0.6, y - fy * 0.6);
+      ctx.lineTo(x - fx * 1.4 - nx * 1.3, y - fy * 1.4 - ny * 1.3);
+    } else if (id === 'star') {
+      for (i = 0; i < 8; i++) {
+        a = t * 5 + i * Math.PI / 4; k = i % 2 ? r * 0.55 : r * 2;
+        if (i) ctx.lineTo(x + Math.cos(a) * k, y + Math.sin(a) * k); else ctx.moveTo(x + Math.cos(a) * k, y + Math.sin(a) * k);
+      }
+    } else if (id === 'tear') {
+      a = Math.atan2(uy, ux);
+      ctx.arc(x + fx * 0.6, y + fy * 0.6, r * 1.1, a - Math.PI / 2, a + Math.PI / 2);
+      ctx.lineTo(x - fx * 2.8, y - fy * 2.8);
+    } else {
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+    }
+    ctx.closePath();
+    ctx.fill();
+    if (id === 'tear') {
+      ctx.fillStyle = '#ffffff';
       ctx.beginPath();
-      ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+      ctx.arc(x + fx * 0.7, y + fy * 0.7, r * 0.5, 0, Math.PI * 2);
       ctx.fill();
     }
   }
